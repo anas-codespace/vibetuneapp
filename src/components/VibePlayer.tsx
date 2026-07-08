@@ -97,6 +97,8 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   const containerRef = useRef<HTMLDivElement>(null);
   const tickRef = useRef<number | null>(null);
   const replenishRef = useRef<boolean>(false);
+  const readyRef = useRef<boolean>(false);
+  const pendingRef = useRef<string | null>(null);
   const logListenFn = useServerFn(logListen);
   const mixFn = useServerFn(getSmartMix);
 
@@ -105,11 +107,29 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     loadYT().then((YT) => {
       if (cancelled || !containerRef.current) return;
       playerRef.current = new YT.Player(containerRef.current, {
-        height: "0",
-        width: "0",
-        playerVars: { autoplay: 0, controls: 0, playsinline: 1 },
+        height: "180",
+        width: "320",
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          playsinline: 1,
+          rel: 0,
+          modestbranding: 1,
+          origin: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
         events: {
-          onReady: () => playerRef.current?.setVolume(80),
+          onReady: () => {
+            readyRef.current = true;
+            playerRef.current?.setVolume?.(80);
+            const pending = pendingRef.current;
+            if (pending) {
+              pendingRef.current = null;
+              try {
+                playerRef.current?.loadVideoById?.(pending);
+                playerRef.current?.playVideo?.();
+              } catch { /* noop */ }
+            }
+          },
           onStateChange: (e: any) => {
             if (e.data === 1) setIsPlaying(true);
             else if (e.data === 2) setIsPlaying(false);
@@ -117,6 +137,11 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
               setIsPlaying(false);
               nextRef.current?.();
             }
+          },
+          onError: (e: any) => {
+            // 2=invalid id, 5=HTML5, 100=removed, 101/150=embedding disabled
+            console.warn("[VibePlayer] YouTube error", e?.data);
+            nextRef.current?.();
           },
         },
       });
