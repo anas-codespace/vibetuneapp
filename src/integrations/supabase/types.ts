@@ -14,7 +14,209 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      liked_songs: {
+        Row: {
+          artist: string
+          created_at: string
+          id: string
+          thumbnail_url: string | null
+          title: string
+          user_id: string
+          youtube_id: string
+        }
+        Insert: {
+          artist: string
+          created_at?: string
+          id?: string
+          thumbnail_url?: string | null
+          title: string
+          user_id: string
+          youtube_id: string
+        }
+        Update: {
+          artist?: string
+          created_at?: string
+          id?: string
+          thumbnail_url?: string | null
+          title?: string
+          user_id?: string
+          youtube_id?: string
+        }
+        Relationships: []
+      }
+      listening_history: {
+        Row: {
+          artist: string
+          id: string
+          played_at: string
+          title: string
+          user_id: string
+          youtube_id: string
+        }
+        Insert: {
+          artist: string
+          id?: string
+          played_at?: string
+          title: string
+          user_id: string
+          youtube_id: string
+        }
+        Update: {
+          artist?: string
+          id?: string
+          played_at?: string
+          title?: string
+          user_id?: string
+          youtube_id?: string
+        }
+        Relationships: []
+      }
+      playlist_songs: {
+        Row: {
+          artist: string
+          created_at: string
+          id: string
+          playlist_id: string
+          position: number
+          thumbnail_url: string | null
+          title: string
+          user_id: string
+          youtube_id: string
+        }
+        Insert: {
+          artist: string
+          created_at?: string
+          id?: string
+          playlist_id: string
+          position?: number
+          thumbnail_url?: string | null
+          title: string
+          user_id: string
+          youtube_id: string
+        }
+        Update: {
+          artist?: string
+          created_at?: string
+          id?: string
+          playlist_id?: string
+          position?: number
+          thumbnail_url?: string | null
+          title?: string
+          user_id?: string
+          youtube_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlist_songs_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playlists: {
+        Row: {
+          cover_image: string | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cover_image?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cover_image?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          fav_artists: Json
+          fav_languages: string[]
+          id: string
+          onboarded: boolean
+          profile_pic_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          fav_artists?: Json
+          fav_languages?: string[]
+          id?: string
+          onboarded?: boolean
+          profile_pic_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          fav_artists?: Json
+          fav_languages?: string[]
+          id?: string
+          onboarded?: boolean
+          profile_pic_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      songs: {
+        Row: {
+          artist: string
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          is_embeddable: boolean
+          mood_tag: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          youtube_id: string
+        }
+        Insert: {
+          artist: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          is_embeddable?: boolean
+          mood_tag?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          youtube_id: string
+        }
+        Update: {
+          artist?: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          is_embeddable?: boolean
+          mood_tag?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          youtube_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
