@@ -126,7 +126,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
               pendingRef.current = null;
               try {
                 playerRef.current?.loadVideoById?.(pending);
-                playerRef.current?.playVideo?.();
+                window.setTimeout(() => playerRef.current?.playVideo?.(), 0);
               } catch { /* noop */ }
             }
           },
@@ -168,6 +168,18 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     };
   }, []);
 
+  const loadAndPlay = useCallback((youtubeId: string) => {
+    const p = playerRef.current;
+    if (readyRef.current && p?.loadVideoById) {
+      try {
+        p.loadVideoById(youtubeId);
+        window.setTimeout(() => p.playVideo?.(), 0);
+        return;
+      } catch { /* noop */ }
+    }
+    pendingRef.current = youtubeId;
+  }, []);
+
   const play = useCallback((track: VibeTrack, q?: VibeTrack[]) => {
     const newQueue = q ?? [track];
     const idx = newQueue.findIndex((t) => t.youtubeId === track.youtubeId);
@@ -175,17 +187,12 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     setIndex(idx >= 0 ? idx : 0);
     setCurrent(track);
     setMixMode(false);
-    const p = playerRef.current;
-    if (readyRef.current && p?.loadVideoById) {
-      try { p.loadVideoById(track.youtubeId); p.playVideo?.(); } catch { /* noop */ }
-    } else {
-      pendingRef.current = track.youtubeId;
-    }
+    loadAndPlay(track.youtubeId);
     logListenFn({
       data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
     }).catch(() => {});
     startAudioForeground();
-  }, [logListenFn]);
+  }, [loadAndPlay, logListenFn]);
 
   const startMix = useCallback((tracks: VibeTrack[]) => {
     if (tracks.length === 0) return;
@@ -193,17 +200,12 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     setQueue(tracks);
     setIndex(0);
     setCurrent(tracks[0]);
-    const p = playerRef.current;
-    if (readyRef.current && p?.loadVideoById) {
-      try { p.loadVideoById(tracks[0].youtubeId); p.playVideo?.(); } catch { /* noop */ }
-    } else {
-      pendingRef.current = tracks[0].youtubeId;
-    }
+    loadAndPlay(tracks[0].youtubeId);
     logListenFn({
       data: { youtubeId: tracks[0].youtubeId, title: tracks[0].title, artist: tracks[0].artist },
     }).catch(() => {});
     startAudioForeground();
-  }, [logListenFn]);
+  }, [loadAndPlay, logListenFn]);
 
   // Auto-replenish: when mix mode is on and queue is running low, fetch more tracks
   const replenishQueue = useCallback(async (remaining: number) => {
@@ -230,12 +232,15 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
 
   const toggle = useCallback(() => {
     const p = playerRef.current;
-    if (!p || !readyRef.current) return;
+    if (!p || !readyRef.current) {
+      if (current) pendingRef.current = current.youtubeId;
+      return;
+    }
     try {
       if (isPlaying) p.pauseVideo?.();
       else p.playVideo?.();
     } catch { /* noop */ }
-  }, [isPlaying]);
+  }, [current, isPlaying]);
 
   const next = useCallback(() => {
     if (!queue.length) return;
@@ -243,15 +248,11 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     const t = queue[ni];
     setIndex(ni);
     setCurrent(t);
-    if (readyRef.current) {
-      try { playerRef.current?.loadVideoById?.(t.youtubeId); } catch { /* noop */ }
-    } else {
-      pendingRef.current = t.youtubeId;
-    }
+    loadAndPlay(t.youtubeId);
     logListenFn({ data: { youtubeId: t.youtubeId, title: t.title, artist: t.artist } }).catch(() => {});
     const remaining = queue.length - ni - 1;
     replenishQueue(remaining);
-  }, [index, queue, logListenFn, replenishQueue]);
+  }, [index, queue, loadAndPlay, logListenFn, replenishQueue]);
 
   const prev = useCallback(() => {
     if (!queue.length) return;
@@ -259,13 +260,9 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     const t = queue[pi];
     setIndex(pi);
     setCurrent(t);
-    if (readyRef.current) {
-      try { playerRef.current?.loadVideoById?.(t.youtubeId); } catch { /* noop */ }
-    } else {
-      pendingRef.current = t.youtubeId;
-    }
+    loadAndPlay(t.youtubeId);
     logListenFn({ data: { youtubeId: t.youtubeId, title: t.title, artist: t.artist } }).catch(() => {});
-  }, [index, queue, logListenFn]);
+  }, [index, queue, loadAndPlay, logListenFn]);
 
   const nextRef = useRef(next);
   useEffect(() => { nextRef.current = next; }, [next]);
@@ -291,7 +288,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   return (
     <Ctx.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed -left-[9999px] top-0 h-0 w-0 overflow-hidden" aria-hidden>
+      <div className="pointer-events-none fixed left-0 top-0 h-[180px] w-[320px] opacity-0" aria-hidden>
         <div ref={containerRef} />
       </div>
       <AnimatePresence>
