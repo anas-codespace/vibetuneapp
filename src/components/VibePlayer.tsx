@@ -176,9 +176,10 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     setCurrent(track);
     setMixMode(false);
     const p = playerRef.current;
-    if (p?.loadVideoById) {
-      p.loadVideoById(track.youtubeId);
-      p.playVideo?.();
+    if (readyRef.current && p?.loadVideoById) {
+      try { p.loadVideoById(track.youtubeId); p.playVideo?.(); } catch { /* noop */ }
+    } else {
+      pendingRef.current = track.youtubeId;
     }
     logListenFn({
       data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
@@ -193,9 +194,10 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     setIndex(0);
     setCurrent(tracks[0]);
     const p = playerRef.current;
-    if (p?.loadVideoById) {
-      p.loadVideoById(tracks[0].youtubeId);
-      p.playVideo?.();
+    if (readyRef.current && p?.loadVideoById) {
+      try { p.loadVideoById(tracks[0].youtubeId); p.playVideo?.(); } catch { /* noop */ }
+    } else {
+      pendingRef.current = tracks[0].youtubeId;
     }
     logListenFn({
       data: { youtubeId: tracks[0].youtubeId, title: tracks[0].title, artist: tracks[0].artist },
@@ -228,9 +230,11 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
 
   const toggle = useCallback(() => {
     const p = playerRef.current;
-    if (!p) return;
-    if (isPlaying) p.pauseVideo?.();
-    else p.playVideo?.();
+    if (!p || !readyRef.current) return;
+    try {
+      if (isPlaying) p.pauseVideo?.();
+      else p.playVideo?.();
+    } catch { /* noop */ }
   }, [isPlaying]);
 
   const next = useCallback(() => {
@@ -239,9 +243,12 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     const t = queue[ni];
     setIndex(ni);
     setCurrent(t);
-    playerRef.current?.loadVideoById?.(t.youtubeId);
+    if (readyRef.current) {
+      try { playerRef.current?.loadVideoById?.(t.youtubeId); } catch { /* noop */ }
+    } else {
+      pendingRef.current = t.youtubeId;
+    }
     logListenFn({ data: { youtubeId: t.youtubeId, title: t.title, artist: t.artist } }).catch(() => {});
-    // Auto-replenish when running low
     const remaining = queue.length - ni - 1;
     replenishQueue(remaining);
   }, [index, queue, logListenFn, replenishQueue]);
@@ -252,7 +259,11 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     const t = queue[pi];
     setIndex(pi);
     setCurrent(t);
-    playerRef.current?.loadVideoById?.(t.youtubeId);
+    if (readyRef.current) {
+      try { playerRef.current?.loadVideoById?.(t.youtubeId); } catch { /* noop */ }
+    } else {
+      pendingRef.current = t.youtubeId;
+    }
     logListenFn({ data: { youtubeId: t.youtubeId, title: t.title, artist: t.artist } }).catch(() => {});
   }, [index, queue, logListenFn]);
 
