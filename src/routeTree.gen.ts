@@ -23,6 +23,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LibraryIdRouteImport } from './routes/library.$id'
 import { Route as ApiAnalyzeMoodRouteImport } from './routes/api/analyze-mood'
+import { Route as ApiPublicHealthYoutubeRouteImport } from './routes/api/public/health.youtube'
 
 const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
@@ -94,6 +95,11 @@ const ApiAnalyzeMoodRoute = ApiAnalyzeMoodRouteImport.update({
   path: '/api/analyze-mood',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHealthYoutubeRoute = ApiPublicHealthYoutubeRouteImport.update({
+  id: '/api/public/health/youtube',
+  path: '/api/public/health/youtube',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/verify': typeof VerifyRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
+  '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/verify': typeof VerifyRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
+  '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/verify': typeof VerifyRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
+  '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/api/analyze-mood'
     | '/library/$id'
+    | '/api/public/health/youtube'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/api/analyze-mood'
     | '/library/$id'
+    | '/api/public/health/youtube'
   id:
     | '__root__'
     | '/'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/api/analyze-mood'
     | '/library/$id'
+    | '/api/public/health/youtube'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -209,6 +221,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   VerifyRoute: typeof VerifyRoute
   ApiAnalyzeMoodRoute: typeof ApiAnalyzeMoodRoute
+  ApiPublicHealthYoutubeRoute: typeof ApiPublicHealthYoutubeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -311,6 +324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAnalyzeMoodRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/health/youtube': {
+      id: '/api/public/health/youtube'
+      path: '/api/public/health/youtube'
+      fullPath: '/api/public/health/youtube'
+      preLoaderRoute: typeof ApiPublicHealthYoutubeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -339,6 +359,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   VerifyRoute: VerifyRoute,
   ApiAnalyzeMoodRoute: ApiAnalyzeMoodRoute,
+  ApiPublicHealthYoutubeRoute: ApiPublicHealthYoutubeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
