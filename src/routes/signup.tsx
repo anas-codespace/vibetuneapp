@@ -3,7 +3,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Eye, EyeOff, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { VibtuneLogo } from "@/components/VibtuneLogo";
 
 export const Route = createFileRoute("/signup")({
@@ -12,15 +14,23 @@ export const Route = createFileRoute("/signup")({
 });
 
 const SignupSchema = z.object({
-  name: z.string().trim().min(1).max(80),
-  email: z.string().trim().email().max(255),
-  password: z.string().min(8).max(72),
+  name: z.string().trim().min(1, "Enter your name").max(80),
+  email: z.string().trim().email("Enter a valid email").max(255),
+  password: z.string().min(8, "Password must be at least 8 characters").max(72),
 });
 
 function SignupPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+
+  const rules = [
+    { label: "At least 8 characters", ok: form.password.length >= 8 },
+    { label: "Contains a letter", ok: /[a-zA-Z]/.test(form.password) },
+    { label: "Contains a number", ok: /\d/.test(form.password) },
+  ];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,8 +54,22 @@ function SignupPage() {
     navigate({ to: "/verify", search: { email: parsed.data.email } });
   }
 
+  async function handleGoogle() {
+    setGoogleLoading(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setGoogleLoading(false);
+      toast.error(result.error.message ?? "Google sign-in failed.");
+      return;
+    }
+    if (result.redirected) return;
+    navigate({ to: "/app" });
+  }
+
   return (
-    <main className="relative flex min-h-screen items-center justify-center px-6">
+    <main className="relative flex min-h-screen items-center justify-center px-6 py-12">
       <Link to="/" className="absolute left-6 top-6"><VibtuneLogo className="h-9" /></Link>
       <motion.form
         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
@@ -53,17 +77,58 @@ function SignupPage() {
         className="glass-strong w-full max-w-md rounded-3xl p-8"
       >
         <h1 className="mb-2 text-3xl font-bold">Start your <span className="vibe-text">vibe</span></h1>
-        <p className="mb-8 text-sm text-white/60">Create an account in seconds.</p>
-
-        <div className="space-y-4">
-          <Field label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} autoComplete="name" />
-          <Field label="Email" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} autoComplete="email" />
-          <Field label="Password" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} autoComplete="new-password" />
-        </div>
+        <p className="mb-6 text-sm text-white/60">Sign up with Google, or with your email and a password.</p>
 
         <button
-          type="submit" disabled={loading}
-          className="vibe-gradient-h mt-8 w-full rounded-full py-3.5 font-semibold text-white disabled:opacity-60"
+          type="button" onClick={handleGoogle} disabled={googleLoading || loading}
+          className="mb-5 flex w-full items-center justify-center gap-3 rounded-full border border-white/15 bg-white/95 py-3 font-semibold text-slate-900 transition hover:bg-white disabled:opacity-60"
+        >
+          <GoogleIcon />
+          {googleLoading ? "Opening Google…" : "Continue with Google"}
+        </button>
+
+        <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-wider text-white/40">
+          <span className="h-px flex-1 bg-white/10" /> or email <span className="h-px flex-1 bg-white/10" />
+        </div>
+
+        <div className="space-y-4">
+          <Field label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} autoComplete="name" placeholder="Your name" />
+          <Field label="Email" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} autoComplete="email" placeholder="you@example.com" />
+          <label className="block">
+            <span className="mb-1.5 block text-xs uppercase tracking-wider text-white/50">Password</span>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"} value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                autoComplete="new-password" required placeholder="Create a password"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 text-white outline-none focus:ring-2 focus:ring-pink-500/60"
+              />
+              <button
+                type="button" onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="absolute inset-y-0 right-3 flex items-center text-white/60 hover:text-white"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+            <ul className="mt-2 space-y-1 text-xs text-white/60">
+              {rules.map((r) => (
+                <li key={r.label} className="flex items-center gap-2">
+                  {r.ok ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <X className="h-3.5 w-3.5 text-white/40" />}
+                  <span className={r.ok ? "text-white/80" : ""}>{r.label}</span>
+                </li>
+              ))}
+            </ul>
+          </label>
+        </div>
+
+        <p className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/60">
+          After creating your account you'll get a 6-digit code by email. Enter it on the next screen to verify your address, then finish onboarding.
+        </p>
+
+        <button
+          type="submit" disabled={loading || googleLoading}
+          className="vibe-gradient-h mt-6 w-full rounded-full py-3.5 font-semibold text-white disabled:opacity-60"
         >
           {loading ? "Creating…" : "Create account"}
         </button>
@@ -76,16 +141,27 @@ function SignupPage() {
   );
 }
 
-function Field({ label, value, onChange, type = "text", autoComplete }: {
-  label: string; value: string; onChange: (v: string) => void; type?: string; autoComplete?: string;
+function Field({ label, value, onChange, type = "text", autoComplete, placeholder }: {
+  label: string; value: string; onChange: (v: string) => void; type?: string; autoComplete?: string; placeholder?: string;
 }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs uppercase tracking-wider text-white/50">{label}</span>
       <input
-        type={type} value={value} onChange={(e) => onChange(e.target.value)} autoComplete={autoComplete} required
+        type={type} value={value} onChange={(e) => onChange(e.target.value)} autoComplete={autoComplete} required placeholder={placeholder}
         className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-transparent focus:ring-2 focus:ring-pink-500/60"
       />
     </label>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5c-.3 1.5-1.1 2.8-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8z"/>
+      <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1C3.4 21.3 7.4 24 12 24z"/>
+      <path fill="#FBBC05" d="M5.4 14.4c-.2-.7-.4-1.4-.4-2.4s.1-1.7.4-2.4V6.5H1.4C.5 8.2 0 10 0 12s.5 3.8 1.4 5.5l4-3.1z"/>
+      <path fill="#EA4335" d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0 7.4 0 3.4 2.7 1.4 6.5l4 3.1C6.3 6.9 8.9 4.8 12 4.8z"/>
+    </svg>
   );
 }
