@@ -1,0 +1,586 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ChevronDown,
+  Heart,
+  Pause,
+  Play,
+  Plus,
+  SkipBack,
+  SkipForward,
+} from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Slider } from "@/components/ui/slider";
+import { logListen } from "@/lib/profile.functions";
+import { getLikedIds, toggleLike } from "@/lib/library.functions";
+import { getSmartMix } from "@/lib/mix.functions";
+import { startAudioForeground, stopAudioForeground } from "@/lib/capacitor-audio";
+import { SyncedLyrics } from "@/components/SyncedLyrics";
+import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
+import { cn } from "@/lib/utils";
+
+export interface VibeTrack {
+  youtubeId: string;
+  title: string;
+  artist: string;
+  thumbnailUrl?: string;
+  durationSeconds?: number;
+}
+
+interface PlayerCtx {
+  current: VibeTrack | null;
+  queue: VibeTrack[];
+  isPlaying: boolean;
+  mixMode: boolean;
+  play: (track: VibeTrack, queue?: VibeTrack[]) => void;
+  startMix: (tracks: VibeTrack[]) => void;
+  toggle: () => void;
+  next: () => void;
+  prev: () => void;
+  close: () => void;
+  expand: () => void;
+}
+
+const Ctx = createContext<PlayerCtx | null>(null);
+
+export function usePlayer() {
+  const v = useContext(Ctx);
+  if (!v) throw new Error("usePlayer must be used within <VibePlayerProvider>");
+  return v;
+}
+
+/* ------------------------- YouTube IFrame loader ------------------------- */
+
+declare global {
+  interface Window {
+    YT?: any;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+let ytReadyPromise: Promise<any> | null = null;
+function loadYT(): Promise<any> {
+  if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
+  if (window.YT && window.YT.Player) return Promise.resolve(window.YT);
+  if (ytReadyPromise) return ytReadyPromise;
+  ytReadyPromise = new Promise((resolve) => {
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+    window.onYouTubeIframeAPIReady = () => resolve(window.YT);
+  });
+  return ytReadyPromise;
+}
+
+/* ------------------------------ Provider ------------------------------ */
+
+export function VibePlayerProvider({ children }: { children: React.ReactNode }) {
+  const [current, setCurrent] = useState<VibeTrack | null>(null);
+  const [queue, setQueue] = useState<VibeTrack[]>([]);
+  const [index, setIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+  const [mixMode, setMixMode] = useState(false);
+
+  const playerRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tickRef = useRef<number | null>(null);
+  const replenishRef = useRef<boolean>(false);
+  const logListenFn = useServerFn(logListen);
+  const mixFn = useServerFn(getSmartMix);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadYT().then((YT) => {
+      if (cancelled || !containerRef.current) return;
+      playerRef.current = new YT.Player(containerRef.current, {
+        height: "0",
+        width: "0",
+        playerVars: { autoplay: 0, controls: 0, playsinline: 1 },
+        events: {
+          onReady: () => playerRef.current?.setVolume(80),
+          onStateChange: (e: any) => {
+            if (e.data === 1) setIsPlaying(true);
+            else if (e.data === 2) setIsPlaying(false);
+            else if (e.data === 0) {
+              setIsPlaying(false);
+              nextRef.current?.();
+            }
+          },
+        },
+      });
+    });
+    return () => {
+      cancelled = true;
+      if (tickRef.current) window.clearInterval(tickRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (tickRef.current) window.clearInterval(tickRef.current);
+    tickRef.current = window.setInterval(() => {
+      const p = playerRef.current;
+      if (!p || typeof p.getCurrentTime !== "function") return;
+      try {
+        setProgress(p.getCurrentTime() ?? 0);
+        setDuration(p.getDuration() ?? 0);
+      } catch { /* noop */ }
+    }, 250);
+    return () => {
+      if (tickRef.current) window.clearInterval(tickRef.current);
+    };
+  }, []);
+
+  const play = useCallback((track: VibeTrack, q?: VibeTrack[]) => {
+    const newQueue = q ?? [track];
+    const idx = newQueue.findIndex((t) => t.youtubeId === track.youtubeId);
+    setQueue(newQueue);
+    setIndex(idx >= 0 ? idx : 0);
+    setCurrent(track);
+    setMixMode(false);
+    const p = playerRef.current;
+    if (p?.loadVideoById) {
+      p.loadVideoById(track.youtubeId);
+      p.playVideo?.();
+    }
+    logListenFn({
+      data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
+    }).catch(() => {});
+    startAudioForeground();
+  }, [logListenFn]);
+
+  const startMix = useCallback((tracks: VibeTrack[]) => {
+    if (tracks.length === 0) return;
+    setMixMode(true);
+    setQueue(tracks);
+    setIndex(0);
+    setCurrent(tracks[0]);
+    const p = playerRef.current;
+    if (p?.loadVideoById) {
+      p.loadVideoById(tracks[0].youtubeId);
+      p.playVideo?.();
+    }
+    logListenFn({
+      data: { youtubeId: tracks[0].youtubeId, title: tracks[0].title, artist: tracks[0].artist },
+    }).catch(() => {});
+    startAudioForeground();
+  }, [logListenFn]);
+
+  // Auto-replenish: when mix mode is on and queue is running low, fetch more tracks
+  const replenishQueue = useCallback(async (remaining: number) => {
+    if (!mixMode || replenishRef.current || remaining >= 3) return;
+    replenishRef.current = true;
+    try {
+      const more = await mixFn();
+      const newTracks: VibeTrack[] = (more ?? []).map((t) => ({
+        youtubeId: t.youtubeId,
+        title: t.title,
+        artist: t.artist,
+        thumbnailUrl: t.thumbnailUrl,
+        durationSeconds: t.durationSeconds,
+      }));
+      if (newTracks.length > 0) {
+        setQueue((prev) => [...prev, ...newTracks]);
+      }
+    } catch {
+      // Silently fail — music continues with existing queue
+    } finally {
+      replenishRef.current = false;
+    }
+  }, [mixMode, mixFn]);
+
+  const toggle = useCallback(() => {
+    const p = playerRef.current;
+    if (!p) return;
+    if (isPlaying) p.pauseVideo?.();
+    else p.playVideo?.();
+  }, [isPlaying]);
+
+  const next = useCallback(() => {
+    if (!queue.length) return;
+    const ni = (index + 1) % queue.length;
+    const t = queue[ni];
+    setIndex(ni);
+    setCurrent(t);
+    playerRef.current?.loadVideoById?.(t.youtubeId);
+    logListenFn({ data: { youtubeId: t.youtubeId, title: t.title, artist: t.artist } }).catch(() => {});
+    // Auto-replenish when running low
+    const remaining = queue.length - ni - 1;
+    replenishQueue(remaining);
+  }, [index, queue, logListenFn, replenishQueue]);
+
+  const prev = useCallback(() => {
+    if (!queue.length) return;
+    const pi = (index - 1 + queue.length) % queue.length;
+    const t = queue[pi];
+    setIndex(pi);
+    setCurrent(t);
+    playerRef.current?.loadVideoById?.(t.youtubeId);
+    logListenFn({ data: { youtubeId: t.youtubeId, title: t.title, artist: t.artist } }).catch(() => {});
+  }, [index, queue, logListenFn]);
+
+  const nextRef = useRef(next);
+  useEffect(() => { nextRef.current = next; }, [next]);
+
+  const close = useCallback(() => {
+    playerRef.current?.stopVideo?.();
+    setCurrent(null);
+    setIsPlaying(false);
+    setExpanded(false);
+    stopAudioForeground();
+  }, []);
+
+  const expand = useCallback(() => setExpanded(true), []);
+  const collapse = useCallback(() => setExpanded(false), []);
+
+  const value = useMemo<PlayerCtx>(
+    () => ({ current, queue, isPlaying, mixMode, play, startMix, toggle, next, prev, close, expand }),
+    [current, queue, isPlaying, mixMode, play, startMix, toggle, next, prev, close, expand],
+  );
+
+  const seek = useCallback((s: number) => playerRef.current?.seekTo?.(s, true), []);
+
+  return (
+    <Ctx.Provider value={value}>
+      {children}
+      <div className="pointer-events-none fixed -left-[9999px] top-0 h-0 w-0 overflow-hidden" aria-hidden>
+        <div ref={containerRef} />
+      </div>
+      <AnimatePresence>
+        {current && !expanded && (
+          <MiniPlayer
+            track={current}
+            isPlaying={isPlaying}
+            progress={progress}
+            duration={duration}
+            onToggle={toggle}
+            onExpand={expand}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {current && expanded && (
+          <FullPlayer
+            track={current}
+            isPlaying={isPlaying}
+            progress={progress}
+            duration={duration}
+            onToggle={toggle}
+            onNext={next}
+            onPrev={prev}
+            onSeek={seek}
+            onCollapse={collapse}
+          />
+        )}
+      </AnimatePresence>
+    </Ctx.Provider>
+  );
+}
+
+/* ------------------------------- Mini ------------------------------- */
+
+function fmt(s: number): string {
+  if (!isFinite(s) || s < 0) return "0:00";
+  const m = Math.floor(s / 60);
+  const r = Math.floor(s % 60);
+  return `${m}:${r.toString().padStart(2, "0")}`;
+}
+
+interface MiniProps {
+  track: VibeTrack;
+  isPlaying: boolean;
+  progress: number;
+  duration: number;
+  onToggle: () => void;
+  onExpand: () => void;
+}
+
+function MiniPlayer(p: MiniProps) {
+  const pct = p.duration ? (p.progress / p.duration) * 100 : 0;
+  return (
+    <motion.button
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 100, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 320, damping: 32 }}
+      onClick={p.onExpand}
+      className="fixed inset-x-0 z-40 cursor-pointer px-4 text-left"
+      style={{ bottom: "calc(80px + env(safe-area-inset-bottom))" }}
+    >
+      <div className="relative mx-auto flex max-w-md items-center gap-3 overflow-hidden rounded-2xl border border-pink-500/20 bg-[#1A1A1A] p-2 pr-3 shadow-[0_0_28px_-8px_rgba(255,0,127,0.5)] md:max-w-lg">
+        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+          {p.track.thumbnailUrl ? (
+            <img src={p.track.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="vibe-gradient h-full w-full" />
+          )}
+          <Visualizer playing={p.isPlaying} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-white">{p.track.title}</p>
+          <p className="truncate text-xs text-white/50">{p.track.artist}</p>
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); p.onToggle(); }}
+          aria-label={p.isPlaying ? "Pause" : "Play"}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-pink-500 text-white shadow-[0_0_20px_-4px_rgba(255,0,127,0.8)] active:scale-95"
+        >
+          {p.isPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />}
+        </button>
+        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-white/5">
+          <div className="vibe-gradient-h h-full transition-[width] duration-200" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+      <span className="sr-only">{fmt(p.progress)} / {fmt(p.duration)}</span>
+    </motion.button>
+  );
+}
+
+/* ----------------------------- Full screen ----------------------------- */
+
+interface FullProps {
+  track: VibeTrack;
+  isPlaying: boolean;
+  progress: number;
+  duration: number;
+  onToggle: () => void;
+  onNext: () => void;
+  onPrev: () => void;
+  onSeek: (s: number) => void;
+  onCollapse: () => void;
+}
+
+function FullPlayer(p: FullProps) {
+  const [tab, setTab] = useState<"player" | "lyrics">("player");
+  const [addOpen, setAddOpen] = useState(false);
+  const likedFn = useServerFn(getLikedIds);
+  const toggleFn = useServerFn(toggleLike);
+  const qc = useQueryClient();
+
+  const { data: likedIds } = useQuery({
+    queryKey: ["liked-ids"],
+    queryFn: () => likedFn(),
+  });
+  const isLiked = (likedIds ?? []).includes(p.track.youtubeId);
+
+  const handleLike = async () => {
+    try {
+      await toggleFn({
+        data: {
+          youtubeId: p.track.youtubeId,
+          title: p.track.title,
+          artist: p.track.artist,
+          thumbnailUrl: p.track.thumbnailUrl ?? null,
+        },
+      });
+      qc.invalidateQueries({ queryKey: ["liked-ids"] });
+      qc.invalidateQueries({ queryKey: ["liked-songs"] });
+    } catch { /* noop */ }
+  };
+
+  return (
+    <motion.div
+      initial={{ y: "100%" }}
+      animate={{ y: 0 }}
+      exit={{ y: "100%" }}
+      transition={{ type: "spring", stiffness: 280, damping: 32 }}
+      className="fixed inset-0 z-[70] flex flex-col bg-[#050505] pb-[env(safe-area-inset-bottom)]"
+    >
+      {/* Ambient glow from artwork */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {p.track.thumbnailUrl && (
+          <img
+            src={p.track.thumbnailUrl}
+            aria-hidden
+            className="absolute inset-0 h-full w-full scale-150 object-cover opacity-40 blur-3xl"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/70 to-[#050505]" />
+      </div>
+
+      <div className="relative z-10 flex flex-1 flex-col">
+        {/* Drag handle */}
+        <div className="mx-auto my-4 h-1.5 w-12 shrink-0 rounded-full bg-white/20" />
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-[env(safe-area-inset-top)] pb-2 pt-4">
+          <button
+            onClick={p.onCollapse}
+            aria-label="Minimize"
+            className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10"
+          >
+            <ChevronDown className="h-5 w-5" />
+          </button>
+          <div className="flex gap-1 rounded-full bg-white/5 p-1">
+            {(["player", "lyrics"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={cn(
+                  "rounded-full px-4 py-1.5 text-xs font-semibold capitalize transition",
+                  tab === t ? "vibe-gradient text-white shadow-[0_0_18px_-4px_rgba(236,0,140,0.6)]" : "text-white/55",
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <div className="w-10" />
+        </div>
+
+        {tab === "player" ? (
+          <div className="flex flex-1 flex-col px-6">
+            {/* Album art */}
+            <div className="flex flex-1 items-center justify-center py-6">
+              <motion.div
+                layoutId="album-art"
+                className="relative aspect-square w-full max-w-sm overflow-hidden rounded-3xl shadow-[0_30px_80px_-20px_rgba(236,0,140,0.55)]"
+              >
+                {p.track.thumbnailUrl ? (
+                  <img src={p.track.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="vibe-gradient h-full w-full" />
+                )}
+              </motion.div>
+            </div>
+
+            {/* Title + artist */}
+            <div className="text-center">
+              <h2 className="line-clamp-2 text-xl font-bold text-white">{p.track.title}</h2>
+              <p className="mt-1 text-sm text-white/60">{p.track.artist}</p>
+            </div>
+
+            {/* Progress */}
+            <div className="mt-6">
+              <Slider
+                value={[p.duration ? (p.progress / p.duration) * 100 : 0]}
+                onValueChange={(v) => p.duration && p.onSeek((v[0] / 100) * p.duration)}
+                max={100}
+                step={0.1}
+              />
+              <div className="mt-1 flex justify-between text-[10px] tabular-nums text-white/40">
+                <span>{fmt(p.progress)}</span>
+                <span>-{fmt(Math.max(0, p.duration - p.progress))}</span>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="mt-6 flex items-center justify-center gap-6">
+              <button
+                onClick={handleLike}
+                aria-label={isLiked ? "Unlike" : "Like"}
+                className="grid h-12 w-12 place-items-center rounded-full text-white/80 transition hover:bg-white/5"
+              >
+                <Heart
+                  className={cn("h-6 w-6 transition", isLiked && "fill-current")}
+                  style={isLiked ? { color: "#EC008C", filter: "drop-shadow(0 0 8px rgba(236,0,140,0.7))" } : undefined}
+                />
+              </button>
+              <button
+                onClick={p.onPrev}
+                aria-label="Previous"
+                className="grid h-12 w-12 place-items-center rounded-full text-white/80 hover:bg-white/5"
+              >
+                <SkipBack className="h-6 w-6" fill="currentColor" />
+              </button>
+              <button
+                onClick={p.onToggle}
+                aria-label={p.isPlaying ? "Pause" : "Play"}
+                className="vibe-gradient grid h-16 w-16 place-items-center rounded-full text-white shadow-[0_0_30px_-4px_rgba(236,0,140,0.7)] active:scale-95"
+              >
+                {p.isPlaying ? <Pause className="h-7 w-7" fill="currentColor" /> : <Play className="h-7 w-7 translate-x-0.5" fill="currentColor" />}
+              </button>
+              <button
+                onClick={p.onNext}
+                aria-label="Next"
+                className="grid h-12 w-12 place-items-center rounded-full text-white/80 hover:bg-white/5"
+              >
+                <SkipForward className="h-6 w-6" fill="currentColor" />
+              </button>
+              <button
+                onClick={() => setAddOpen(true)}
+                aria-label="Add to playlist"
+                className="grid h-12 w-12 place-items-center rounded-full text-white/80 transition hover:bg-white/5"
+              >
+                <Plus className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="h-8" />
+          </div>
+        ) : (
+          <div className="relative flex-1 overflow-hidden">
+            <SyncedLyrics
+              title={p.track.title}
+              artist={p.track.artist}
+              currentTime={p.progress}
+            />
+            {/* Inline mini controls */}
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#050505] via-[#050505]/90 to-transparent px-6 pb-4 pt-12">
+              <Slider
+                value={[p.duration ? (p.progress / p.duration) * 100 : 0]}
+                onValueChange={(v) => p.duration && p.onSeek((v[0] / 100) * p.duration)}
+                max={100}
+                step={0.1}
+              />
+              <div className="mt-3 flex items-center justify-center gap-6">
+                <button onClick={p.onPrev} aria-label="Previous" className="text-white/80">
+                  <SkipBack className="h-6 w-6" fill="currentColor" />
+                </button>
+                <button
+                  onClick={p.onToggle}
+                  aria-label={p.isPlaying ? "Pause" : "Play"}
+                  className="vibe-gradient grid h-14 w-14 place-items-center rounded-full text-white shadow-[0_0_24px_-4px_rgba(236,0,140,0.7)] active:scale-95"
+                >
+                  {p.isPlaying ? <Pause className="h-6 w-6" fill="currentColor" /> : <Play className="h-6 w-6 translate-x-0.5" fill="currentColor" />}
+                </button>
+                <button onClick={p.onNext} aria-label="Next" className="text-white/80">
+                  <SkipForward className="h-6 w-6" fill="currentColor" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <AddToPlaylistSheet open={addOpen} onClose={() => setAddOpen(false)} track={p.track} />
+    </motion.div>
+  );
+}
+
+/* ----------------------------- Visualizer ----------------------------- */
+
+const BAR_COUNT = 4;
+
+function Visualizer({ playing }: { playing: boolean }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-end justify-center gap-[2px] bg-black/40 p-1.5">
+      {Array.from({ length: BAR_COUNT }).map((_, i) => (
+        <span
+          key={i}
+          className="vibe-gradient w-[2px] origin-bottom rounded-full"
+          style={{
+            height: "100%",
+            animation: playing
+              ? `vibeBar ${0.6 + (i % 3) * 0.18}s ease-in-out ${i * 0.07}s infinite alternate`
+              : "none",
+            transform: playing ? undefined : "scaleY(0.18)",
+            opacity: 0.95,
+          }}
+        />
+      ))}
+      <style>{`@keyframes vibeBar { 0% { transform: scaleY(0.2); } 100% { transform: scaleY(1); } }`}</style>
+    </div>
+  );
+}
