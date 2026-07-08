@@ -343,12 +343,20 @@ interface MiniProps {
 function MiniPlayer(p: MiniProps) {
   const pct = p.duration ? (p.progress / p.duration) * 100 : 0;
   return (
-    <motion.button
+    <motion.div
+      role="button"
+      tabIndex={0}
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
       transition={{ type: "spring", stiffness: 320, damping: 32 }}
       onClick={p.onExpand}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          p.onExpand();
+        }
+      }}
       className="fixed inset-x-0 z-40 cursor-pointer px-4 text-left"
       style={{ bottom: "calc(80px + env(safe-area-inset-bottom))" }}
     >
@@ -377,7 +385,7 @@ function MiniPlayer(p: MiniProps) {
         </div>
       </div>
       <span className="sr-only">{fmt(p.progress)} / {fmt(p.duration)}</span>
-    </motion.button>
+    </motion.div>
   );
 }
 
