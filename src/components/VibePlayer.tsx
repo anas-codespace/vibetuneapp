@@ -445,7 +445,7 @@ interface FullProps {
 }
 
 function FullPlayer(p: FullProps) {
-  const [tab, setTab] = useState<"player" | "lyrics">("player");
+  const [activeView, setActiveView] = useState<"player" | "lyrics">("player");
   const [addOpen, setAddOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
 
