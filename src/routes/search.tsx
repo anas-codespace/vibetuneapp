@@ -77,21 +77,20 @@ function SearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, debounced]);
 
-  const tracks: VibeTrack[] = (data ?? []).map((t) => ({
+  const results: SpotifyPlayableResult[] = data ?? [];
+  const toVibe = (t: SpotifyPlayableResult): VibeTrack => ({
     youtubeId: t.youtubeId,
     title: t.title,
     artist: t.artist,
-    thumbnailUrl: t.thumbnailUrl,
+    thumbnailUrl: t.albumArt ?? "",
     durationSeconds: t.durationSeconds,
-  }));
-
-  const top = tracks[0];
-  const rest = tracks.slice(1);
+  });
+  const vibeTracks = results.map(toVibe);
+  const top = results[0];
+  const rest = results.slice(1);
 
   // Group artists from results (unique by artist name)
-  const artists = Array.from(
-    new Map(tracks.map((t) => [t.artist, t])).values(),
-  ).slice(0, 8);
+  const artists = Array.from(new Map(results.map((t) => [t.artist, t])).values()).slice(0, 8);
 
   return (
     <main className="relative min-h-screen pb-44 pt-[calc(env(safe-area-inset-top)+1rem)]">
