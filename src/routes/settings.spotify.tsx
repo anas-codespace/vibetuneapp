@@ -195,12 +195,22 @@ function SpotifySettings() {
 
   const disconnectMut = useMutation({
     mutationFn: () => disconnect(),
+    onMutate: () => {
+      // Optimistic: flip UI to Disconnected immediately.
+      qc.setQueryData(["spotify-connection"], null);
+    },
     onSuccess: () => {
       toast.success("Spotify disconnected");
       setLikedResult(null);
       setPlaylistResults({});
+      setConfirmDisconnect(false);
+      qc.removeQueries({ queryKey: ["spotify-playlists"] });
       qc.invalidateQueries({ queryKey: ["spotify-connection"] });
-      qc.invalidateQueries({ queryKey: ["spotify-playlists"] });
+    },
+    onError: (e: unknown) => {
+      // Roll back optimistic update
+      qc.invalidateQueries({ queryKey: ["spotify-connection"] });
+      toast.error(e instanceof Error ? e.message : "Couldn't disconnect Spotify");
     },
   });
 
