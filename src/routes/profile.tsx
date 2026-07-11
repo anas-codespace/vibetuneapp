@@ -148,9 +148,9 @@ function ProfilePage() {
               className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-white/5 shadow-xl transition hover:opacity-90 disabled:opacity-50"
               aria-label="Change avatar"
             >
-              {localAvatar || profile?.profile_pic_url ? (
+              {localAvatar || signedAvatar ? (
                 <img
-                  src={localAvatar ?? profile?.profile_pic_url ?? ""}
+                  src={localAvatar ?? signedAvatar ?? ""}
                   alt=""
                   className="h-full w-full object-cover"
                 />
