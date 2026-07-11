@@ -44,6 +44,13 @@ function LibraryPage() {
     if (!loading && !session) navigate({ to: "/login" });
   }, [loading, session, navigate]);
 
+  useEffect(() => {
+    if (sync.phase === "done" || sync.phase === "partial") {
+      qc.invalidateQueries({ queryKey: ["liked-songs"] });
+      qc.invalidateQueries({ queryKey: ["my-playlists"] });
+    }
+  }, [sync.phase, sync.updatedAt, qc]);
+
   const { data: liked } = useQuery({
     queryKey: ["liked-songs"],
     queryFn: () => likedFn(),
