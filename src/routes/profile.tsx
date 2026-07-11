@@ -200,6 +200,7 @@ function ProfilePage() {
           {menu.map((item) => (
             <button
               key={item.key}
+              onClick={() => toast.info(`${item.label} — coming soon`)}
               className="group flex w-full items-center justify-between rounded-xl p-3 transition-colors hover:bg-white/5"
             >
               <div className="flex items-center gap-4">
