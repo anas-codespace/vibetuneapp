@@ -67,6 +67,10 @@ function ProfilePage() {
 
   const handlePic = async (file: File) => {
     if (!user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image too large", { description: "Max 5MB" });
+      return;
+    }
     // Instant local preview
     const previewUrl = URL.createObjectURL(file);
     setLocalAvatar(previewUrl);
@@ -78,9 +82,9 @@ function ProfilePage() {
         .from("avatars")
         .upload(path, file, { upsert: true, contentType: file.type });
       if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-      await picFn({ data: { url: pub.publicUrl } });
+      await picFn({ data: { url: path } });
       qc.invalidateQueries({ queryKey: ["profile"] });
+      qc.invalidateQueries({ queryKey: ["avatar-signed"] });
       toast.success("Avatar updated");
     } catch (e) {
       setLocalAvatar(null);
