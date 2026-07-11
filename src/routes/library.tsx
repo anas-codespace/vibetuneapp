@@ -32,6 +32,7 @@ function LibraryPage() {
   const { play } = usePlayer();
   const [showCreate, setShowCreate] = useState(false);
   const { items: downloads } = useDownloads();
+  const sync = useSyncStatus();
   const [name, setName] = useState("");
 
   // Bulk-select state
