@@ -6,7 +6,7 @@
 
 /*
  * VIBETUNE — Deep Obsidian Noir + Vibe Wave Gradient
- * Strict palette: #050505 / Violet #7D3FF3 → Magenta #EC008C → Coral #FF4500
+ * Strict palette: #000000 / Violet #7D3FF3 → Magenta #EC008C → Coral #FF4500
  * Glassmorphism, breathing glow, gradient borders.
  */
 
@@ -101,11 +101,9 @@
   * { border-color: var(--color-border); }
   html { color-scheme: dark; }
   body {
-    background-color: var(--color-background);
+    background-color: #000000;
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    background-image: var(--gradient-vibe-radial);
-    background-attachment: fixed;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
   }

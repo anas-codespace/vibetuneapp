@@ -490,7 +490,7 @@ function FullPlayer(p: FullProps) {
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", stiffness: 280, damping: 32 }}
-      className="fixed inset-0 z-[100] flex h-[100dvh] flex-col overflow-hidden bg-[#050505] pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-0 z-[100] flex h-[100dvh] flex-col overflow-hidden bg-[#000000] pb-[env(safe-area-inset-bottom)]"
     >
       {/* Ambient glow from artwork */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -501,7 +501,7 @@ function FullPlayer(p: FullProps) {
             className="absolute inset-0 h-full w-full scale-150 object-cover opacity-40 blur-3xl"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/70 to-[#050505]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/70 to-[#000000]" />
       </div>
 
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
@@ -657,7 +657,7 @@ function FullPlayer(p: FullProps) {
               />
             </div>
             {/* Inline mini controls */}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#050505] via-[#050505]/90 to-transparent px-6 pb-4 pt-12">
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#000000] via-[#000000]/90 to-transparent px-6 pb-4 pt-12">
               <Slider
                 value={[p.duration ? (p.progress / p.duration) * 100 : 0]}
                 onValueChange={(v) => p.duration && p.onSeek((v[0] / 100) * p.duration)}

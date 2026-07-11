@@ -236,7 +236,7 @@ export function VibeCheck({
             exit={{ y: 40, opacity: 0, scale: 0.98 }}
             transition={spring}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md overflow-hidden rounded-3xl border border-[#222] bg-[#050505] p-5 pt-4 shadow-[0_20px_80px_-20px_rgba(255,0,127,0.4)]"
+            className="relative w-full max-w-md overflow-hidden rounded-3xl border border-[#222] bg-[#000000] p-5 pt-4 shadow-[0_20px_80px_-20px_rgba(255,0,127,0.4)]"
           >
             {/* Close */}
             <button
@@ -434,7 +434,7 @@ export function VibeCheck({
                       <motion.div
                         animate={{ scale: [0.95, 1.05, 0.95] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                        className="absolute inset-6 rounded-full bg-[#050505]/60 backdrop-blur-md"
+                        className="absolute inset-6 rounded-full bg-[#000000]/60 backdrop-blur-md"
                       />
                     </div>
                     <p className="text-base font-semibold text-white">
