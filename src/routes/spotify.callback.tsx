@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { spotifyExchangeCode, spotifyAutoSync } from "@/lib/spotify.functions";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { setSyncStatus } from "@/hooks/use-sync-status";
 
 export const Route = createFileRoute("/spotify/callback")({
   head: () => ({ meta: [{ title: "Connecting Spotify" }] }),
