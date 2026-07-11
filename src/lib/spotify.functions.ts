@@ -281,7 +281,6 @@ export const spotifyImportPlaylist = createServerFn({ method: "POST" })
 
 // ---------- Auto-sync on login: Liked + all Playlists ----------
 
-import { getMyLikedTracks as _getMyLikedTracks, getMyPlaylistsList as _getMyPlaylistsList, getPlaylistTracks as _getPlaylistTracks } from "./spotify.server";
 
 export interface AutoSyncResult {
   likedAdded: number;
@@ -297,7 +296,7 @@ export const spotifyAutoSync = createServerFn({ method: "POST" })
     const token = await getFreshUserToken(context.supabase, context.userId);
 
     // --- Liked Songs ---
-    const liked = await _getMyLikedTracks(token, 200);
+    const liked = await getMyLikedTracks(token, 200);
     let likedAdded = 0;
     let likedSkipped = 0;
     for (const track of liked) {
@@ -334,7 +333,7 @@ export const spotifyAutoSync = createServerFn({ method: "POST" })
     }
 
     // --- Playlists ---
-    const playlists = await _getMyPlaylistsList(token);
+    const playlists = await getMyPlaylistsList(token);
     let playlistsCreated = 0;
     let playlistsSkipped = 0;
     let tracksAdded = 0;
@@ -352,7 +351,7 @@ export const spotifyAutoSync = createServerFn({ method: "POST" })
         continue;
       }
 
-      const tracks = await _getPlaylistTracks(token, p.id, 300);
+      const tracks = await getPlaylistTracks(token, p.id, 300);
       const { data: pl, error: plErr } = await context.supabase
         .from("playlists")
         .insert({ user_id: context.userId, name: p.name, cover_image: p.cover ?? null })
