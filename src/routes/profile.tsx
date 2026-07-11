@@ -67,6 +67,9 @@ function ProfilePage() {
 
   const handlePic = async (file: File) => {
     if (!user) return;
+    // Instant local preview
+    const previewUrl = URL.createObjectURL(file);
+    setLocalAvatar(previewUrl);
     setUploading(true);
     try {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
@@ -80,6 +83,7 @@ function ProfilePage() {
       qc.invalidateQueries({ queryKey: ["profile"] });
       toast.success("Avatar updated");
     } catch (e) {
+      setLocalAvatar(null);
       toast.error("Upload failed", { description: e instanceof Error ? e.message : "" });
     } finally {
       setUploading(false);
