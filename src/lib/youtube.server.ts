@@ -106,21 +106,35 @@ async function fetchVideoDetails(ids: string[]): Promise<RawVideoItem[]> {
  * Filters: 60s <= duration <= 600s and embeddable.
  * Sort:    Official channels/titles first via scoreVideo().
  */
-export async function searchMusic(query: string, maxResults = 20): Promise<YTTrack[]> {
+export async function searchMusic(query: string, maxResults = 30): Promise<YTTrack[]> {
   const cacheKey = `${CACHE_VERSION}::${query.trim().toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return cached;
 
-  const q = `${query} ${QUERY_NEGATIVES}`.trim();
+  // Force Tamil/Indian music context + strip junk formats.
+  const q = `${query} tamil official audio OR lyric video ${QUERY_NEGATIVES}`.trim();
   const searchUrl =
-    `${YT_BASE}/search?part=id&type=video` +
-    `&videoCategoryId=10&regionCode=IN&videoEmbeddable=true` +
+    `${YT_BASE}/search?part=snippet&type=video` +
+    `&videoCategoryId=10&regionCode=IN&relevanceLanguage=ta&videoEmbeddable=true` +
     `&maxResults=50&q=${encodeURIComponent(q)}&key=${key()}`;
-  const searchRes = await fetch(searchUrl);
+
+  let searchRes: Response;
+  try {
+    searchRes = await fetch(searchUrl);
+  } catch (e) {
+    console.error("[youtube] network error", e);
+    return [];
+  }
+
+  if (searchRes.status === 403) {
+    console.warn("[youtube] quota exceeded or forbidden");
+    return [];
+  }
   if (!searchRes.ok) {
     console.error("[youtube] search failed", searchRes.status, await searchRes.text().catch(() => ""));
     return [];
   }
+
   const searchData = (await searchRes.json()) as {
     items: Array<{ id: { videoId?: string } }>;
   };
@@ -129,22 +143,21 @@ export async function searchMusic(query: string, maxResults = 20): Promise<YTTra
 
   const items = await fetchVideoDetails(ids);
 
-  // Strict duration + embeddable filter (no Shorts, no jukebox/full albums).
+  // Strict duration: 90s..480s (drop ringtones/shorts and jukeboxes/full movies).
   const durationFiltered = items
     .map((v) => ({ v, seconds: isoDurationToSeconds(v.contentDetails.duration) }))
-    .filter(({ v, seconds }) => v.status.embeddable && seconds >= 60 && seconds <= 600);
+    .filter(({ v, seconds }) => v.status.embeddable && seconds >= 90 && seconds <= 480);
 
-  // The Guillotine: hard-block trailers/teasers/promos/etc by title.
+  // Guillotine: hard-block trailers/teasers/promos/etc by title.
   const filtered = durationFiltered.filter(
     ({ v }) => !FORBIDDEN_KEYWORDS_RE.test(v.snippet.title),
   );
 
-  // Score & sort: official channels/titles + explicit song identifiers first.
   filtered.sort((a, b) => scoreVideo(b.v) - scoreVideo(a.v));
 
   const tracks: YTTrack[] = filtered.slice(0, maxResults).map(({ v, seconds }) => ({
     youtubeId: v.id,
-    title: v.snippet.title,
+    title: cleanTitle(v.snippet.title),
     artist: v.snippet.channelTitle.replace(/ *-? *Topic$/i, ""),
     thumbnailUrl:
       v.snippet.thumbnails.high?.url ?? v.snippet.thumbnails.default?.url ?? "",
@@ -157,10 +170,9 @@ export async function searchMusic(query: string, maxResults = 20): Promise<YTTra
 }
 
 export async function relatedArtistNames(seedArtist: string, limit = 8): Promise<string[]> {
-  // YouTube Search → use channel + topic to surface adjacent artists.
   const url =
     `${YT_BASE}/search?part=snippet&type=video&videoCategoryId=10` +
-    `&regionCode=IN&maxResults=25&q=${encodeURIComponent(seedArtist + " similar artists")}&key=${key()}`;
+    `&regionCode=IN&relevanceLanguage=ta&maxResults=25&q=${encodeURIComponent(seedArtist + " similar artists")}&key=${key()}`;
   const res = await fetch(url);
   if (!res.ok) return [];
   const data = (await res.json()) as { items: Array<{ snippet: { channelTitle: string } }> };
