@@ -340,8 +340,10 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
             progress={progress}
             duration={duration}
             onToggle={toggle}
+            onNext={next}
             onExpand={expand}
           />
+
         )}
       </AnimatePresence>
       <AnimatePresence>
