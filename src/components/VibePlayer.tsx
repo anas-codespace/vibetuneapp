@@ -702,6 +702,16 @@ function FullPlayer(p: FullProps) {
                   <SkipForward className="h-6 w-6" fill="currentColor" />
                 </button>
                 <button
+                  onClick={handleDownload}
+                  aria-label={downloaded ? "Remove download" : "Download"}
+                  className={cn(
+                    "grid h-10 w-10 place-items-center rounded-full transition hover:bg-white/5",
+                    downloaded ? "text-emerald-400" : "text-white/70 hover:text-white",
+                  )}
+                >
+                  <Download className="h-5 w-5" fill={downloaded ? "currentColor" : "none"} />
+                </button>
+                <button
                   onClick={() => setAddOpen(true)}
                   aria-label="Add to playlist"
                   className="grid h-10 w-10 place-items-center rounded-full text-white/70 transition hover:bg-white/5 hover:text-white"
