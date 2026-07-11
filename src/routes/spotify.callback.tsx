@@ -57,7 +57,7 @@ function SpotifyCallback() {
         if (!code || !state || !savedState || !savedRedirect) throw new Error("Missing callback parameters");
         if (state !== savedState) throw new Error("State mismatch");
 
-        const res = await exchange({ data: { code, state, redirectUri: savedRedirect } });
+        const res = await withTimeout(exchange({ data: { code, state, redirectUri: savedRedirect } }), CALLBACK_TIMEOUT_MS, "Spotify token exchange");
         sessionStorage.removeItem("spotify_state");
         sessionStorage.removeItem("spotify_redirect_uri");
 
