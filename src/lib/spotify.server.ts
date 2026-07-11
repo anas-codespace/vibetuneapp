@@ -257,3 +257,71 @@ export async function getPlaylistTracks(userToken: string, playlistId: string, m
   }
   return out.slice(0, max);
 }
+
+// ---------- Server-only helpers shared by spotify.functions.ts ----------
+// Keeping these here (not in .functions.ts) is required by the TSS server-fn
+// split transform: sibling helpers in a .functions.ts file cause runtime
+// ReferenceError and shift server-function IDs on every hot reload.
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { searchMusic } from "./youtube.server";
+
+export type ResolveFailReason = "no_youtube_match" | "duplicate" | "db_error" | "resolve_error";
+
+export interface FailureEntry {
+  title: string;
+  artist: string;
+  reason: ResolveFailReason;
+  detail?: string;
+}
+
+export interface SpotifyPlayableResult {
+  spotifyId: string;
+  youtubeId: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArt: string | null;
+  durationSeconds: number;
+}
+
+export async function getFreshUserToken(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<string> {
+  const { data, error } = await supabase
+    .from("spotify_tokens")
+    .select("access_token, refresh_token, expires_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Spotify not connected");
+
+  const expMs = new Date(data.expires_at as string).getTime();
+  if (expMs > Date.now() + 60_000) return data.access_token as string;
+
+  const refreshed = await refreshUserToken(data.refresh_token as string);
+  const newExp = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
+  await supabase
+    .from("spotify_tokens")
+    .update({
+      access_token: refreshed.access_token,
+      expires_at: newExp,
+      refresh_token: refreshed.refresh_token ?? data.refresh_token,
+    })
+    .eq("user_id", userId);
+  return refreshed.access_token;
+}
+
+export async function resolveToYoutube(track: SpotifyTrackMeta) {
+  const q = `${track.artists[0] ?? ""} ${track.name}`.trim();
+  const results = await searchMusic(q, 3);
+  const yt = results[0];
+  if (!yt) return null;
+  return {
+    youtubeId: yt.youtubeId,
+    title: track.name,
+    artist: track.artists.join(", "),
+    thumbnailUrl: track.albumArt ?? yt.thumbnailUrl ?? null,
+  };
+}
