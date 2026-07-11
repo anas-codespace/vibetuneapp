@@ -115,16 +115,25 @@ function ProfilePage() {
     }
   };
 
-  const saveName = async () => {
-    if (!name.trim()) return;
+  const saveProfile = async () => {
+    if (!name.trim()) return toast.error("Name can't be empty");
+    setSaving(true);
     try {
-      await nameFn({ data: { name: name.trim() } });
+      await saveFn({ data: { name: name.trim(), bio: bio.trim() } });
       qc.invalidateQueries({ queryKey: ["profile"] });
       setEditing(false);
-      toast.success("Name updated");
+      toast.success("Profile updated");
     } catch (e) {
       toast.error("Couldn't save", { description: e instanceof Error ? e.message : "" });
+    } finally {
+      setSaving(false);
     }
+  };
+
+  const cancelEdit = () => {
+    setName(profile?.display_name ?? "");
+    setBio((profile as { bio?: string } | null)?.bio ?? "");
+    setEditing(false);
   };
 
   const displayName = profile?.display_name ?? user?.email?.split("@")[0] ?? "Vibtune";
