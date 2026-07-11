@@ -128,7 +128,7 @@ function ProfilePage() {
     { key: "audio", label: "Audio Quality & EQ", icon: Sliders, to: "/settings/audio" },
     { key: "history", label: "Playback History", icon: History, to: "/settings/history" },
     { key: "notifications", label: "Notifications", icon: Bell, to: "/settings/notifications" },
-    { key: "privacy", label: "Data & Privacy", icon: Shield },
+    { key: "privacy", label: "Account & Privacy", icon: Shield, to: "/settings/privacy" },
   ];
 
   return (
