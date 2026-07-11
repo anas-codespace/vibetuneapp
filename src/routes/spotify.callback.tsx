@@ -12,7 +12,8 @@ export const Route = createFileRoute("/spotify/callback")({
 function SpotifyCallback() {
   const navigate = useNavigate();
   const exchange = useServerFn(spotifyExchangeCode);
-  const [status, setStatus] = useState<"working" | "done" | "error">("working");
+  const autoSync = useServerFn(spotifyAutoSync);
+  const [status, setStatus] = useState<"working" | "syncing" | "done" | "error">("working");
   const [msg, setMsg] = useState<string>("Linking your Spotify account…");
   const ran = useRef(false);
 
@@ -34,15 +35,25 @@ function SpotifyCallback() {
         const res = await exchange({ data: { code, state, redirectUri: savedRedirect } });
         sessionStorage.removeItem("spotify_state");
         sessionStorage.removeItem("spotify_redirect_uri");
-        setMsg(`Connected as ${res.displayName ?? "Spotify user"}`);
+
+        setStatus("syncing");
+        setMsg(`Connected as ${res.displayName ?? "Spotify user"} — syncing your library…`);
+        try {
+          const sync = await autoSync({});
+          setMsg(
+            `Synced ${sync.likedAdded} liked · ${sync.playlistsCreated} playlist${sync.playlistsCreated === 1 ? "" : "s"} · ${sync.tracksAdded} tracks`,
+          );
+        } catch {
+          setMsg("Connected. Library sync will finish in the background.");
+        }
         setStatus("done");
-        setTimeout(() => navigate({ to: "/settings/spotify" }), 900);
+        setTimeout(() => navigate({ to: "/library" }), 1200);
       } catch (e) {
         setStatus("error");
         setMsg(e instanceof Error ? e.message : "Failed to connect Spotify");
       }
     })();
-  }, [exchange, navigate]);
+  }, [exchange, autoSync, navigate]);
 
   return (
     <main className="grid min-h-screen place-items-center bg-black px-6 text-white">
