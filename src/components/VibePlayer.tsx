@@ -380,11 +380,25 @@ interface MiniProps {
   progress: number;
   duration: number;
   onToggle: () => void;
+  onNext: () => void;
   onExpand: () => void;
 }
 
 function MiniPlayer(p: MiniProps) {
   const pct = p.duration ? (p.progress / p.duration) * 100 : 0;
+  const likedFn = useServerFn(getLikedIds);
+  const toggleFn = useServerFn(toggleLike);
+  const qc = useQueryClient();
+  const { data: likedIds } = useQuery({
+    queryKey: ["liked-ids"],
+    queryFn: () => likedFn(),
+  });
+  const isLiked = (likedIds ?? []).includes(p.track.youtubeId);
+  const likeMut = useMutation({
+    mutationFn: () => toggleFn({ data: { youtubeId: p.track.youtubeId } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["liked-ids"] }),
+  });
+
   return (
     <motion.div
       role="button"
@@ -405,25 +419,40 @@ function MiniPlayer(p: MiniProps) {
     >
       <div className="relative mx-auto flex w-full max-w-md items-center gap-3">
 
-        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md">
           {p.track.thumbnailUrl ? (
             <img src={p.track.thumbnailUrl} alt="" className="h-full w-full object-cover" />
           ) : (
             <div className="vibe-gradient h-full w-full" />
           )}
-          <Visualizer playing={p.isPlaying} />
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-white">{cleanYouTubeTitle(p.track.title)}</p>
           <p className="truncate text-xs text-white/50">{p.track.artist}</p>
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); p.onToggle(); }}
-          aria-label={p.isPlaying ? "Pause" : "Play"}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-pink-500 text-white shadow-[0_0_20px_-4px_rgba(255,0,127,0.8)] active:scale-95"
-        >
-          {p.isPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />}
-        </button>
+        <div className="flex items-center gap-3 sm:gap-4">
+          <button
+            onClick={(e) => { e.stopPropagation(); likeMut.mutate(); }}
+            aria-label={isLiked ? "Unlike" : "Like"}
+            className={`shrink-0 transition ${isLiked ? "text-pink-500" : "text-white/60 hover:text-white"}`}
+          >
+            <Heart className="h-5 w-5" fill={isLiked ? "currentColor" : "none"} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); p.onToggle(); }}
+            aria-label={p.isPlaying ? "Pause" : "Play"}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-pink-500 text-white shadow-[0_0_20px_-4px_rgba(255,0,127,0.8)] active:scale-95"
+          >
+            {p.isPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); p.onNext(); }}
+            aria-label="Next"
+            className="shrink-0 text-white/60 hover:text-white"
+          >
+            <SkipForward className="h-5 w-5" fill="currentColor" />
+          </button>
+        </div>
         <div className="absolute inset-x-0 bottom-0 h-[2px] bg-white/5">
           <div className="vibe-gradient-h h-full transition-[width] duration-200" style={{ width: `${pct}%` }} />
         </div>
@@ -432,6 +461,7 @@ function MiniPlayer(p: MiniProps) {
     </motion.div>
   );
 }
+
 
 /* ----------------------------- Full screen ----------------------------- */
 
