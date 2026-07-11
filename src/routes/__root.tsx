@@ -78,9 +78,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "A luxury music streaming experience. Discover artists, ride the vibe wave." },
       { name: "theme-color", content: "#000000" },
       { property: "og:title", content: "Vibtune — Feel the Vibe" },
-      { property: "og:description", content: "Luxury music streaming. Smart onboarding. Mood-aware engine." },
+      { property: "og:description", content: "A luxury music streaming experience. Discover artists, ride the vibe wave." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Vibtune — Feel the Vibe" },
+      { name: "twitter:description", content: "A luxury music streaming experience. Discover artists, ride the vibe wave." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/AhzO8cA736bvtGgd3tPSDcAaiOA3/social-images/social-1783799353750-ChatGPT_Image_May_5,_2026,_05_11_12_PM.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/AhzO8cA736bvtGgd3tPSDcAaiOA3/social-images/social-1783799353750-ChatGPT_Image_May_5,_2026,_05_11_12_PM.webp" },
     ],
     links: [
       {
