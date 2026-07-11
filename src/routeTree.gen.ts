@@ -22,6 +22,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SpotifyCallbackRouteImport } from './routes/spotify.callback'
+import { Route as SongsIdRouteImport } from './routes/songs.$id'
 import { Route as SettingsYoutubeRouteImport } from './routes/settings.youtube'
 import { Route as SettingsSpotifyRouteImport } from './routes/settings.spotify'
 import { Route as SettingsPrivacyRouteImport } from './routes/settings.privacy'
@@ -98,6 +99,11 @@ const SpotifyCallbackRoute = SpotifyCallbackRouteImport.update({
   path: '/spotify/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SongsIdRoute = SongsIdRouteImport.update({
+  id: '/songs/$id',
+  path: '/songs/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsYoutubeRoute = SettingsYoutubeRouteImport.update({
   id: '/settings/youtube',
   path: '/settings/youtube',
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/settings/privacy': typeof SettingsPrivacyRoute
   '/settings/spotify': typeof SettingsSpotifyRoute
   '/settings/youtube': typeof SettingsYoutubeRoute
+  '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
@@ -196,6 +203,7 @@ export interface FileRoutesByTo {
   '/settings/privacy': typeof SettingsPrivacyRoute
   '/settings/spotify': typeof SettingsSpotifyRoute
   '/settings/youtube': typeof SettingsYoutubeRoute
+  '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
@@ -222,6 +230,7 @@ export interface FileRoutesById {
   '/settings/privacy': typeof SettingsPrivacyRoute
   '/settings/spotify': typeof SettingsSpotifyRoute
   '/settings/youtube': typeof SettingsYoutubeRoute
+  '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/settings/spotify'
     | '/settings/youtube'
+    | '/songs/$id'
     | '/spotify/callback'
     | '/api/public/health/youtube'
   fileRoutesByTo: FileRoutesByTo
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/settings/spotify'
     | '/settings/youtube'
+    | '/songs/$id'
     | '/spotify/callback'
     | '/api/public/health/youtube'
   id:
@@ -299,6 +310,7 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/settings/spotify'
     | '/settings/youtube'
+    | '/songs/$id'
     | '/spotify/callback'
     | '/api/public/health/youtube'
   fileRoutesById: FileRoutesById
@@ -323,6 +335,7 @@ export interface RootRouteChildren {
   SettingsPrivacyRoute: typeof SettingsPrivacyRoute
   SettingsSpotifyRoute: typeof SettingsSpotifyRoute
   SettingsYoutubeRoute: typeof SettingsYoutubeRoute
+  SongsIdRoute: typeof SongsIdRoute
   SpotifyCallbackRoute: typeof SpotifyCallbackRoute
   ApiPublicHealthYoutubeRoute: typeof ApiPublicHealthYoutubeRoute
 }
@@ -418,6 +431,13 @@ declare module '@tanstack/react-router' {
       path: '/spotify/callback'
       fullPath: '/spotify/callback'
       preLoaderRoute: typeof SpotifyCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/songs/$id': {
+      id: '/songs/$id'
+      path: '/songs/$id'
+      fullPath: '/songs/$id'
+      preLoaderRoute: typeof SongsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/youtube': {
@@ -526,6 +546,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsPrivacyRoute: SettingsPrivacyRoute,
   SettingsSpotifyRoute: SettingsSpotifyRoute,
   SettingsYoutubeRoute: SettingsYoutubeRoute,
+  SongsIdRoute: SongsIdRoute,
   SpotifyCallbackRoute: SpotifyCallbackRoute,
   ApiPublicHealthYoutubeRoute: ApiPublicHealthYoutubeRoute,
 }
