@@ -31,10 +31,39 @@ function SearchPage() {
   const debounced = useDebounced(q.trim(), 320);
   const fn = useServerFn(searchTracks);
   const { play, addToQueue } = usePlayer();
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
   }, [loading, session, navigate]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(HISTORY_KEY);
+      if (saved) setSearchHistory(JSON.parse(saved));
+    } catch {}
+    setHistoryLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!historyLoaded) return;
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(searchHistory));
+    } catch {}
+  }, [searchHistory, historyLoaded]);
+
+  const addToHistory = (query: string) => {
+    const clean = query.trim();
+    if (!clean) return;
+    setSearchHistory((prev) => [clean, ...prev.filter((s) => s.toLowerCase() !== clean.toLowerCase())].slice(0, 10));
+  };
+
+  const removeFromHistory = (query: string) => {
+    setSearchHistory((prev) => prev.filter((s) => s !== query));
+  };
+
+  const clearHistory = () => setSearchHistory([]);
 
   const { data, isFetching } = useQuery({
     queryKey: ["search", debounced],
