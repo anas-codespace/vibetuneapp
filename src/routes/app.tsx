@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Play, Sparkles } from "lucide-react";
+import { Play, Sparkles, Heart, Radio, Disc3 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { getMyProfile } from "@/lib/profile.functions";
