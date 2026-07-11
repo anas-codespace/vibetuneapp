@@ -445,6 +445,8 @@ interface FullProps {
 function FullPlayer(p: FullProps) {
   const [tab, setTab] = useState<"player" | "lyrics">("player");
   const [addOpen, setAddOpen] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
+
   const likedFn = useServerFn(getLikedIds);
   const toggleFn = useServerFn(toggleLike);
   const qc = useQueryClient();
