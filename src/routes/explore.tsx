@@ -97,7 +97,7 @@ function ExplorePage() {
   };
 
   return (
-    <main className="relative min-h-screen bg-[#050505] px-5 pb-44 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
+    <main className="relative min-h-screen bg-[#000000] px-5 pb-44 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <header className="mx-auto max-w-md">
         <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-pink-500">
           Explore
