@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { ListPlus, Play, Search as SearchIcon, X } from "lucide-react";
+import { History, ListPlus, Play, Search as SearchIcon, X } from "lucide-react";
+
+const HISTORY_KEY = "vibetune_search_history";
 import { useAuth } from "@/hooks/use-auth";
 import { searchTracks } from "@/lib/music.functions";
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
@@ -29,10 +31,39 @@ function SearchPage() {
   const debounced = useDebounced(q.trim(), 320);
   const fn = useServerFn(searchTracks);
   const { play, addToQueue } = usePlayer();
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
   }, [loading, session, navigate]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(HISTORY_KEY);
+      if (saved) setSearchHistory(JSON.parse(saved));
+    } catch {}
+    setHistoryLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!historyLoaded) return;
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(searchHistory));
+    } catch {}
+  }, [searchHistory, historyLoaded]);
+
+  const addToHistory = (query: string) => {
+    const clean = query.trim();
+    if (!clean) return;
+    setSearchHistory((prev) => [clean, ...prev.filter((s) => s.toLowerCase() !== clean.toLowerCase())].slice(0, 10));
+  };
+
+  const removeFromHistory = (query: string) => {
+    setSearchHistory((prev) => prev.filter((s) => s !== query));
+  };
+
+  const clearHistory = () => setSearchHistory([]);
 
   const { data, isFetching } = useQuery({
     queryKey: ["search", debounced],
@@ -40,6 +71,11 @@ function SearchPage() {
     enabled: !!session && debounced.length > 1,
     staleTime: 1000 * 60 * 5,
   });
+
+  useEffect(() => {
+    if (data && data.length > 0 && debounced.length > 1) addToHistory(debounced);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, debounced]);
 
   const tracks: VibeTrack[] = (data ?? []).map((t) => ({
     youtubeId: t.youtubeId,
@@ -81,10 +117,50 @@ function SearchPage() {
       </div>
 
       <div className="mx-auto mt-2 max-w-md px-5">
-        {!debounced && (
-          <div className="mt-16 text-center text-sm text-white/40">
-            Start typing to find your next vibe.
-          </div>
+        {!q.trim() && (
+          searchHistory.length > 0 ? (
+            <section className="mt-6">
+              <div className="mb-2 flex items-center justify-between px-1">
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">
+                  Recent Searches
+                </h2>
+                <button
+                  onClick={clearHistory}
+                  className="text-xs font-medium text-white/50 transition-colors hover:text-white"
+                >
+                  Clear All
+                </button>
+              </div>
+              <ul className="space-y-1">
+                {searchHistory.map((query) => (
+                  <li
+                    key={query}
+                    onClick={() => setQ(query)}
+                    className="group flex cursor-pointer items-center justify-between rounded-xl p-3 transition-colors hover:bg-white/5"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <History className="h-4 w-4 shrink-0 text-white/40" />
+                      <span className="truncate text-sm text-white/80">{query}</span>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFromHistory(query);
+                      }}
+                      aria-label={`Remove ${query}`}
+                      className="ml-2 grid h-7 w-7 shrink-0 place-items-center rounded-full text-white/30 opacity-0 transition-all hover:bg-white/10 hover:text-white group-hover:opacity-100"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : (
+            <div className="mt-16 text-center text-sm text-white/40">
+              Start typing to find your next vibe.
+            </div>
+          )
         )}
         {debounced && isFetching && tracks.length === 0 && (
           <div className="mt-6 space-y-3">
