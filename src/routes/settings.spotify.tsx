@@ -344,6 +344,39 @@ function SpotifySettings() {
             )}
           </div>
 
+          {!connected && callbackError && (
+            <div className="mt-4 rounded-2xl border border-red-400/25 bg-red-500/[0.07] p-4">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
+                <div className="flex-1 text-xs leading-relaxed">
+                  <p className="font-semibold text-red-200">Spotify connection failed</p>
+                  <p className="mt-1 text-red-100/85">{callbackError.message}</p>
+                  <p className="mt-1 text-red-100/60">{callbackError.hint}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-wider text-red-100/40">
+                    Code: {callbackError.code}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => { dismissCallbackError(); connectMut.mutate(); }}
+                      disabled={connectMut.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-[#1DB954] px-3 py-1.5 text-[11px] font-semibold text-black hover:brightness-110 disabled:opacity-60"
+                    >
+                      {connectMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
+                      Retry connect
+                    </button>
+                    <button
+                      onClick={dismissCallbackError}
+                      className="inline-flex items-center rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/15"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+
           {!connected && pendingAuthUrl && (
             <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-4">
               <div className="flex items-start gap-2.5">
