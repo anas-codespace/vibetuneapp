@@ -56,6 +56,22 @@ function ProfilePage() {
     enabled: !!session,
   });
 
+  const avatarRef = profile?.profile_pic_url ?? null;
+  const { data: signedAvatar } = useQuery({
+    queryKey: ["avatar-signed", avatarRef],
+    queryFn: async () => {
+      if (!avatarRef) return null;
+      if (/^https?:\/\//.test(avatarRef)) return avatarRef; // legacy full URL
+      const { data, error } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(avatarRef, 60 * 60);
+      if (error) return null;
+      return data.signedUrl;
+    },
+    enabled: !!avatarRef,
+    staleTime: 55 * 60 * 1000,
+  });
+
   useEffect(() => {
     if (profile?.display_name) setName(profile.display_name);
   }, [profile?.display_name]);
