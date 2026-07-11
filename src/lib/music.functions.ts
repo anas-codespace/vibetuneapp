@@ -69,7 +69,54 @@ export const searchTracks = createServerFn({ method: "POST" })
     z.object({ query: z.string().min(1).max(200), max: z.number().int().min(1).max(50).optional() }).parse(d),
   )
   .handler(async ({ data }): Promise<YTTrack[]> => {
-    return searchMusic(data.query, data.max ?? 40);
+    const max = data.max ?? 40;
+
+    // Spotify-first: fetch canonical track metadata, then resolve to playable YouTube.
+    let spotifyTracks: SpotifyTrackMeta[] = [];
+    try {
+      spotifyTracks = await spotifySearchTracks(data.query, Math.min(max, 20));
+    } catch {
+      spotifyTracks = [];
+    }
+
+    if (spotifyTracks.length === 0) {
+      // Fallback: raw YouTube search
+      return searchMusic(data.query, max);
+    }
+
+    // Resolve each Spotify track -> best YouTube match in parallel (bounded).
+    const resolved = await Promise.all(
+      spotifyTracks.map(async (sp): Promise<YTTrack | null> => {
+        const primary = sp.artists[0] ?? "";
+        const q = `${primary} ${sp.name} official audio`;
+        const targetSec = Math.round(sp.durationMs / 1000);
+        try {
+          const yt = await searchMusic(q, 5);
+          if (yt.length === 0) return null;
+          // Prefer the video closest to the Spotify duration (±20s window).
+          const best = [...yt].sort((a, b) => Math.abs(a.durationSeconds - targetSec) - Math.abs(b.durationSeconds - targetSec))[0];
+          return {
+            youtubeId: best.youtubeId,
+            title: sp.name,
+            artist: sp.artists.join(", "),
+            thumbnailUrl: sp.albumArt ?? best.thumbnailUrl,
+            durationSeconds: best.durationSeconds || targetSec,
+            isEmbeddable: best.isEmbeddable,
+          };
+        } catch {
+          return null;
+        }
+      }),
+    );
+
+    const seen = new Set<string>();
+    const out: YTTrack[] = [];
+    for (const t of resolved) {
+      if (!t || seen.has(t.youtubeId)) continue;
+      seen.add(t.youtubeId);
+      out.push(t);
+    }
+    return out.slice(0, max);
   });
 
 export const tracksForArtists = createServerFn({ method: "POST" })
