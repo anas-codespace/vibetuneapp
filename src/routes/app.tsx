@@ -86,16 +86,13 @@ function AppHome() {
     setMixLoading(false);
   };
 
-  const list: VibeTrack[] = (tracks ?? []).slice(0, 24).map((t) => ({
+  const list: VibeTrack[] = (tracks ?? []).map((t) => ({
     youtubeId: t.youtubeId,
     title: t.title,
     artist: t.artist,
     thumbnailUrl: t.thumbnailUrl,
     durationSeconds: t.durationSeconds,
   }));
-
-
-
 
   const quickPicks = [
     { title: "Liked Songs", art: list[0]?.thumbnailUrl, icon: Heart, gradient: "from-pink-500 to-violet-500" },
@@ -106,9 +103,9 @@ function AppHome() {
     { title: "Recently Played", art: list[5]?.thumbnailUrl, icon: Play, gradient: "from-rose-500 to-orange-500" },
   ];
 
-  const suggestedForYou = list.slice(0, 8);
-  const popularRadios = list.slice(6, 14);
-  const newReleases = list.slice(10, 20);
+  const suggestedForYou = list.slice(0, 20);
+  const popularRadios = list.slice(15, 35);
+  const newReleases = list.slice(25, 50);
 
   const renderCarousel = (
     title: string,
