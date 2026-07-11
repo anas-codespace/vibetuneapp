@@ -135,6 +135,27 @@ function SpotifySettings() {
       const { url, state } = await getAuthUrl({ data: { redirectUri } });
       sessionStorage.setItem("spotify_state", state);
       sessionStorage.setItem("spotify_redirect_uri", redirectUri);
+      try {
+        // Persist state to the top window so callback (which also breaks out) can read it
+        if (window.top && window.top !== window.self) {
+          window.top.sessionStorage.setItem("spotify_state", state);
+          window.top.sessionStorage.setItem("spotify_redirect_uri", redirectUri);
+        }
+      } catch {
+        // cross-origin (e.g. Lovable preview) — ignore, top window will still navigate
+      }
+      // Spotify's auth page sends X-Frame-Options: DENY, so it cannot load inside
+      // any iframe (including the Lovable preview). Break out to the top-level
+      // window; fall back to opening a new tab if the parent frame is cross-origin.
+      try {
+        if (window.top && window.top !== window.self) {
+          window.top.location.href = url;
+          return;
+        }
+      } catch {
+        window.open(url, "_blank", "noopener,noreferrer");
+        return;
+      }
       window.location.href = url;
     },
   });
