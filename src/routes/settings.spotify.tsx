@@ -128,37 +128,70 @@ function SpotifySettings() {
   const [importingId, setImportingId] = useState<string | null>(null);
   const [likedResult, setLikedResult] = useState<ImportResult | null>(null);
   const [playlistResults, setPlaylistResults] = useState<Record<string, ImportResult>>({});
+  const [pendingAuthUrl, setPendingAuthUrl] = useState<string | null>(null);
+  const [redirectBlocked, setRedirectBlocked] = useState(false);
+
+  const persistState = (state: string, redirectUri: string) => {
+    sessionStorage.setItem("spotify_state", state);
+    sessionStorage.setItem("spotify_redirect_uri", redirectUri);
+    try {
+      // Callback route also breaks out of the preview iframe; mirror state there.
+      if (window.top && window.top !== window.self) {
+        window.top.sessionStorage.setItem("spotify_state", state);
+        window.top.sessionStorage.setItem("spotify_redirect_uri", redirectUri);
+      }
+    } catch {
+      /* cross-origin top; ignore */
+    }
+  };
 
   const connectMut = useMutation({
     mutationFn: async () => {
       const redirectUri = `${window.location.origin}/spotify/callback`;
       const { url, state } = await getAuthUrl({ data: { redirectUri } });
-      sessionStorage.setItem("spotify_state", state);
-      sessionStorage.setItem("spotify_redirect_uri", redirectUri);
-      try {
-        // Persist state to the top window so callback (which also breaks out) can read it
-        if (window.top && window.top !== window.self) {
-          window.top.sessionStorage.setItem("spotify_state", state);
-          window.top.sessionStorage.setItem("spotify_redirect_uri", redirectUri);
-        }
-      } catch {
-        // cross-origin (e.g. Lovable preview) — ignore, top window will still navigate
-      }
-      // Spotify's auth page sends X-Frame-Options: DENY, so it cannot load inside
-      // any iframe (including the Lovable preview). Break out to the top-level
-      // window; fall back to opening a new tab if the parent frame is cross-origin.
+      persistState(state, redirectUri);
+      setPendingAuthUrl(url);
+
+      // Spotify's auth page sends X-Frame-Options: DENY, so it cannot render inside
+      // any iframe (including the Lovable preview). Try to escape to the top-level
+      // window; if that's cross-origin (blocked), fall back to opening a new tab.
+      // Either way we keep the URL in state so the user always has a manual link.
       try {
         if (window.top && window.top !== window.self) {
           window.top.location.href = url;
           return;
         }
+        window.location.href = url;
       } catch {
-        window.open(url, "_blank", "noopener,noreferrer");
-        return;
+        const popup = window.open(url, "_blank", "noopener,noreferrer");
+        if (!popup) {
+          // Popup blocked too — surface the manual fallback.
+          setRedirectBlocked(true);
+          toast.error("Browser blocked the redirect. Use the 'Open in new tab' link below.");
+        }
       }
-      window.location.href = url;
     },
   });
+
+  const openInNewTab = () => {
+    if (!pendingAuthUrl) return;
+    const popup = window.open(pendingAuthUrl, "_blank", "noopener,noreferrer");
+    if (!popup) {
+      setRedirectBlocked(true);
+      toast.error("Popup blocked — allow popups for this site or copy the link.");
+    }
+  };
+
+  const copyAuthUrl = async () => {
+    if (!pendingAuthUrl) return;
+    try {
+      await navigator.clipboard.writeText(pendingAuthUrl);
+      toast.success("Login link copied — paste it into a new tab.");
+    } catch {
+      toast.error("Couldn't copy — long-press the link to copy manually.");
+    }
+  };
+
 
   const disconnectMut = useMutation({
     mutationFn: () => disconnect(),
