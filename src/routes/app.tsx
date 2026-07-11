@@ -219,27 +219,6 @@ function AppHome() {
           })}
         </div>
 
-        {/* Filter pills */}
-        <div className="-mx-5 mt-6 flex gap-2 overflow-x-auto px-5 pb-1 hide-scrollbar">
-          {FILTERS.map((f) => {
-            const active = filter === f;
-            return (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={cn(
-                  "shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition active:scale-95",
-                  active
-                    ? "bg-pink-500 text-white shadow-[0_0_18px_-4px_rgba(255,0,127,0.7)]"
-                    : "border border-white/5 bg-white/5 text-white/60 hover:text-white",
-                )}
-              >
-                {f}
-              </button>
-            );
-          })}
-        </div>
-
         {/* Horizontal sections */}
         {renderCarousel("Suggested For You", suggestedForYou, (t) => `Mix • ${t.artist}`)}
         {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`)}
