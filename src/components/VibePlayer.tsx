@@ -33,6 +33,7 @@ import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
 import { QueueDrawer } from "@/components/QueueDrawer";
 import { cn } from "@/lib/utils";
 import { cleanYouTubeTitle } from "@/utils/textUtils";
+import { useDownloads } from "@/hooks/use-downloads";
 
 export interface VibeTrack {
   youtubeId: string;
