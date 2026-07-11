@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyRouteImport } from './routes/verify'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -35,6 +36,11 @@ import { Route as ApiPublicHealthYoutubeRouteImport } from './routes/api/public/
 const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
   path: '/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/verify': typeof VerifyRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/verify': typeof VerifyRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
@@ -203,6 +211,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/verify': typeof VerifyRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/search'
     | '/signup'
+    | '/sitemap.xml'
     | '/verify'
     | '/api/analyze-mood'
     | '/library/$id'
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/search'
     | '/signup'
+    | '/sitemap.xml'
     | '/verify'
     | '/api/analyze-mood'
     | '/library/$id'
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/search'
     | '/signup'
+    | '/sitemap.xml'
     | '/verify'
     | '/api/analyze-mood'
     | '/library/$id'
@@ -302,6 +314,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SearchRoute: typeof SearchRoute
   SignupRoute: typeof SignupRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   VerifyRoute: typeof VerifyRoute
   ApiAnalyzeMoodRoute: typeof ApiAnalyzeMoodRoute
   SettingsAudioRoute: typeof SettingsAudioRoute
@@ -321,6 +334,13 @@ declare module '@tanstack/react-router' {
       path: '/verify'
       fullPath: '/verify'
       preLoaderRoute: typeof VerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -497,6 +517,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SearchRoute: SearchRoute,
   SignupRoute: SignupRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   VerifyRoute: VerifyRoute,
   ApiAnalyzeMoodRoute: ApiAnalyzeMoodRoute,
   SettingsAudioRoute: SettingsAudioRoute,
