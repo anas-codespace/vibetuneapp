@@ -172,8 +172,8 @@ function AppHome() {
 
       <section className="mx-auto mt-6 max-w-md px-5">
         {/* Greeting */}
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/40">
-          {timeGreeting()}
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/40 min-h-[1em]">
+          {greeting}
         </p>
         <h2 className="mt-1 text-2xl font-bold text-white">
           {displayName}
