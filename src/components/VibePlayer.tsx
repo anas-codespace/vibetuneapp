@@ -29,6 +29,7 @@ import { getSmartMix } from "@/lib/mix.functions";
 import { startAudioForeground, stopAudioForeground } from "@/lib/capacitor-audio";
 import { SyncedLyrics } from "@/components/SyncedLyrics";
 import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
+import { QueueDrawer } from "@/components/QueueDrawer";
 import { cn } from "@/lib/utils";
 
 export interface VibeTrack {
