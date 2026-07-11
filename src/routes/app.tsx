@@ -35,6 +35,8 @@ function AppHome() {
   
   const [moodOpen, setMoodOpen] = useState(false);
   const [mixLoading, setMixLoading] = useState(false);
+  const [greeting, setGreeting] = useState<string>("");
+  useEffect(() => { setGreeting(timeGreeting()); }, []);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
