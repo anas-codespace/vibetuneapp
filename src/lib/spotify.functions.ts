@@ -112,6 +112,15 @@ async function getFreshUserToken(
 
 // ---------- Resolve Spotify track → YouTube playable id ----------
 
+type ResolveFailReason = "no_youtube_match" | "duplicate" | "db_error" | "resolve_error";
+
+interface FailureEntry {
+  title: string;
+  artist: string;
+  reason: ResolveFailReason;
+  detail?: string;
+}
+
 async function resolveToYoutube(track: SpotifyTrackMeta) {
   const q = `${track.artists[0] ?? ""} ${track.name}`.trim();
   const results = await searchMusic(q, 3);
@@ -151,9 +160,23 @@ export const spotifyImportLiked = createServerFn({ method: "POST" })
 
     let added = 0;
     let skipped = 0;
+    const failures: FailureEntry[] = [];
+
     for (const track of liked) {
-      const resolved = await resolveToYoutube(track);
-      if (!resolved) { skipped++; continue; }
+      const label = { title: track.name, artist: track.artists.join(", ") };
+      let resolved: Awaited<ReturnType<typeof resolveToYoutube>> = null;
+      try {
+        resolved = await resolveToYoutube(track);
+      } catch (e) {
+        failures.push({ ...label, reason: "resolve_error", detail: e instanceof Error ? e.message : String(e) });
+        skipped++;
+        continue;
+      }
+      if (!resolved) {
+        failures.push({ ...label, reason: "no_youtube_match" });
+        skipped++;
+        continue;
+      }
 
       const { data: existing } = await context.supabase
         .from("liked_songs")
@@ -161,7 +184,11 @@ export const spotifyImportLiked = createServerFn({ method: "POST" })
         .eq("user_id", context.userId)
         .eq("youtube_id", resolved.youtubeId)
         .maybeSingle();
-      if (existing) { skipped++; continue; }
+      if (existing) {
+        failures.push({ ...label, reason: "duplicate" });
+        skipped++;
+        continue;
+      }
 
       const { error } = await context.supabase.from("liked_songs").insert({
         user_id: context.userId,
@@ -170,10 +197,14 @@ export const spotifyImportLiked = createServerFn({ method: "POST" })
         artist: resolved.artist,
         thumbnail_url: resolved.thumbnailUrl,
       });
-      if (error) { skipped++; continue; }
+      if (error) {
+        failures.push({ ...label, reason: "db_error", detail: error.message });
+        skipped++;
+        continue;
+      }
       added++;
     }
-    return { total: liked.length, added, skipped };
+    return { total: liked.length, added, skipped, failures };
   });
 
 // ---------- Import: Playlists (list only) ----------
@@ -210,6 +241,7 @@ export const spotifyImportPlaylist = createServerFn({ method: "POST" })
 
     let added = 0;
     let skipped = 0;
+    const failures: FailureEntry[] = [];
     const rows: Array<{
       playlist_id: string;
       user_id: string;
@@ -220,8 +252,20 @@ export const spotifyImportPlaylist = createServerFn({ method: "POST" })
       position: number;
     }> = [];
     for (const t of tracks) {
-      const resolved = await resolveToYoutube(t);
-      if (!resolved) { skipped++; continue; }
+      const label = { title: t.name, artist: t.artists.join(", ") };
+      let resolved: Awaited<ReturnType<typeof resolveToYoutube>> = null;
+      try {
+        resolved = await resolveToYoutube(t);
+      } catch (e) {
+        failures.push({ ...label, reason: "resolve_error", detail: e instanceof Error ? e.message : String(e) });
+        skipped++;
+        continue;
+      }
+      if (!resolved) {
+        failures.push({ ...label, reason: "no_youtube_match" });
+        skipped++;
+        continue;
+      }
       rows.push({
         playlist_id: pl.id,
         user_id: context.userId,
@@ -237,5 +281,5 @@ export const spotifyImportPlaylist = createServerFn({ method: "POST" })
       const { error } = await context.supabase.from("playlist_songs").insert(rows);
       if (error) throw new Error(error.message);
     }
-    return { playlistId: pl.id, total: tracks.length, added, skipped };
+    return { playlistId: pl.id, total: tracks.length, added, skipped, failures };
   });
