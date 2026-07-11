@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/profile.functions";
 import {
   getListeningStats,
-  updateDisplayName,
+  updateProfileDetails,
   updateProfilePic,
 } from "@/lib/library.functions";
 
@@ -32,12 +32,14 @@ function ProfilePage() {
   const navigate = useNavigate();
   const profileFn = useServerFn(getMyProfile);
   const statsFn = useServerFn(getListeningStats);
-  const nameFn = useServerFn(updateDisplayName);
+  const saveFn = useServerFn(updateProfileDetails);
   const picFn = useServerFn(updateProfilePic);
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
 
@@ -74,7 +76,10 @@ function ProfilePage() {
 
   useEffect(() => {
     if (profile?.display_name) setName(profile.display_name);
-  }, [profile?.display_name]);
+    if (typeof (profile as { bio?: string } | null)?.bio === "string") {
+      setBio((profile as { bio?: string }).bio ?? "");
+    }
+  }, [profile?.display_name, (profile as { bio?: string } | null)?.bio]);
 
   const handleSign = async () => {
     await supabase.auth.signOut();
@@ -110,16 +115,25 @@ function ProfilePage() {
     }
   };
 
-  const saveName = async () => {
-    if (!name.trim()) return;
+  const saveProfile = async () => {
+    if (!name.trim()) return toast.error("Name can't be empty");
+    setSaving(true);
     try {
-      await nameFn({ data: { name: name.trim() } });
+      await saveFn({ data: { name: name.trim(), bio: bio.trim() } });
       qc.invalidateQueries({ queryKey: ["profile"] });
       setEditing(false);
-      toast.success("Name updated");
+      toast.success("Profile updated");
     } catch (e) {
       toast.error("Couldn't save", { description: e instanceof Error ? e.message : "" });
+    } finally {
+      setSaving(false);
     }
+  };
+
+  const cancelEdit = () => {
+    setName(profile?.display_name ?? "");
+    setBio((profile as { bio?: string } | null)?.bio ?? "");
+    setEditing(false);
   };
 
   const displayName = profile?.display_name ?? user?.email?.split("@")[0] ?? "Vibtune";
@@ -180,29 +194,71 @@ function ProfilePage() {
             />
           </div>
 
-          {/* Name */}
-          <div className="mt-4 flex items-center gap-2">
+          {/* Name & Bio */}
+          <div className="mt-4 flex w-full flex-col items-center gap-2 px-2">
             {editing ? (
               <>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-center text-lg font-bold text-white outline-none"
+                  maxLength={80}
+                  placeholder="Display name"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center text-lg font-bold text-white outline-none focus:border-white/30"
                 />
-                <button onClick={saveName} className="text-sm font-bold text-fuchsia-400">
-                  Save
-                </button>
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value.slice(0, 280))}
+                  placeholder="Add a short bio…"
+                  rows={3}
+                  className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center text-sm text-white outline-none focus:border-white/30"
+                />
+                <div className="flex w-full items-center justify-between px-1">
+                  <span className="text-[10px] text-white/40">{bio.length}/280</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={cancelEdit}
+                      className="rounded-full px-3 py-1 text-xs font-semibold text-white/60 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveProfile}
+                      disabled={saving}
+                      className="rounded-full bg-white px-4 py-1 text-xs font-bold text-black disabled:opacity-50"
+                    >
+                      {saving ? "Saving…" : "Save"}
+                    </button>
+                  </div>
+                </div>
               </>
             ) : (
               <>
-                <p className="text-2xl font-bold text-white">{displayName}</p>
-                <button onClick={() => setEditing(true)} className="text-white/40 hover:text-white">
-                  <Pencil className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-bold text-white">{displayName}</p>
+                  <button
+                    onClick={() => setEditing(true)}
+                    aria-label="Edit profile"
+                    className="text-white/40 hover:text-white"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                </div>
+                {bio ? (
+                  <p className="max-w-xs whitespace-pre-wrap text-center text-sm leading-snug text-white/70">
+                    {bio}
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="text-xs text-white/40 hover:text-white/70"
+                  >
+                    + Add a bio
+                  </button>
+                )}
+                <p className="text-sm text-white/50">{user?.email}</p>
               </>
             )}
           </div>
-          <p className="mt-1 text-sm text-white/50">{user?.email}</p>
         </div>
 
         {/* Stats */}
