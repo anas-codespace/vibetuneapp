@@ -18,7 +18,6 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LibraryIdRouteImport } from './routes/library.$id'
@@ -70,11 +69,6 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ExploreRoute = ExploreRouteImport.update({
-  id: '/explore',
-  path: '/explore',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
@@ -104,7 +98,6 @@ const ApiPublicHealthYoutubeRoute = ApiPublicHealthYoutubeRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
-  '/explore': typeof ExploreRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/library': typeof LibraryRouteWithChildren
   '/login': typeof LoginRoute
@@ -121,7 +114,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
-  '/explore': typeof ExploreRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/library': typeof LibraryRouteWithChildren
   '/login': typeof LoginRoute
@@ -139,7 +131,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRoute
-  '/explore': typeof ExploreRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/library': typeof LibraryRouteWithChildren
   '/login': typeof LoginRoute
@@ -158,7 +149,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
-    | '/explore'
     | '/forgot-password'
     | '/library'
     | '/login'
@@ -175,7 +165,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
-    | '/explore'
     | '/forgot-password'
     | '/library'
     | '/login'
@@ -192,7 +181,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
-    | '/explore'
     | '/forgot-password'
     | '/library'
     | '/login'
@@ -210,7 +198,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRoute
-  ExploreRoute: typeof ExploreRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LibraryRoute: typeof LibraryRouteWithChildren
   LoginRoute: typeof LoginRoute
@@ -289,13 +276,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/explore': {
-      id: '/explore'
-      path: '/explore'
-      fullPath: '/explore'
-      preLoaderRoute: typeof ExploreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/app': {
       id: '/app'
       path: '/app'
@@ -348,7 +328,6 @@ const LibraryRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRoute,
-  ExploreRoute: ExploreRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LibraryRoute: LibraryRouteWithChildren,
   LoginRoute: LoginRoute,
