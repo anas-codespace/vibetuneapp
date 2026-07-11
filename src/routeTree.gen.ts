@@ -20,6 +20,9 @@ import { Route as LibraryRouteImport } from './routes/library'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
+import { Route as SettingsHistoryRouteImport } from './routes/settings.history'
+import { Route as SettingsAudioRouteImport } from './routes/settings.audio'
 import { Route as LibraryDownloadedRouteImport } from './routes/library.downloaded'
 import { Route as LibraryIdRouteImport } from './routes/library.$id'
 import { Route as ApiAnalyzeMoodRouteImport } from './routes/api/analyze-mood'
@@ -80,6 +83,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
+  id: '/settings/notifications',
+  path: '/settings/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsHistoryRoute = SettingsHistoryRouteImport.update({
+  id: '/settings/history',
+  path: '/settings/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsAudioRoute = SettingsAudioRouteImport.update({
+  id: '/settings/audio',
+  path: '/settings/audio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LibraryDownloadedRoute = LibraryDownloadedRouteImport.update({
   id: '/downloaded',
   path: '/downloaded',
@@ -116,6 +134,9 @@ export interface FileRoutesByFullPath {
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/downloaded': typeof LibraryDownloadedRoute
+  '/settings/audio': typeof SettingsAudioRoute
+  '/settings/history': typeof SettingsHistoryRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRoutesByTo {
@@ -133,6 +154,9 @@ export interface FileRoutesByTo {
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/downloaded': typeof LibraryDownloadedRoute
+  '/settings/audio': typeof SettingsAudioRoute
+  '/settings/history': typeof SettingsHistoryRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRoutesById {
@@ -151,6 +175,9 @@ export interface FileRoutesById {
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/downloaded': typeof LibraryDownloadedRoute
+  '/settings/audio': typeof SettingsAudioRoute
+  '/settings/history': typeof SettingsHistoryRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRouteTypes {
@@ -170,6 +197,9 @@ export interface FileRouteTypes {
     | '/api/analyze-mood'
     | '/library/$id'
     | '/library/downloaded'
+    | '/settings/audio'
+    | '/settings/history'
+    | '/settings/notifications'
     | '/api/public/health/youtube'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -187,6 +217,9 @@ export interface FileRouteTypes {
     | '/api/analyze-mood'
     | '/library/$id'
     | '/library/downloaded'
+    | '/settings/audio'
+    | '/settings/history'
+    | '/settings/notifications'
     | '/api/public/health/youtube'
   id:
     | '__root__'
@@ -204,6 +237,9 @@ export interface FileRouteTypes {
     | '/api/analyze-mood'
     | '/library/$id'
     | '/library/downloaded'
+    | '/settings/audio'
+    | '/settings/history'
+    | '/settings/notifications'
     | '/api/public/health/youtube'
   fileRoutesById: FileRoutesById
 }
@@ -220,6 +256,9 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   VerifyRoute: typeof VerifyRoute
   ApiAnalyzeMoodRoute: typeof ApiAnalyzeMoodRoute
+  SettingsAudioRoute: typeof SettingsAudioRoute
+  SettingsHistoryRoute: typeof SettingsHistoryRoute
+  SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   ApiPublicHealthYoutubeRoute: typeof ApiPublicHealthYoutubeRoute
 }
 
@@ -302,6 +341,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/notifications': {
+      id: '/settings/notifications'
+      path: '/settings/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof SettingsNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/history': {
+      id: '/settings/history'
+      path: '/settings/history'
+      fullPath: '/settings/history'
+      preLoaderRoute: typeof SettingsHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/audio': {
+      id: '/settings/audio'
+      path: '/settings/audio'
+      fullPath: '/settings/audio'
+      preLoaderRoute: typeof SettingsAudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/library/downloaded': {
       id: '/library/downloaded'
       path: '/downloaded'
@@ -359,6 +419,9 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   VerifyRoute: VerifyRoute,
   ApiAnalyzeMoodRoute: ApiAnalyzeMoodRoute,
+  SettingsAudioRoute: SettingsAudioRoute,
+  SettingsHistoryRoute: SettingsHistoryRoute,
+  SettingsNotificationsRoute: SettingsNotificationsRoute,
   ApiPublicHealthYoutubeRoute: ApiPublicHealthYoutubeRoute,
 }
 export const routeTree = rootRouteImport

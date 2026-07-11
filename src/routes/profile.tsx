@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -104,10 +104,10 @@ function ProfilePage() {
 
   const displayName = profile?.display_name ?? user?.email?.split("@")[0] ?? "Vibtune";
 
-  const menu = [
-    { key: "audio", label: "Audio Quality & EQ", icon: Sliders },
-    { key: "history", label: "Playback History", icon: History },
-    { key: "notifications", label: "Notifications", icon: Bell },
+  const menu: { key: string; label: string; icon: typeof Sliders; to?: string }[] = [
+    { key: "audio", label: "Audio Quality & EQ", icon: Sliders, to: "/settings/audio" },
+    { key: "history", label: "Playback History", icon: History, to: "/settings/history" },
+    { key: "notifications", label: "Notifications", icon: Bell, to: "/settings/notifications" },
     { key: "privacy", label: "Data & Privacy", icon: Shield },
   ];
 
@@ -197,21 +197,34 @@ function ProfilePage() {
           <h3 className="mb-2 px-2 text-xs font-bold tracking-widest text-white/40">
             ACCOUNT & SETTINGS
           </h3>
-          {menu.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => toast.info(`${item.label} — coming soon`)}
-              className="group flex w-full items-center justify-between rounded-xl p-3 transition-colors hover:bg-white/5"
-            >
-              <div className="flex items-center gap-4">
-                <div className="rounded-lg bg-white/5 p-2 text-white/70 transition-colors group-hover:bg-fuchsia-500/20 group-hover:text-fuchsia-400">
-                  <item.icon size={20} />
+          {menu.map((item) => {
+            const inner = (
+              <>
+                <div className="flex items-center gap-4">
+                  <div className="rounded-lg bg-white/5 p-2 text-white/70 transition-colors group-hover:bg-fuchsia-500/20 group-hover:text-fuchsia-400">
+                    <item.icon size={20} />
+                  </div>
+                  <span className="font-medium text-white/90">{item.label}</span>
                 </div>
-                <span className="font-medium text-white/90">{item.label}</span>
-              </div>
-              <ChevronRight size={20} className="text-white/20" />
-            </button>
-          ))}
+                <ChevronRight size={20} className="text-white/20" />
+              </>
+            );
+            const cls =
+              "group flex w-full items-center justify-between rounded-xl p-3 transition-colors hover:bg-white/5";
+            return item.to ? (
+              <Link key={item.key} to={item.to} className={cls}>
+                {inner}
+              </Link>
+            ) : (
+              <button
+                key={item.key}
+                onClick={() => toast.info(`${item.label} — coming soon`)}
+                className={cls}
+              >
+                {inner}
+              </button>
+            );
+          })}
         </div>
 
         {/* Sign out */}
