@@ -122,7 +122,7 @@ function AppHome() {
           See all
         </button>
       </div>
-      <div className="-mx-5 mt-3 flex snap-x snap-mandatory gap-x-5 overflow-x-auto px-5 pb-6 pr-4 hide-scrollbar">
+      <div className="-mx-5 mt-3 flex snap-x snap-mandatory scroll-px-5 gap-x-5 overflow-x-auto px-5 pb-6 hide-scrollbar [&>*]:snap-always">
         {isLoading &&
           Array.from({ length: 5 }).map((_, i) => (
             <div
