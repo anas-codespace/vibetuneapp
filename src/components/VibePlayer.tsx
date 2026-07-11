@@ -110,6 +110,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   const pendingRef = useRef<string | null>(null);
   const logListenFn = useServerFn(logListen);
   const mixFn = useServerFn(getSmartMix);
+  const contextFn = useServerFn(getContextualQueue);
 
   useEffect(() => {
     let cancelled = false;
