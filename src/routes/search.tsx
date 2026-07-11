@@ -28,7 +28,7 @@ function SearchPage() {
   const [q, setQ] = useState("");
   const debounced = useDebounced(q.trim(), 320);
   const fn = useServerFn(searchTracks);
-  const { play } = usePlayer();
+  const { play, addToQueue } = usePlayer();
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
