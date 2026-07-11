@@ -669,7 +669,7 @@ function FullPlayer(p: FullProps) {
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center justify-center gap-6">
+              <div className="mt-6 flex items-center justify-center gap-3 sm:gap-5">
                 <button
                   onClick={handleLike}
                   aria-label={isLiked ? "Unlike" : "Like"}
