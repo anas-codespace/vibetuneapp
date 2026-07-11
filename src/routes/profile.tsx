@@ -76,7 +76,10 @@ function ProfilePage() {
 
   useEffect(() => {
     if (profile?.display_name) setName(profile.display_name);
-  }, [profile?.display_name]);
+    if (typeof (profile as { bio?: string } | null)?.bio === "string") {
+      setBio((profile as { bio?: string }).bio ?? "");
+    }
+  }, [profile?.display_name, (profile as { bio?: string } | null)?.bio]);
 
   const handleSign = async () => {
     await supabase.auth.signOut();
