@@ -105,47 +105,48 @@ function LibraryPage() {
   return (
     <main className="relative min-h-screen px-5 pb-44 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
       <div className="mx-auto flex max-w-md items-center justify-between">
-        <h1 className="text-3xl font-bold">Your Library</h1>
+        <h1 className="text-3xl font-bold text-white">Your Library</h1>
         <button
           onClick={() => setShowCreate(true)}
           aria-label="New playlist"
-          className="vibe-gradient grid h-10 w-10 place-items-center rounded-full text-white shadow-[0_0_18px_-4px_rgba(236,0,140,0.7)]"
+          className="rounded-full bg-white/5 p-2 text-white transition-colors hover:bg-white/10"
         >
           <Plus className="h-5 w-5" />
         </button>
       </div>
 
-      {/* Liked songs hero card */}
-      <section className="mx-auto mt-6 max-w-md">
+      {/* Quick access grid */}
+      <section className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-4">
         <button
           onClick={playLiked}
-          className="gradient-border relative flex w-full items-center gap-4 overflow-hidden rounded-2xl p-4 text-left active:scale-[0.99]"
-          style={{ background: "linear-gradient(135deg, rgba(125,63,243,0.25), rgba(236,0,140,0.15) 60%, rgba(255,69,0,0.1))" }}
+          className="group relative flex h-28 flex-col justify-end overflow-hidden rounded-lg bg-gradient-to-br from-fuchsia-600 to-pink-500 p-4 text-left shadow-lg active:scale-[0.98]"
         >
-          <div className="vibe-gradient grid h-16 w-16 shrink-0 place-items-center rounded-2xl shadow-[0_0_24px_-4px_rgba(236,0,140,0.6)]">
-            <Heart className="h-7 w-7 text-white" fill="currentColor" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-base font-bold text-white">Liked Songs</p>
-            <p className="text-xs text-white/60">{liked?.length ?? 0} songs</p>
-          </div>
+          <Heart
+            className="absolute -bottom-4 -right-4 h-20 w-20 rotate-12 text-white/20 transition-transform group-hover:scale-110"
+            fill="currentColor"
+          />
+          <h3 className="relative z-10 text-lg font-bold text-white">Liked Songs</h3>
+          <p className="relative z-10 text-sm text-white/80">{liked?.length ?? 0} songs</p>
         </button>
+        <div className="group relative flex h-28 flex-col justify-end overflow-hidden rounded-lg border border-white/5 bg-white/5 p-4">
+          <ListMusic className="absolute -bottom-4 -right-4 h-20 w-20 rotate-12 text-white/10" />
+          <h3 className="relative z-10 text-lg font-bold text-white">Downloaded</h3>
+          <p className="relative z-10 text-sm text-white/50">Coming soon</p>
+        </div>
       </section>
 
       {/* Playlists */}
       <section className="mx-auto mt-8 max-w-md">
-        <h2 className="vibe-text mb-3 text-[10px] font-bold uppercase tracking-[0.25em]">
-          Your Playlists
-        </h2>
+        <h2 className="mb-4 text-xl font-bold text-white">Your Playlists</h2>
         {(!playlists || playlists.length === 0) && (
-          <div className="glass rounded-2xl p-6 text-center">
-            <ListMusic className="mx-auto mb-3 h-6 w-6 text-white/40" />
-            <p className="text-sm text-white/60">No playlists yet</p>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/5 px-4 py-12">
+            <ListMusic className="mb-4 h-12 w-12 text-white/40" />
+            <h3 className="mb-2 text-lg font-medium text-white">No playlists yet</h3>
             <button
               onClick={() => setShowCreate(true)}
-              className="mt-3 text-xs font-semibold text-[var(--vibe-magenta)]"
+              className="mt-2 rounded-full bg-white px-6 py-2 font-semibold text-black transition-transform hover:scale-105"
             >
-              Create your first playlist
+              Create Playlist
             </button>
           </div>
         )}
@@ -157,11 +158,11 @@ function LibraryPage() {
                 params={{ id: p.id }}
                 className="flex items-center gap-3 rounded-2xl p-2 transition hover:bg-white/5 active:scale-[0.98]"
               >
-                <div className="vibe-gradient grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl">
+                <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-white/5">
                   {p.first_thumb ? (
                     <img src={p.first_thumb} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <ListMusic className="h-5 w-5 text-white" />
+                    <ListMusic className="h-5 w-5 text-white/60" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -174,12 +175,12 @@ function LibraryPage() {
         </ul>
       </section>
 
-      {/* Liked songs list */}
+      {/* Recently Added */}
       {liked && liked.length > 0 && (
         <section className="mx-auto mt-8 max-w-md">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="vibe-text text-[10px] font-bold uppercase tracking-[0.25em]">
-              {selectMode ? `${selected.size} selected` : "Liked Songs"}
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-white">
+              {selectMode ? `${selected.size} selected` : "Recently Added"}
             </h2>
             {selectMode ? (
               <div className="flex items-center gap-3 text-xs">
@@ -191,7 +192,7 @@ function LibraryPage() {
                 </button>
                 <button
                   onClick={exitSelect}
-                  className="font-semibold text-[var(--vibe-magenta)]"
+                  className="font-semibold text-white"
                 >
                   Done
                 </button>
@@ -225,7 +226,7 @@ function LibraryPage() {
                       <span
                         className={cn(
                           "grid h-6 w-6 shrink-0 place-items-center rounded-full transition",
-                          isSel ? "text-[var(--vibe-magenta)]" : "text-white/30",
+                          isSel ? "text-white" : "text-white/30",
                         )}
                         aria-hidden
                       >
@@ -236,11 +237,11 @@ function LibraryPage() {
                         )}
                       </span>
                     )}
-                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg">
+                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white/5">
                       {s.thumbnail_url ? (
                         <img src={s.thumbnail_url} alt="" className="h-full w-full object-cover" />
                       ) : (
-                        <div className="vibe-gradient h-full w-full" />
+                        <div className="h-full w-full" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
