@@ -551,92 +551,93 @@ function FullPlayer(p: FullProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="flex flex-1 flex-col px-6"
+            className="flex min-h-0 flex-1 flex-col px-6"
           >
-            {/* Album art — enforced perfect square, no letterboxing */}
-            <div className="flex flex-1 items-center justify-center py-6">
-              <motion.div
-                layoutId="album-art"
-                className="relative mx-auto mb-6 mt-8 aspect-square w-full max-w-[340px] overflow-hidden rounded-3xl border border-white/10 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]"
-              >
-                {p.track.thumbnailUrl ? (
-                  <img
-                    src={p.track.thumbnailUrl}
-                    alt="Album Art"
-                    className="absolute inset-0 h-full w-full scale-100 object-cover transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="vibe-gradient absolute inset-0 h-full w-full" />
-                )}
-              </motion.div>
-            </div>
+            {/* Shrinkable middle: album art + title. Never pushes controls off. */}
+            <div className="flex min-h-0 flex-1 flex-col justify-center">
+              <div className="flex min-h-0 items-center justify-center py-2">
+                <motion.div
+                  layoutId="album-art"
+                  className="relative mx-auto aspect-square h-full max-h-[340px] w-auto max-w-[340px] overflow-hidden rounded-3xl border border-white/10 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]"
+                  style={{ width: "min(100%, 340px)" }}
+                >
+                  {p.track.thumbnailUrl ? (
+                    <img
+                      src={p.track.thumbnailUrl}
+                      alt="Album Art"
+                      className="absolute inset-0 h-full w-full scale-100 object-cover transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="vibe-gradient absolute inset-0 h-full w-full" />
+                  )}
+                </motion.div>
+              </div>
 
-            {/* Title + artist */}
-            <div className="text-center">
-              <h2 className="line-clamp-1 text-2xl font-bold tracking-tight text-white">
-                {cleanYouTubeTitle(p.track.title)}
-              </h2>
-              <p className="mt-1 text-base text-white/60">{p.track.artist}</p>
-            </div>
-
-            {/* Progress — thin bar, iOS-style thumb (hidden until hover/active) */}
-            <div className="group mt-8">
-              <Slider
-                value={[p.duration ? (p.progress / p.duration) * 100 : 0]}
-                onValueChange={(v) => p.duration && p.onSeek((v[0] / 100) * p.duration)}
-                max={100}
-                step={0.1}
-                className="[&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:opacity-0 [&_[role=slider]]:transition-opacity group-hover:[&_[role=slider]]:opacity-100 [&_[role=slider]:focus-visible]:opacity-100 [&_[role=slider]:active]:opacity-100"
-              />
-              <div className="mt-2 flex justify-between text-[11px] tabular-nums text-white/40">
-                <span>{fmt(p.progress)}</span>
-                <span>-{fmt(Math.max(0, p.duration - p.progress))}</span>
+              <div className="mt-6 text-center">
+                <h2 className="line-clamp-1 text-2xl font-bold tracking-tight text-white">
+                  {cleanYouTubeTitle(p.track.title)}
+                </h2>
+                <p className="mt-1 text-base text-white/60">{p.track.artist}</p>
               </div>
             </div>
 
-            {/* Controls — larger play, ergonomically spaced */}
-            <div className="mt-8 flex items-center justify-center gap-6">
-              <button
-                onClick={handleLike}
-                aria-label={isLiked ? "Unlike" : "Like"}
-                className="grid h-10 w-10 place-items-center rounded-full text-white/70 transition hover:bg-white/5 hover:text-white"
-              >
-                <Heart
-                  className={cn("h-5 w-5 transition", isLiked && "fill-current")}
-                  style={isLiked ? { color: "#EC008C", filter: "drop-shadow(0 0 8px rgba(236,0,140,0.7))" } : undefined}
+            {/* Bottom pinned controls */}
+            <div className="shrink-0 pb-8">
+              <div className="group">
+                <Slider
+                  value={[p.duration ? (p.progress / p.duration) * 100 : 0]}
+                  onValueChange={(v) => p.duration && p.onSeek((v[0] / 100) * p.duration)}
+                  max={100}
+                  step={0.1}
+                  className="[&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:opacity-0 [&_[role=slider]]:transition-opacity group-hover:[&_[role=slider]]:opacity-100 [&_[role=slider]:focus-visible]:opacity-100 [&_[role=slider]:active]:opacity-100"
                 />
-              </button>
-              <button
-                onClick={p.onPrev}
-                aria-label="Previous"
-                className="grid h-10 w-10 place-items-center rounded-full text-white/80 hover:bg-white/5 hover:text-white"
-              >
-                <SkipBack className="h-6 w-6" fill="currentColor" />
-              </button>
-              <button
-                onClick={p.onToggle}
-                aria-label={p.isPlaying ? "Pause" : "Play"}
-                className="vibe-gradient mx-2 grid h-20 w-20 place-items-center rounded-full text-white shadow-[0_0_40px_-6px_rgba(236,0,140,0.75)] transition active:scale-95"
-              >
-                {p.isPlaying ? <Pause className="h-9 w-9" fill="currentColor" /> : <Play className="h-9 w-9 translate-x-0.5" fill="currentColor" />}
-              </button>
-              <button
-                onClick={p.onNext}
-                aria-label="Next"
-                className="grid h-10 w-10 place-items-center rounded-full text-white/80 hover:bg-white/5 hover:text-white"
-              >
-                <SkipForward className="h-6 w-6" fill="currentColor" />
-              </button>
-              <button
-                onClick={() => setAddOpen(true)}
-                aria-label="Add to playlist"
-                className="grid h-10 w-10 place-items-center rounded-full text-white/70 transition hover:bg-white/5 hover:text-white"
-              >
-                <Plus className="h-5 w-5" />
-              </button>
-            </div>
+                <div className="mt-2 flex justify-between text-[11px] tabular-nums text-white/40">
+                  <span>{fmt(p.progress)}</span>
+                  <span>-{fmt(Math.max(0, p.duration - p.progress))}</span>
+                </div>
+              </div>
 
-            <div className="h-8" />
+              <div className="mt-6 flex items-center justify-center gap-6">
+                <button
+                  onClick={handleLike}
+                  aria-label={isLiked ? "Unlike" : "Like"}
+                  className="grid h-10 w-10 place-items-center rounded-full text-white/70 transition hover:bg-white/5 hover:text-white"
+                >
+                  <Heart
+                    className={cn("h-5 w-5 transition", isLiked && "fill-current")}
+                    style={isLiked ? { color: "#EC008C", filter: "drop-shadow(0 0 8px rgba(236,0,140,0.7))" } : undefined}
+                  />
+                </button>
+                <button
+                  onClick={p.onPrev}
+                  aria-label="Previous"
+                  className="grid h-10 w-10 place-items-center rounded-full text-white/80 hover:bg-white/5 hover:text-white"
+                >
+                  <SkipBack className="h-6 w-6" fill="currentColor" />
+                </button>
+                <button
+                  onClick={p.onToggle}
+                  aria-label={p.isPlaying ? "Pause" : "Play"}
+                  className="vibe-gradient mx-2 grid h-20 w-20 place-items-center rounded-full text-white shadow-[0_0_40px_-6px_rgba(236,0,140,0.75)] transition active:scale-95"
+                >
+                  {p.isPlaying ? <Pause className="h-9 w-9" fill="currentColor" /> : <Play className="h-9 w-9 translate-x-0.5" fill="currentColor" />}
+                </button>
+                <button
+                  onClick={p.onNext}
+                  aria-label="Next"
+                  className="grid h-10 w-10 place-items-center rounded-full text-white/80 hover:bg-white/5 hover:text-white"
+                >
+                  <SkipForward className="h-6 w-6" fill="currentColor" />
+                </button>
+                <button
+                  onClick={() => setAddOpen(true)}
+                  aria-label="Add to playlist"
+                  className="grid h-10 w-10 place-items-center rounded-full text-white/70 transition hover:bg-white/5 hover:text-white"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
           </motion.div>
         ) : (
           <motion.div
