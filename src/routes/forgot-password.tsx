@@ -6,7 +6,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { VibtuneLogo } from "@/components/VibtuneLogo";
 
 export const Route = createFileRoute("/forgot-password")({
-  head: () => ({ meta: [{ title: "Forgot password · Vibtune" }] }),
+  head: () => ({
+    meta: [
+      { title: "Forgot password · Vibtune" },
+      { name: "description", content: "Reset your Vibtune password. Enter your email and we'll send a secure link to get you back into your account." },
+      { property: "og:title", content: "Forgot password · Vibtune" },
+      { property: "og:description", content: "Get a secure reset link to regain access to your Vibtune account." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/forgot-password" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/forgot-password" }],
+  }),
   component: ForgotPasswordPage,
 });
 
