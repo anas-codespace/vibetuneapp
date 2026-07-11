@@ -29,6 +29,7 @@ function LibraryPage() {
   const qc = useQueryClient();
   const { play } = usePlayer();
   const [showCreate, setShowCreate] = useState(false);
+  const { items: downloads } = useDownloads();
   const [name, setName] = useState("");
 
   // Bulk-select state
