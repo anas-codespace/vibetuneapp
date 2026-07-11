@@ -75,10 +75,23 @@ function LoginPage() {
 
         <button
           type="button" onClick={handleGoogle} disabled={googleLoading || loading}
-          className="mb-5 flex w-full items-center justify-center gap-3 rounded-full border border-white/15 bg-white/95 py-3 font-semibold text-slate-900 transition hover:bg-white disabled:opacity-60"
+          className="mb-3 flex w-full items-center justify-center gap-3 rounded-full border border-white/15 bg-white/95 py-3 font-semibold text-slate-900 transition hover:bg-white disabled:opacity-60"
         >
           <GoogleIcon />
           {googleLoading ? "Opening Google…" : "Continue with Google"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            sessionStorage.setItem("post_login_action", "connect_spotify");
+            navigate({ to: "/settings/spotify" });
+          }}
+          disabled={googleLoading || loading}
+          className="mb-5 flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-white/5 py-3 font-medium text-white transition-all hover:bg-white/10 hover:scale-[1.02] disabled:opacity-60"
+        >
+          <SpotifyIcon />
+          Continue with Spotify
         </button>
 
         <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-wider text-white/40">
@@ -135,6 +148,14 @@ function GoogleIcon() {
       <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1C3.4 21.3 7.4 24 12 24z"/>
       <path fill="#FBBC05" d="M5.4 14.4c-.2-.7-.4-1.4-.4-2.4s.1-1.7.4-2.4V6.5H1.4C.5 8.2 0 10 0 12s.5 3.8 1.4 5.5l4-3.1z"/>
       <path fill="#EA4335" d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0 7.4 0 3.4 2.7 1.4 6.5l4 3.1C6.3 6.9 8.9 4.8 12 4.8z"/>
+    </svg>
+  );
+}
+
+function SpotifyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#1DB954]" fill="currentColor" aria-hidden="true">
+      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.599-.12-.42.18-.78.6-.9 4.56-1.021 8.52-.6 11.76 1.38.36.18.48.66.24 1.02zm1.44-3.3c-.301.42-.841.599-1.261.3-3.24-1.981-8.16-2.581-11.941-1.441-.479.141-.96-.12-1.101-.6-.14-.48.12-.96.6-1.101 4.2-1.26 9.6-.66 13.38 1.62.48.3.66.901.321 1.32zm.12-3.42C15.24 8.46 8.82 8.28 5.16 9.42c-.599.18-1.2-.18-1.38-.78-.18-.6.18-1.2.78-1.38 4.26-1.32 11.4-1.14 15.6 1.38.54.3.72 1.02.42 1.56-.3.54-1.02.72-1.56.42z"/>
     </svg>
   );
 }

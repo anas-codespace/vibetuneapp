@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   spotifyGetAuthUrl,
   spotifyGetConnection,
@@ -131,6 +131,16 @@ function SpotifySettings() {
   const [pendingAuthUrl, setPendingAuthUrl] = useState<string | null>(null);
   const [redirectBlocked, setRedirectBlocked] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+
+  // Auto-trigger connect when arriving from the login "Continue with Spotify" button
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("post_login_action") !== "connect_spotify") return;
+    if (connection.isLoading) return;
+    sessionStorage.removeItem("post_login_action");
+    if (!connection.data) connectMut.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connection.isLoading, connection.data]);
 
   const persistState = (state: string, redirectUri: string) => {
     sessionStorage.setItem("spotify_state", state);
