@@ -128,11 +128,16 @@ function LibraryPage() {
           <h3 className="relative z-10 text-lg font-bold text-white">Liked Songs</h3>
           <p className="relative z-10 text-sm text-white/80">{liked?.length ?? 0} songs</p>
         </button>
-        <div className="group relative flex h-28 flex-col justify-end overflow-hidden rounded-lg border border-white/5 bg-white/5 p-4">
-          <ListMusic className="absolute -bottom-4 -right-4 h-20 w-20 rotate-12 text-white/10" />
+        <Link
+          to="/library/downloaded"
+          className="group relative flex h-28 flex-col justify-end overflow-hidden rounded-lg border border-white/5 bg-white/5 p-4 transition hover:bg-white/10 active:scale-[0.98]"
+        >
+          <Download className="absolute -bottom-4 -right-4 h-20 w-20 rotate-12 text-white/10 transition-transform group-hover:scale-110" />
           <h3 className="relative z-10 text-lg font-bold text-white">Downloaded</h3>
-          <p className="relative z-10 text-sm text-white/50">Coming soon</p>
-        </div>
+          <p className="relative z-10 text-sm text-white/50">
+            {downloads.length} {downloads.length === 1 ? "track" : "tracks"}
+          </p>
+        </Link>
       </section>
 
       {/* Playlists */}
