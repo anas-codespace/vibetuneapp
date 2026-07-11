@@ -11,12 +11,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
   Heart,
+  ListMusic,
   Pause,
   Play,
   Plus,
   SkipBack,
   SkipForward,
 } from "lucide-react";
+import { toast } from "sonner";
+
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Slider } from "@/components/ui/slider";
