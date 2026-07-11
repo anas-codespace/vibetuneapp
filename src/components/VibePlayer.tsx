@@ -11,12 +11,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
   Heart,
+  ListMusic,
   Pause,
   Play,
   Plus,
   SkipBack,
   SkipForward,
 } from "lucide-react";
+import { toast } from "sonner";
+
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Slider } from "@/components/ui/slider";
@@ -26,6 +29,7 @@ import { getSmartMix } from "@/lib/mix.functions";
 import { startAudioForeground, stopAudioForeground } from "@/lib/capacitor-audio";
 import { SyncedLyrics } from "@/components/SyncedLyrics";
 import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
+import { QueueDrawer } from "@/components/QueueDrawer";
 import { cn } from "@/lib/utils";
 
 export interface VibeTrack {
@@ -39,16 +43,20 @@ export interface VibeTrack {
 interface PlayerCtx {
   current: VibeTrack | null;
   queue: VibeTrack[];
+  index: number;
   isPlaying: boolean;
   mixMode: boolean;
   play: (track: VibeTrack, queue?: VibeTrack[]) => void;
   startMix: (tracks: VibeTrack[]) => void;
+  addToQueue: (track: VibeTrack) => void;
+  removeFromQueue: (index: number) => void;
   toggle: () => void;
   next: () => void;
   prev: () => void;
   close: () => void;
   expand: () => void;
 }
+
 
 const Ctx = createContext<PlayerCtx | null>(null);
 
@@ -207,6 +215,37 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     startAudioForeground();
   }, [loadAndPlay, logListenFn]);
 
+  const addToQueue = useCallback((track: VibeTrack) => {
+    setCurrent((cur) => {
+      if (!cur) {
+        // Nothing playing → start this track immediately.
+        setQueue([track]);
+        setIndex(0);
+        setMixMode(false);
+        loadAndPlay(track.youtubeId);
+        logListenFn({
+          data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
+        }).catch(() => {});
+        startAudioForeground();
+        toast.success("Playing now");
+        return track;
+      }
+      setQueue((q) => [...q, track]);
+      toast.success("Added to queue");
+      return cur;
+    });
+  }, [loadAndPlay, logListenFn]);
+
+  const removeFromQueue = useCallback((removeIdx: number) => {
+    setQueue((q) => {
+      if (removeIdx <= index || removeIdx >= q.length) return q;
+      const next = q.slice();
+      next.splice(removeIdx, 1);
+      return next;
+    });
+  }, [index]);
+
+
   // Auto-replenish: when mix mode is on and queue is running low, fetch more tracks
   const replenishQueue = useCallback(async (remaining: number) => {
     if (!mixMode || replenishRef.current || remaining >= 3) return;
@@ -279,9 +318,10 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   const collapse = useCallback(() => setExpanded(false), []);
 
   const value = useMemo<PlayerCtx>(
-    () => ({ current, queue, isPlaying, mixMode, play, startMix, toggle, next, prev, close, expand }),
-    [current, queue, isPlaying, mixMode, play, startMix, toggle, next, prev, close, expand],
+    () => ({ current, queue, index, isPlaying, mixMode, play, startMix, addToQueue, removeFromQueue, toggle, next, prev, close, expand }),
+    [current, queue, index, isPlaying, mixMode, play, startMix, addToQueue, removeFromQueue, toggle, next, prev, close, expand],
   );
+
 
   const seek = useCallback((s: number) => playerRef.current?.seekTo?.(s, true), []);
 
@@ -406,6 +446,8 @@ interface FullProps {
 function FullPlayer(p: FullProps) {
   const [tab, setTab] = useState<"player" | "lyrics">("player");
   const [addOpen, setAddOpen] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
+
   const likedFn = useServerFn(getLikedIds);
   const toggleFn = useServerFn(toggleLike);
   const qc = useQueryClient();
@@ -477,7 +519,14 @@ function FullPlayer(p: FullProps) {
               </button>
             ))}
           </div>
-          <div className="w-10" />
+          <button
+            onClick={() => setQueueOpen(true)}
+            aria-label="Up next"
+            className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10"
+          >
+            <ListMusic className="h-5 w-5" />
+          </button>
+
         </div>
 
         {tab === "player" ? (
@@ -596,6 +645,7 @@ function FullPlayer(p: FullProps) {
       </div>
 
       <AddToPlaylistSheet open={addOpen} onClose={() => setAddOpen(false)} track={p.track} />
+      <QueueDrawer open={queueOpen} onClose={() => setQueueOpen(false)} />
     </motion.div>
   );
 }
