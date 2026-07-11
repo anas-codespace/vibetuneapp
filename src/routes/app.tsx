@@ -122,12 +122,12 @@ function AppHome() {
           See all
         </button>
       </div>
-      <div className="-mx-5 mt-3 flex snap-x gap-4 overflow-x-auto px-5 pb-4 hide-scrollbar">
+      <div className="-mx-5 mt-3 flex snap-x snap-mandatory gap-x-5 overflow-x-auto px-5 pb-6 pr-4 hide-scrollbar">
         {isLoading &&
           Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="h-36 w-36 shrink-0 animate-pulse rounded-md border border-white/5 bg-white/5"
+              className="h-40 w-40 shrink-0 animate-pulse rounded-md border border-white/5 bg-white/5 sm:w-44"
             />
           ))}
         {!isLoading &&
@@ -135,7 +135,7 @@ function AppHome() {
             <button
               key={t.youtubeId}
               onClick={() => play(t, items)}
-              className="w-36 flex-shrink-0 snap-start text-left"
+              className="flex w-40 shrink-0 snap-start flex-col text-left sm:w-44"
             >
               <div className="aspect-square overflow-hidden rounded-md bg-white/5 shadow-lg shadow-black/50">
                 {t.thumbnailUrl ? (
@@ -158,6 +158,7 @@ function AppHome() {
             </button>
           ))}
       </div>
+
     </div>
   );
 
