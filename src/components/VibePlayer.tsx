@@ -644,6 +644,7 @@ function FullPlayer(p: FullProps) {
       </div>
 
       <AddToPlaylistSheet open={addOpen} onClose={() => setAddOpen(false)} track={p.track} />
+      <QueueDrawer open={queueOpen} onClose={() => setQueueOpen(false)} />
     </motion.div>
   );
 }
