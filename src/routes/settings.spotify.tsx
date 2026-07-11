@@ -450,6 +450,31 @@ function SpotifySettings() {
 
         {connected && (
           <>
+            {/* Sync now */}
+            <section className="mt-4 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 place-items-center rounded-full bg-[#1DB954]/15 text-[#1DB954]">
+                  <RefreshCw className={`h-5 w-5 ${syncMut.isPending ? "animate-spin" : ""}`} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Sync Spotify now</p>
+                  <p className="text-xs text-white/50">
+                    {syncMut.isPending
+                      ? "Fetching latest liked songs & playlists…"
+                      : "Pull the newest liked songs and playlists from Spotify"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => syncMut.mutate()}
+                  disabled={syncMut.isPending}
+                  className="rounded-full bg-[#1DB954] px-3.5 py-1.5 text-xs font-semibold text-black hover:brightness-110 disabled:opacity-60"
+                >
+                  {syncMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Sync now"}
+                </button>
+              </div>
+              {syncMut.isPending && <IndeterminateBar />}
+            </section>
+
             {/* Import Liked */}
             <section className="mt-4 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
               <div className="flex items-center gap-3">
