@@ -23,6 +23,7 @@ function SpotifyCallback() {
     ran.current = true;
     (async () => {
       try {
+        setSyncStatus({ phase: "connecting", source: "spotify", message: "Linking your Spotify account…", progress: 0.1 });
         const params = new URLSearchParams(window.location.search);
         const code = params.get("code");
         const state = params.get("state");
@@ -38,20 +39,53 @@ function SpotifyCallback() {
         sessionStorage.removeItem("spotify_redirect_uri");
 
         setStatus("syncing");
-        setMsg(`Connected as ${res.displayName ?? "Spotify user"} — syncing your library…`);
+        const who = res.displayName ?? "Spotify user";
+        setMsg(`Connected as ${who} — syncing your library…`);
+        setSyncStatus({
+          phase: "syncing",
+          source: "spotify",
+          message: `Connected as ${who} — syncing liked songs & playlists…`,
+          progress: 0.4,
+        });
         try {
-          const sync = await autoSync({});
-          setMsg(
-            `Synced ${sync.likedAdded} liked · ${sync.playlistsCreated} playlist${sync.playlistsCreated === 1 ? "" : "s"} · ${sync.tracksAdded} tracks`,
-          );
-        } catch {
+          const result = await autoSync({});
+          const totals = {
+            likedAdded: result.likedAdded,
+            likedSkipped: result.likedSkipped,
+            playlistsCreated: result.playlistsCreated,
+            playlistsSkipped: result.playlistsSkipped,
+            tracksAdded: result.tracksAdded,
+          };
+          const anySkipped = (result.likedSkipped ?? 0) + (result.playlistsSkipped ?? 0) > 0;
+          const summary = `Synced ${result.likedAdded} liked · ${result.playlistsCreated} playlist${result.playlistsCreated === 1 ? "" : "s"} · ${result.tracksAdded} tracks`;
+          setMsg(summary);
+          setSyncStatus({
+            phase: anySkipped ? "partial" : "done",
+            source: "spotify",
+            message: anySkipped
+              ? `${summary} — some tracks couldn't be resolved on YouTube.`
+              : summary,
+            progress: 1,
+            totals,
+          });
+        } catch (syncErr) {
           setMsg("Connected. Library sync will finish in the background.");
+          setSyncStatus({
+            phase: "error",
+            source: "spotify",
+            message:
+              syncErr instanceof Error
+                ? `Sync failed: ${syncErr.message}`
+                : "Sync failed. You can retry from Spotify settings.",
+          });
         }
         setStatus("done");
         setTimeout(() => navigate({ to: "/library" }), 1200);
       } catch (e) {
         setStatus("error");
-        setMsg(e instanceof Error ? e.message : "Failed to connect Spotify");
+        const message = e instanceof Error ? e.message : "Failed to connect Spotify";
+        setMsg(message);
+        setSyncStatus({ phase: "error", source: "spotify", message });
       }
     })();
   }, [exchange, autoSync, navigate]);
