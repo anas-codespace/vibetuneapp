@@ -5,6 +5,29 @@ import { spotifyExchangeCode, spotifyAutoSync } from "@/lib/spotify.functions";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { setSyncStatus } from "@/hooks/use-sync-status";
 
+const CALLBACK_TIMEOUT_MS = 20_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`)), ms);
+    promise.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); },
+    );
+  });
+}
+
+function classifyError(raw: string): { code: string; message: string; hint: string } {
+  const m = raw.toLowerCase();
+  if (m.includes("access_denied")) return { code: "access_denied", message: "You cancelled the Spotify sign-in.", hint: "Tap Retry to try connecting again." };
+  if (m.includes("state mismatch")) return { code: "state_mismatch", message: "Security check failed (state mismatch).", hint: "This usually happens if the tab was reopened. Retry from Spotify settings." };
+  if (m.includes("missing callback")) return { code: "missing_params", message: "The callback link was incomplete.", hint: "Start the connect flow again from Spotify settings." };
+  if (m.includes("timed out") || m.includes("timeout")) return { code: "timeout", message: raw, hint: "Spotify or the network is slow. Check your connection and retry." };
+  if (m.includes("invalid_grant")) return { code: "invalid_grant", message: "Authorization code expired or already used.", hint: "Retry the connect flow — codes are single-use." };
+  if (m.includes("network") || m.includes("failed to fetch")) return { code: "network", message: "Network error while contacting Spotify.", hint: "Check your connection and retry." };
+  return { code: "unknown", message: raw || "Failed to connect Spotify.", hint: "Retry from Spotify settings. If it keeps failing, disconnect and try again." };
+}
+
 export const Route = createFileRoute("/spotify/callback")({
   head: () => ({ meta: [{ title: "Connecting Spotify" }] }),
   component: SpotifyCallback,
@@ -34,7 +57,7 @@ function SpotifyCallback() {
         if (!code || !state || !savedState || !savedRedirect) throw new Error("Missing callback parameters");
         if (state !== savedState) throw new Error("State mismatch");
 
-        const res = await exchange({ data: { code, state, redirectUri: savedRedirect } });
+        const res = await withTimeout(exchange({ data: { code, state, redirectUri: savedRedirect } }), CALLBACK_TIMEOUT_MS, "Spotify token exchange");
         sessionStorage.removeItem("spotify_state");
         sessionStorage.removeItem("spotify_redirect_uri");
 
@@ -83,9 +106,16 @@ function SpotifyCallback() {
         setTimeout(() => navigate({ to: "/library" }), 1200);
       } catch (e) {
         setStatus("error");
-        const message = e instanceof Error ? e.message : "Failed to connect Spotify";
-        setMsg(message);
-        setSyncStatus({ phase: "error", source: "spotify", message });
+        const raw = e instanceof Error ? e.message : "Failed to connect Spotify";
+        const info = classifyError(raw);
+        setMsg(info.message);
+        setSyncStatus({ phase: "error", source: "spotify", message: info.message });
+        try {
+          sessionStorage.setItem(
+            "spotify_last_error",
+            JSON.stringify({ at: Date.now(), code: info.code, message: info.message, hint: info.hint, raw }),
+          );
+        } catch { /* ignore */ }
       }
     })();
   }, [exchange, autoSync, navigate]);
@@ -100,7 +130,7 @@ function SpotifyCallback() {
         {status === "error" && (
           <button
             onClick={() => navigate({ to: "/settings/spotify" })}
-            className="mt-2 rounded-full bg-white/10 px-4 py-2 text-xs font-medium hover:bg-white/15"
+            className="mt-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black hover:brightness-110"
           >
             Back to Spotify settings
           </button>
@@ -109,3 +139,4 @@ function SpotifyCallback() {
     </main>
   );
 }
+
