@@ -72,6 +72,11 @@ function SearchPage() {
     staleTime: 1000 * 60 * 5,
   });
 
+  useEffect(() => {
+    if (data && data.length > 0 && debounced.length > 1) addToHistory(debounced);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, debounced]);
+
   const tracks: VibeTrack[] = (data ?? []).map((t) => ({
     youtubeId: t.youtubeId,
     title: t.title,
