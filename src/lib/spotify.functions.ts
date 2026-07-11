@@ -150,6 +150,55 @@ export const spotifySearch = createServerFn({ method: "POST" })
     }));
   });
 
+export interface SpotifyPlayableResult {
+  spotifyId: string;
+  youtubeId: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArt: string | null;
+  durationSeconds: number;
+}
+
+/** Spotify-first search that also resolves each track to a playable YouTube id. */
+export const spotifySearchPlayable = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ query: z.string().min(1).max(120), max: z.number().int().min(1).max(24).optional() }).parse(d))
+  .handler(async ({ data }): Promise<SpotifyPlayableResult[]> => {
+    const spot = await searchTracks(data.query, Math.min(data.max ?? 16, 20));
+    const resolved = await Promise.all(
+      spot.map(async (t): Promise<SpotifyPlayableResult | null> => {
+        try {
+          const primary = t.artists[0] ?? "";
+          const targetSec = Math.round(t.durationMs / 1000);
+          const yt = await searchMusic(`${primary} ${t.name} official audio`, 5);
+          if (yt.length === 0) return null;
+          const best = [...yt].sort(
+            (a, b) => Math.abs(a.durationSeconds - targetSec) - Math.abs(b.durationSeconds - targetSec),
+          )[0];
+          return {
+            spotifyId: t.id,
+            youtubeId: best.youtubeId,
+            title: t.name,
+            artist: t.artists.join(", "),
+            album: t.album,
+            albumArt: t.albumArt,
+            durationSeconds: best.durationSeconds || targetSec,
+          };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const seen = new Set<string>();
+    const out: SpotifyPlayableResult[] = [];
+    for (const r of resolved) {
+      if (!r || seen.has(r.youtubeId)) continue;
+      seen.add(r.youtubeId);
+      out.push(r);
+    }
+    return out;
+  });
+
 // ---------- Import: Liked Songs ----------
 
 export const spotifyImportLiked = createServerFn({ method: "POST" })

@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { History, ListPlus, Play, Search as SearchIcon, X } from "lucide-react";
+import { History, ListPlus, Play, Search as SearchIcon, X, Music2 } from "lucide-react";
 
 const HISTORY_KEY = "vibetune_search_history";
 import { useAuth } from "@/hooks/use-auth";
-import { searchTracks } from "@/lib/music.functions";
+import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 
 export const Route = createFileRoute("/search")({
@@ -29,7 +29,7 @@ function SearchPage() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const debounced = useDebounced(q.trim(), 320);
-  const fn = useServerFn(searchTracks);
+  const fn = useServerFn(spotifySearchPlayable);
   const { play, addToQueue } = usePlayer();
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
@@ -77,21 +77,20 @@ function SearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, debounced]);
 
-  const tracks: VibeTrack[] = (data ?? []).map((t) => ({
+  const results: SpotifyPlayableResult[] = data ?? [];
+  const toVibe = (t: SpotifyPlayableResult): VibeTrack => ({
     youtubeId: t.youtubeId,
     title: t.title,
     artist: t.artist,
-    thumbnailUrl: t.thumbnailUrl,
+    thumbnailUrl: t.albumArt ?? "",
     durationSeconds: t.durationSeconds,
-  }));
-
-  const top = tracks[0];
-  const rest = tracks.slice(1);
+  });
+  const vibeTracks = results.map(toVibe);
+  const top = results[0];
+  const rest = results.slice(1);
 
   // Group artists from results (unique by artist name)
-  const artists = Array.from(
-    new Map(tracks.map((t) => [t.artist, t])).values(),
-  ).slice(0, 8);
+  const artists = Array.from(new Map(results.map((t) => [t.artist, t])).values()).slice(0, 8);
 
   return (
     <main className="relative min-h-screen pb-44 pt-[calc(env(safe-area-inset-top)+1rem)]">
@@ -162,14 +161,14 @@ function SearchPage() {
             </div>
           )
         )}
-        {debounced && isFetching && tracks.length === 0 && (
+        {debounced && isFetching && results.length === 0 && (
           <div className="mt-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="glass h-16 animate-pulse rounded-2xl" />
             ))}
           </div>
         )}
-        {debounced && !isFetching && tracks.length === 0 && (
+        {debounced && !isFetching && results.length === 0 && (
           <p className="mt-12 text-center text-sm text-white/40">
             No results for "{debounced}".
           </p>
@@ -182,21 +181,27 @@ function SearchPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-4"
             >
-              <h2 className="vibe-text mb-2 text-[10px] font-bold uppercase tracking-[0.25em]">
+              <h2 className="vibe-text mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em]">
                 Top result
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[#1DB954]">
+                  <Music2 className="h-2.5 w-2.5" /> Spotify
+                </span>
               </h2>
               <button
-                onClick={() => play(top, tracks)}
+                onClick={() => play(toVibe(top), vibeTracks)}
                 className="glass-strong gradient-border relative flex w-full items-center gap-3 overflow-hidden rounded-2xl p-3 text-left active:scale-[0.99]"
               >
                 <div className="vibe-gradient h-20 w-20 shrink-0 overflow-hidden rounded-xl">
-                  {top.thumbnailUrl && (
-                    <img src={top.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                  {top.albumArt && (
+                    <img src={top.albumArt} alt="" className="h-full w-full object-cover" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 text-base font-bold text-white">{top.title}</p>
                   <p className="mt-1 text-xs text-white/60">{top.artist}</p>
+                  {top.album && (
+                    <p className="mt-0.5 truncate text-[11px] text-white/40">{top.album}</p>
+                  )}
                 </div>
                 <div className="vibe-gradient grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-[0_0_18px_-4px_rgba(236,0,140,0.7)]">
                   <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />
@@ -218,12 +223,12 @@ function SearchPage() {
                 {artists.map((a) => (
                   <button
                     key={a.artist}
-                    onClick={() => play(a, tracks)}
+                    onClick={() => play(toVibe(a), vibeTracks)}
                     className="group flex w-20 shrink-0 flex-col items-center gap-2"
                   >
                     <div className="vibe-gradient h-20 w-20 overflow-hidden rounded-full ring-2 ring-white/10">
-                      {a.thumbnailUrl && (
-                        <img src={a.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                      {a.albumArt && (
+                        <img src={a.albumArt} alt="" className="h-full w-full object-cover" />
                       )}
                     </div>
                     <p className="line-clamp-2 text-center text-[11px] text-white/70">{a.artist}</p>
@@ -247,25 +252,28 @@ function SearchPage() {
                   <li key={t.youtubeId}>
                     <div className="flex w-full items-center gap-2 rounded-2xl p-2 transition hover:bg-white/5">
                       <button
-                        onClick={() => play(t, tracks)}
+                        onClick={() => play(toVibe(t), vibeTracks)}
                         className="flex min-w-0 flex-1 items-center gap-3 text-left active:scale-[0.98]"
                       >
                         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg">
-                          {t.thumbnailUrl ? (
-                            <img src={t.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                          {t.albumArt ? (
+                            <img src={t.albumArt} alt="" className="h-full w-full object-cover" />
                           ) : (
                             <div className="vibe-gradient h-full w-full" />
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-white">{t.title}</p>
-                          <p className="truncate text-xs text-white/50">{t.artist}</p>
+                          <p className="truncate text-xs text-white/50">
+                            {t.artist}
+                            {t.album ? ` · ${t.album}` : ""}
+                          </p>
                         </div>
                       </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          addToQueue(t);
+                          addToQueue(toVibe(t));
                         }}
                         aria-label="Add to queue"
                         className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
