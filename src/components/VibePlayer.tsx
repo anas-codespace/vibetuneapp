@@ -628,14 +628,23 @@ function FullPlayer(p: FullProps) {
             </div>
 
             <div className="h-8" />
-          </div>
+          </motion.div>
         ) : (
-          <div className="relative flex-1 overflow-hidden">
-            <SyncedLyrics
-              title={p.track.title}
-              artist={p.track.artist}
-              currentTime={p.progress}
-            />
+          <motion.div
+            key="lyrics-view"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="relative flex-1 overflow-hidden px-6"
+          >
+            <div className="hide-scrollbar fade-mask-y mx-auto h-[400px] max-w-md overflow-y-auto rounded-2xl">
+              <SyncedLyrics
+                title={p.track.title}
+                artist={p.track.artist}
+                currentTime={p.progress}
+              />
+            </div>
             {/* Inline mini controls */}
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#050505] via-[#050505]/90 to-transparent px-6 pb-4 pt-12">
               <Slider
@@ -660,7 +669,7 @@ function FullPlayer(p: FullProps) {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
 
