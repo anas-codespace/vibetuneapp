@@ -64,10 +64,10 @@ export function QueueDrawer({ open, onClose }: Props) {
                       <p className="truncate text-sm font-semibold text-white">{current.title}</p>
                       <p className="truncate text-xs text-white/50">{current.artist}</p>
                     </div>
-                    <EqIcon playing={isPlaying} />
                   </div>
                 </section>
               )}
+
 
               <section>
                 <p className="vibe-text mb-2 text-[10px] font-bold uppercase tracking-[0.25em]">
