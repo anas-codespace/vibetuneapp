@@ -445,7 +445,7 @@ interface FullProps {
 }
 
 function FullPlayer(p: FullProps) {
-  const [tab, setTab] = useState<"player" | "lyrics">("player");
+  const [activeView, setActiveView] = useState<"player" | "lyrics">("player");
   const [addOpen, setAddOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
 
@@ -507,18 +507,23 @@ function FullPlayer(p: FullProps) {
             <ChevronDown className="h-5 w-5" />
           </button>
           <div className="flex gap-1 rounded-full bg-white/5 p-1">
-            {(["player", "lyrics"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-xs font-semibold capitalize transition",
-                  tab === t ? "vibe-gradient text-white shadow-[0_0_18px_-4px_rgba(236,0,140,0.6)]" : "text-white/55",
-                )}
-              >
-                {t}
-              </button>
-            ))}
+            {(["player", "lyrics"] as const).map((t) => {
+              const active = activeView === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => setActiveView(t)}
+                  className={cn(
+                    "rounded-full px-4 py-1.5 text-xs font-semibold capitalize transition",
+                    active
+                      ? "bg-gradient-to-r from-fuchsia-600 to-pink-500 text-white shadow-[0_0_18px_-4px_rgba(236,0,140,0.6)]"
+                      : "bg-white/5 text-white/50 hover:text-white",
+                  )}
+                >
+                  {t}
+                </button>
+              );
+            })}
           </div>
           <button
             onClick={() => setQueueOpen(true)}
@@ -530,8 +535,15 @@ function FullPlayer(p: FullProps) {
 
         </div>
 
-        {tab === "player" ? (
-          <div className="flex flex-1 flex-col px-6">
+        {activeView === "player" ? (
+          <motion.div
+            key="player-view"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="flex flex-1 flex-col px-6"
+          >
             {/* Album art — enforced perfect square, no letterboxing */}
             <div className="flex flex-1 items-center justify-center py-6">
               <motion.div
@@ -616,14 +628,23 @@ function FullPlayer(p: FullProps) {
             </div>
 
             <div className="h-8" />
-          </div>
+          </motion.div>
         ) : (
-          <div className="relative flex-1 overflow-hidden">
-            <SyncedLyrics
-              title={p.track.title}
-              artist={p.track.artist}
-              currentTime={p.progress}
-            />
+          <motion.div
+            key="lyrics-view"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="relative flex-1 overflow-hidden px-6"
+          >
+            <div className="hide-scrollbar fade-mask-y mx-auto h-[400px] max-w-md overflow-y-auto rounded-2xl">
+              <SyncedLyrics
+                title={p.track.title}
+                artist={p.track.artist}
+                currentTime={p.progress}
+              />
+            </div>
             {/* Inline mini controls */}
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#050505] via-[#050505]/90 to-transparent px-6 pb-4 pt-12">
               <Slider
@@ -648,7 +669,7 @@ function FullPlayer(p: FullProps) {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
 
