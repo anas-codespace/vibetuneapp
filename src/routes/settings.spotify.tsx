@@ -270,6 +270,39 @@ function SpotifySettings() {
     onSettled: () => setImportingId(null),
   });
 
+  const syncMut = useMutation({
+    mutationFn: async () => {
+      setSyncStatus({ phase: "syncing", source: "spotify", message: "Refreshing liked songs & playlists…", progress: 0.3 });
+      return autoSync({});
+    },
+    onSuccess: (r) => {
+      const anySkipped = (r.likedSkipped ?? 0) + (r.playlistsSkipped ?? 0) > 0;
+      const summary = `Synced ${r.likedAdded} liked · ${r.playlistsCreated} playlist${r.playlistsCreated === 1 ? "" : "s"} · ${r.tracksAdded} tracks`;
+      setSyncStatus({
+        phase: anySkipped ? "partial" : "done",
+        source: "spotify",
+        message: anySkipped ? `${summary} — some tracks couldn't be resolved on YouTube.` : summary,
+        progress: 1,
+        totals: {
+          likedAdded: r.likedAdded,
+          likedSkipped: r.likedSkipped,
+          playlistsCreated: r.playlistsCreated,
+          playlistsSkipped: r.playlistsSkipped,
+          tracksAdded: r.tracksAdded,
+        },
+      });
+      toast.success(summary);
+      qc.invalidateQueries({ queryKey: ["liked-songs"] });
+      qc.invalidateQueries({ queryKey: ["playlists"] });
+      qc.invalidateQueries({ queryKey: ["spotify-playlists"] });
+    },
+    onError: (e: unknown) => {
+      const message = e instanceof Error ? e.message : "Sync failed";
+      setSyncStatus({ phase: "error", source: "spotify", message });
+      toast.error(message);
+    },
+  });
+
   const connected = !!connection.data;
 
   return (
