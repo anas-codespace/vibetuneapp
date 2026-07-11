@@ -10,6 +10,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
+  Download,
   Heart,
   ListMusic,
   Pause,
@@ -32,6 +33,7 @@ import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
 import { QueueDrawer } from "@/components/QueueDrawer";
 import { cn } from "@/lib/utils";
 import { cleanYouTubeTitle } from "@/utils/textUtils";
+import { useDownloads } from "@/hooks/use-downloads";
 
 export interface VibeTrack {
   youtubeId: string;
@@ -531,6 +533,13 @@ function FullPlayer(p: FullProps) {
   });
   const isLiked = (likedIds ?? []).includes(p.track.youtubeId);
 
+  const { isDownloaded, toggle: toggleDownload } = useDownloads();
+  const downloaded = isDownloaded(p.track.youtubeId);
+  const handleDownload = () => {
+    toggleDownload(p.track);
+    toast.success(downloaded ? "Removed from downloads" : "Saved to downloads");
+  };
+
   const handleLike = async () => {
     try {
       await toggleFn({
@@ -660,7 +669,7 @@ function FullPlayer(p: FullProps) {
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center justify-center gap-6">
+              <div className="mt-6 flex items-center justify-center gap-3 sm:gap-5">
                 <button
                   onClick={handleLike}
                   aria-label={isLiked ? "Unlike" : "Like"}
@@ -691,6 +700,16 @@ function FullPlayer(p: FullProps) {
                   className="grid h-10 w-10 place-items-center rounded-full text-white/80 hover:bg-white/5 hover:text-white"
                 >
                   <SkipForward className="h-6 w-6" fill="currentColor" />
+                </button>
+                <button
+                  onClick={handleDownload}
+                  aria-label={downloaded ? "Remove download" : "Download"}
+                  className={cn(
+                    "grid h-10 w-10 place-items-center rounded-full transition hover:bg-white/5",
+                    downloaded ? "text-emerald-400" : "text-white/70 hover:text-white",
+                  )}
+                >
+                  <Download className="h-5 w-5" fill={downloaded ? "currentColor" : "none"} />
                 </button>
                 <button
                   onClick={() => setAddOpen(true)}
