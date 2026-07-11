@@ -194,29 +194,71 @@ function ProfilePage() {
             />
           </div>
 
-          {/* Name */}
-          <div className="mt-4 flex items-center gap-2">
+          {/* Name & Bio */}
+          <div className="mt-4 flex w-full flex-col items-center gap-2 px-2">
             {editing ? (
               <>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-center text-lg font-bold text-white outline-none"
+                  maxLength={80}
+                  placeholder="Display name"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center text-lg font-bold text-white outline-none focus:border-white/30"
                 />
-                <button onClick={saveName} className="text-sm font-bold text-fuchsia-400">
-                  Save
-                </button>
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value.slice(0, 280))}
+                  placeholder="Add a short bio…"
+                  rows={3}
+                  className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center text-sm text-white outline-none focus:border-white/30"
+                />
+                <div className="flex w-full items-center justify-between px-1">
+                  <span className="text-[10px] text-white/40">{bio.length}/280</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={cancelEdit}
+                      className="rounded-full px-3 py-1 text-xs font-semibold text-white/60 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveProfile}
+                      disabled={saving}
+                      className="rounded-full bg-white px-4 py-1 text-xs font-bold text-black disabled:opacity-50"
+                    >
+                      {saving ? "Saving…" : "Save"}
+                    </button>
+                  </div>
+                </div>
               </>
             ) : (
               <>
-                <p className="text-2xl font-bold text-white">{displayName}</p>
-                <button onClick={() => setEditing(true)} className="text-white/40 hover:text-white">
-                  <Pencil className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-bold text-white">{displayName}</p>
+                  <button
+                    onClick={() => setEditing(true)}
+                    aria-label="Edit profile"
+                    className="text-white/40 hover:text-white"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                </div>
+                {bio ? (
+                  <p className="max-w-xs whitespace-pre-wrap text-center text-sm leading-snug text-white/70">
+                    {bio}
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="text-xs text-white/40 hover:text-white/70"
+                  >
+                    + Add a bio
+                  </button>
+                )}
+                <p className="text-sm text-white/50">{user?.email}</p>
               </>
             )}
           </div>
-          <p className="mt-1 text-sm text-white/50">{user?.email}</p>
         </div>
 
         {/* Stats */}
