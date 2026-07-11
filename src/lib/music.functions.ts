@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { searchArtist, getRelatedArtistsByName, type SpotifyArtistInfo } from "./spotify.server";
+import { searchArtist, getRelatedArtistsByName, searchTracks as spotifySearchTracks, type SpotifyArtistInfo, type SpotifyTrackMeta } from "./spotify.server";
 import {
   searchMusic,
   relatedArtistNames,
