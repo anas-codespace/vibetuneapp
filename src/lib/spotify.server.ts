@@ -126,6 +126,7 @@ export const SPOTIFY_SCOPES = [
   "playlist-read-private",
   "playlist-read-collaborative",
   "user-top-read",
+  "user-read-playback-state",
 ].join(" ");
 
 export function buildAuthUrl(redirectUri: string, state: string): string {
