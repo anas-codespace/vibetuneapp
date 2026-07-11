@@ -212,21 +212,50 @@ function SpotifySettings() {
             <div className="grid h-11 w-11 place-items-center rounded-full bg-[#1DB954]/15 text-[#1DB954]">
               <Music2 className="h-5 w-5" />
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">Spotify account</p>
-              <p className="text-xs text-white/50">
-                {connection.isLoading
-                  ? "Checking…"
-                  : connected
-                  ? `Connected as ${connection.data?.spotify_display_name ?? connection.data?.spotify_user_id}`
-                  : "Not connected"}
-              </p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium">Spotify account</p>
+                <span
+                  className={
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider " +
+                    (connection.isLoading
+                      ? "bg-white/10 text-white/60"
+                      : connected
+                      ? "bg-[#1DB954]/15 text-[#1DB954]"
+                      : "bg-red-500/15 text-red-400")
+                  }
+                >
+                  <span
+                    className={
+                      "h-1.5 w-1.5 rounded-full " +
+                      (connection.isLoading
+                        ? "bg-white/40"
+                        : connected
+                        ? "bg-[#1DB954] animate-pulse"
+                        : "bg-red-400")
+                    }
+                  />
+                  {connection.isLoading ? "Checking" : connected ? "Connected" : "Disconnected"}
+                </span>
+              </div>
+              {connected ? (
+                <p className="mt-1 truncate text-base font-semibold text-white">
+                  {connection.data?.spotify_display_name ?? connection.data?.spotify_user_id}
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-white/50">
+                  {connection.isLoading ? "Checking your Spotify connection…" : "Link Spotify to import your library and enrich search."}
+                </p>
+              )}
+              {connected && connection.data?.spotify_display_name && connection.data?.spotify_user_id && (
+                <p className="truncate text-[11px] text-white/40">@{connection.data.spotify_user_id}</p>
+              )}
             </div>
             {connected ? (
               <button
                 onClick={() => disconnectMut.mutate()}
                 disabled={disconnectMut.isPending}
-                className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15"
+                className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15"
               >
                 <Unlink className="h-3.5 w-3.5" /> Disconnect
               </button>
@@ -234,7 +263,7 @@ function SpotifySettings() {
               <button
                 onClick={() => connectMut.mutate()}
                 disabled={connectMut.isPending}
-                className="flex items-center gap-1.5 rounded-full bg-[#1DB954] px-3.5 py-1.5 text-xs font-semibold text-black hover:brightness-110"
+                className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#1DB954] px-3.5 py-1.5 text-xs font-semibold text-black hover:brightness-110"
               >
                 {connectMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
                 Connect
