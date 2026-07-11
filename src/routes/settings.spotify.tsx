@@ -131,6 +131,24 @@ function SpotifySettings() {
   const [pendingAuthUrl, setPendingAuthUrl] = useState<string | null>(null);
   const [redirectBlocked, setRedirectBlocked] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const [callbackError, setCallbackError] = useState<{ code: string; message: string; hint: string; at: number } | null>(null);
+
+  // Surface any error persisted by /spotify/callback so the user sees it here
+  // with a Retry button (the callback route redirects here on failure).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = sessionStorage.getItem("spotify_last_error");
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      setCallbackError({ code: parsed.code, message: parsed.message, hint: parsed.hint, at: parsed.at });
+    } catch { /* ignore */ }
+  }, []);
+
+  const dismissCallbackError = () => {
+    sessionStorage.removeItem("spotify_last_error");
+    setCallbackError(null);
+  };
 
   // Auto-trigger connect when arriving from the login "Continue with Spotify" button
   useEffect(() => {
