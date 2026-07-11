@@ -75,10 +75,23 @@ function LoginPage() {
 
         <button
           type="button" onClick={handleGoogle} disabled={googleLoading || loading}
-          className="mb-5 flex w-full items-center justify-center gap-3 rounded-full border border-white/15 bg-white/95 py-3 font-semibold text-slate-900 transition hover:bg-white disabled:opacity-60"
+          className="mb-3 flex w-full items-center justify-center gap-3 rounded-full border border-white/15 bg-white/95 py-3 font-semibold text-slate-900 transition hover:bg-white disabled:opacity-60"
         >
           <GoogleIcon />
           {googleLoading ? "Opening Google…" : "Continue with Google"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            sessionStorage.setItem("post_login_action", "connect_spotify");
+            navigate({ to: "/settings/spotify" });
+          }}
+          disabled={googleLoading || loading}
+          className="mb-5 flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-white/5 py-3 font-medium text-white transition-all hover:bg-white/10 hover:scale-[1.02] disabled:opacity-60"
+        >
+          <SpotifyIcon />
+          Continue with Spotify
         </button>
 
         <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-wider text-white/40">
