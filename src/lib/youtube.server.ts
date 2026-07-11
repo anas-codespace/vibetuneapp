@@ -2,13 +2,28 @@
 // Strict filters: regionCode=IN, videoCategoryId=10 (Music), embeddable only.
 
 const YT_BASE = "https://www.googleapis.com/youtube/v3";
-const CACHE_VERSION = "fallback-v2";
+const CACHE_VERSION = "strict-v3";
 const SEARCH_CACHE = new Map<string, YTTrack[]>();
 
 function key(): string {
   const k = process.env.YOUTUBE_API_KEY;
   if (!k) throw new Error("YOUTUBE_API_KEY not configured");
   return k;
+}
+
+/**
+ * Aggressively clean a YouTube video title:
+ *  - strip bracketed tags like (Official Video), [Lyric Video], {4K}
+ *  - strip trailing pipe segments like " | 4K", " | Full Song"
+ *  - collapse whitespace
+ */
+export function cleanTitle(raw: string): string {
+  return raw
+    .replace(/\s*[\(\[\{][^)\]\}]*[\)\]\}]/g, "")
+    .replace(/\s*\|[^|]*$/g, "")
+    .replace(/\s*-\s*(official\s*(video|audio|lyric[s]?\s*video)?|full\s*(video\s*)?song|lyric[s]?\s*video|4k|hd)\b.*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export interface YTTrack {
