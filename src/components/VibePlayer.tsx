@@ -25,7 +25,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Slider } from "@/components/ui/slider";
 import { logListen } from "@/lib/profile.functions";
 import { getLikedIds, toggleLike } from "@/lib/library.functions";
-import { getSmartMix } from "@/lib/mix.functions";
+import { getSmartMix, getContextualQueue } from "@/lib/mix.functions";
 import { startAudioForeground, stopAudioForeground } from "@/lib/capacitor-audio";
 import { SyncedLyrics } from "@/components/SyncedLyrics";
 import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
