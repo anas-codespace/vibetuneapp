@@ -29,7 +29,7 @@ function SearchPage() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const debounced = useDebounced(q.trim(), 320);
-  const fn = useServerFn(searchTracks);
+  const fn = useServerFn(spotifySearchPlayable);
   const { play, addToQueue } = usePlayer();
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
