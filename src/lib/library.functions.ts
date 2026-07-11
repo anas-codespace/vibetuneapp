@@ -273,7 +273,7 @@ export const getListeningStats = createServerFn({ method: "GET" })
 
 export const updateProfilePic = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ url: z.string().url() }).parse(d))
+  .inputValidator((d) => z.object({ url: z.string().min(1).max(500) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { error } = await supabase

@@ -56,6 +56,22 @@ function ProfilePage() {
     enabled: !!session,
   });
 
+  const avatarRef = profile?.profile_pic_url ?? null;
+  const { data: signedAvatar } = useQuery({
+    queryKey: ["avatar-signed", avatarRef],
+    queryFn: async () => {
+      if (!avatarRef) return null;
+      if (/^https?:\/\//.test(avatarRef)) return avatarRef; // legacy full URL
+      const { data, error } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(avatarRef, 60 * 60);
+      if (error) return null;
+      return data.signedUrl;
+    },
+    enabled: !!avatarRef,
+    staleTime: 55 * 60 * 1000,
+  });
+
   useEffect(() => {
     if (profile?.display_name) setName(profile.display_name);
   }, [profile?.display_name]);
@@ -67,6 +83,10 @@ function ProfilePage() {
 
   const handlePic = async (file: File) => {
     if (!user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image too large", { description: "Max 5MB" });
+      return;
+    }
     // Instant local preview
     const previewUrl = URL.createObjectURL(file);
     setLocalAvatar(previewUrl);
@@ -78,9 +98,9 @@ function ProfilePage() {
         .from("avatars")
         .upload(path, file, { upsert: true, contentType: file.type });
       if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-      await picFn({ data: { url: pub.publicUrl } });
+      await picFn({ data: { url: path } });
       qc.invalidateQueries({ queryKey: ["profile"] });
+      qc.invalidateQueries({ queryKey: ["avatar-signed"] });
       toast.success("Avatar updated");
     } catch (e) {
       setLocalAvatar(null);
@@ -108,7 +128,7 @@ function ProfilePage() {
     { key: "audio", label: "Audio Quality & EQ", icon: Sliders, to: "/settings/audio" },
     { key: "history", label: "Playback History", icon: History, to: "/settings/history" },
     { key: "notifications", label: "Notifications", icon: Bell, to: "/settings/notifications" },
-    { key: "privacy", label: "Data & Privacy", icon: Shield },
+    { key: "privacy", label: "Account & Privacy", icon: Shield, to: "/settings/privacy" },
   ];
 
   return (
@@ -128,9 +148,9 @@ function ProfilePage() {
               className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-white/5 shadow-xl transition hover:opacity-90 disabled:opacity-50"
               aria-label="Change avatar"
             >
-              {localAvatar || profile?.profile_pic_url ? (
+              {localAvatar || signedAvatar ? (
                 <img
-                  src={localAvatar ?? profile?.profile_pic_url ?? ""}
+                  src={localAvatar ?? signedAvatar ?? ""}
                   alt=""
                   className="h-full w-full object-cover"
                 />
