@@ -317,9 +317,10 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   const collapse = useCallback(() => setExpanded(false), []);
 
   const value = useMemo<PlayerCtx>(
-    () => ({ current, queue, isPlaying, mixMode, play, startMix, toggle, next, prev, close, expand }),
-    [current, queue, isPlaying, mixMode, play, startMix, toggle, next, prev, close, expand],
+    () => ({ current, queue, index, isPlaying, mixMode, play, startMix, addToQueue, removeFromQueue, toggle, next, prev, close, expand }),
+    [current, queue, index, isPlaying, mixMode, play, startMix, addToQueue, removeFromQueue, toggle, next, prev, close, expand],
   );
+
 
   const seek = useCallback((s: number) => playerRef.current?.seekTo?.(s, true), []);
 
