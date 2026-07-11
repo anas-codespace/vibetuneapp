@@ -7,7 +7,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { VibtuneLogo } from "@/components/VibtuneLogo";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "Set new password · Vibtune" }] }),
+  head: () => ({
+    meta: [
+      { title: "Set new password · Vibtune" },
+      { name: "description", content: "Choose a new password for your Vibtune account and jump right back into the music." },
+      { property: "og:title", content: "Set new password · Vibtune" },
+      { property: "og:description", content: "Finish resetting your Vibtune password." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/reset-password" },
+      { property: "og:type", content: "website" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/reset-password" }],
+  }),
   component: ResetPasswordPage,
 });
 
