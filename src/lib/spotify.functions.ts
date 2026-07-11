@@ -354,7 +354,7 @@ export const spotifyAutoSync = createServerFn({ method: "POST" })
       const tracks = await getPlaylistTracks(token, p.id, 300);
       const { data: pl, error: plErr } = await context.supabase
         .from("playlists")
-        .insert({ user_id: context.userId, name: p.name, cover_image: p.cover ?? null })
+        .insert({ user_id: context.userId, name: p.name, cover_image: p.image ?? null })
         .select("id")
         .single();
       if (plErr || !pl) {
