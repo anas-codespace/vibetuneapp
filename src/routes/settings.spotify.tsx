@@ -9,6 +9,7 @@ import {
   spotifyImportLiked,
   spotifyListPlaylists,
   spotifyImportPlaylist,
+  spotifyAutoSync,
 } from "@/lib/spotify.functions";
 import {
   ArrowLeft,
@@ -22,8 +23,10 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { setSyncStatus } from "@/hooks/use-sync-status";
 
 export const Route = createFileRoute("/settings/spotify")({
   head: () => ({ meta: [{ title: "Spotify · Vibetune" }] }),
@@ -113,6 +116,7 @@ function SpotifySettings() {
   const importLiked = useServerFn(spotifyImportLiked);
   const listPlaylists = useServerFn(spotifyListPlaylists);
   const importPlaylist = useServerFn(spotifyImportPlaylist);
+  const autoSync = useServerFn(spotifyAutoSync);
 
   const connection = useQuery({
     queryKey: ["spotify-connection"],
@@ -266,6 +270,39 @@ function SpotifySettings() {
     onSettled: () => setImportingId(null),
   });
 
+  const syncMut = useMutation({
+    mutationFn: async () => {
+      setSyncStatus({ phase: "syncing", source: "spotify", message: "Refreshing liked songs & playlists…", progress: 0.3 });
+      return autoSync({});
+    },
+    onSuccess: (r) => {
+      const anySkipped = (r.likedSkipped ?? 0) + (r.playlistsSkipped ?? 0) > 0;
+      const summary = `Synced ${r.likedAdded} liked · ${r.playlistsCreated} playlist${r.playlistsCreated === 1 ? "" : "s"} · ${r.tracksAdded} tracks`;
+      setSyncStatus({
+        phase: anySkipped ? "partial" : "done",
+        source: "spotify",
+        message: anySkipped ? `${summary} — some tracks couldn't be resolved on YouTube.` : summary,
+        progress: 1,
+        totals: {
+          likedAdded: r.likedAdded,
+          likedSkipped: r.likedSkipped,
+          playlistsCreated: r.playlistsCreated,
+          playlistsSkipped: r.playlistsSkipped,
+          tracksAdded: r.tracksAdded,
+        },
+      });
+      toast.success(summary);
+      qc.invalidateQueries({ queryKey: ["liked-songs"] });
+      qc.invalidateQueries({ queryKey: ["playlists"] });
+      qc.invalidateQueries({ queryKey: ["spotify-playlists"] });
+    },
+    onError: (e: unknown) => {
+      const message = e instanceof Error ? e.message : "Sync failed";
+      setSyncStatus({ phase: "error", source: "spotify", message });
+      toast.error(message);
+    },
+  });
+
   const connected = !!connection.data;
 
   return (
@@ -413,6 +450,31 @@ function SpotifySettings() {
 
         {connected && (
           <>
+            {/* Sync now */}
+            <section className="mt-4 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 place-items-center rounded-full bg-[#1DB954]/15 text-[#1DB954]">
+                  <RefreshCw className={`h-5 w-5 ${syncMut.isPending ? "animate-spin" : ""}`} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Sync Spotify now</p>
+                  <p className="text-xs text-white/50">
+                    {syncMut.isPending
+                      ? "Fetching latest liked songs & playlists…"
+                      : "Pull the newest liked songs and playlists from Spotify"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => syncMut.mutate()}
+                  disabled={syncMut.isPending}
+                  className="rounded-full bg-[#1DB954] px-3.5 py-1.5 text-xs font-semibold text-black hover:brightness-110 disabled:opacity-60"
+                >
+                  {syncMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Sync now"}
+                </button>
+              </div>
+              {syncMut.isPending && <IndeterminateBar />}
+            </section>
+
             {/* Import Liked */}
             <section className="mt-4 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
               <div className="flex items-center gap-3">
