@@ -13,7 +13,18 @@ import { saveOnboarding } from "@/lib/profile.functions";
 import type { SpotifyArtistInfo } from "@/lib/music.types";
 
 export const Route = createFileRoute("/onboarding")({
-  head: () => ({ meta: [{ title: "Set your vibe · Vibtune" }] }),
+  head: () => ({
+    meta: [
+      { title: "Set your vibe · Vibtune" },
+      { name: "description", content: "Pick your languages and favorite artists so Vibtune can tune every mix to your taste from day one." },
+      { property: "og:title", content: "Set your vibe · Vibtune" },
+      { property: "og:description", content: "Personalize Vibtune with your languages and favorite artists." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/onboarding" },
+      { property: "og:type", content: "website" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/onboarding" }],
+  }),
   component: OnboardingPage,
 });
 
