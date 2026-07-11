@@ -507,7 +507,7 @@ function FullPlayer(p: FullProps) {
         {/* Drag handle */}
         <div className="mx-auto my-3 h-1.5 w-12 shrink-0 rounded-full bg-white/20" />
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-[env(safe-area-inset-top)] pb-2 pt-4">
+        <div className="flex shrink-0 items-center justify-between px-5 pb-2 pt-4">
           <button
             onClick={p.onCollapse}
             aria-label="Minimize"
