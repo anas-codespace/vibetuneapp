@@ -14,6 +14,8 @@ import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { BulkAddToPlaylistSheet } from "@/components/BulkAddToPlaylistSheet";
 import { cn } from "@/lib/utils";
 import { useDownloads } from "@/hooks/use-downloads";
+import { SyncStatusBanner } from "@/components/SyncStatusBanner";
+import { useSyncStatus } from "@/hooks/use-sync-status";
 
 export const Route = createFileRoute("/library")({
   head: () => ({ meta: [{ title: "Library · Vibtune" }] }),
@@ -30,6 +32,7 @@ function LibraryPage() {
   const { play } = usePlayer();
   const [showCreate, setShowCreate] = useState(false);
   const { items: downloads } = useDownloads();
+  const sync = useSyncStatus();
   const [name, setName] = useState("");
 
   // Bulk-select state
@@ -40,6 +43,13 @@ function LibraryPage() {
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
   }, [loading, session, navigate]);
+
+  useEffect(() => {
+    if (sync.phase === "done" || sync.phase === "partial") {
+      qc.invalidateQueries({ queryKey: ["liked-songs"] });
+      qc.invalidateQueries({ queryKey: ["my-playlists"] });
+    }
+  }, [sync.phase, sync.updatedAt, qc]);
 
   const { data: liked } = useQuery({
     queryKey: ["liked-songs"],
@@ -116,6 +126,8 @@ function LibraryPage() {
           <Plus className="h-5 w-5" />
         </button>
       </div>
+
+      <SyncStatusBanner />
 
       {/* Quick access grid */}
       <section className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-4">
