@@ -10,8 +10,18 @@ export const Route = createFileRoute("/settings/youtube")({
   head: () => ({
     meta: [
       { title: "YouTube API · Vibtune" },
-      { name: "description", content: "Verify YouTube Data API connectivity with a live search." },
+      { name: "description", content: "Verify YouTube Data API connectivity, run live searches, and import tracks straight into your Vibtune library." },
+      { name: "robots", content: "noindex" },
+      { property: "og:title", content: "YouTube API · Vibtune" },
+      { property: "og:description", content: "Search the YouTube Data API and import tracks into your Vibtune library." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/settings/youtube" },
+      { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Vibtune" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "YouTube API · Vibtune" },
+      { name: "twitter:description", content: "Search the YouTube Data API and import tracks into your Vibtune library." },
     ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/settings/youtube" }],
   }),
   component: YouTubeSettingsPage,
 });
