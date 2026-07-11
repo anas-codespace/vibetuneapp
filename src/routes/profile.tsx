@@ -2,7 +2,16 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Clock, LogOut, Music2, Pencil, Headphones } from "lucide-react";
+import {
+  Bell,
+  Camera,
+  ChevronRight,
+  History,
+  LogOut,
+  Pencil,
+  Shield,
+  Sliders,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,17 +99,24 @@ function ProfilePage() {
 
   const displayName = profile?.display_name ?? user?.email?.split("@")[0] ?? "Vibtune";
 
+  const menu = [
+    { key: "audio", label: "Audio Quality & EQ", icon: Sliders },
+    { key: "history", label: "Playback History", icon: History },
+    { key: "notifications", label: "Notifications", icon: Bell },
+    { key: "privacy", label: "Data & Privacy", icon: Shield },
+  ];
+
   return (
-    <main className="relative min-h-screen px-5 pb-44 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
+    <main className="relative min-h-screen pb-44 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <div className="mx-auto max-w-md">
         <h1 className="text-center text-xs font-bold uppercase tracking-[0.25em] text-white/40">
           Profile
         </h1>
 
         {/* Avatar */}
-        <div className="mt-6 flex flex-col items-center">
+        <div className="mt-8 flex flex-col items-center px-4">
           <div className="relative">
-            <div className="vibe-gradient grid h-28 w-28 place-items-center overflow-hidden rounded-full shadow-[0_0_40px_-8px_rgba(236,0,140,0.7)]">
+            <div className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-white/5 shadow-xl">
               {profile?.profile_pic_url ? (
                 <img src={profile.profile_pic_url} alt="" className="h-full w-full object-cover" />
               ) : (
@@ -112,7 +128,7 @@ function ProfilePage() {
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="glass-strong absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full text-white disabled:opacity-50"
+              className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/80 text-white backdrop-blur-xl transition hover:bg-black disabled:opacity-50"
               aria-label="Change avatar"
             >
               <Camera className="h-4 w-4" />
@@ -136,35 +152,56 @@ function ProfilePage() {
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="glass rounded-full px-3 py-1.5 text-center text-lg font-bold text-white outline-none"
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-center text-lg font-bold text-white outline-none"
                 />
-                <button onClick={saveName} className="vibe-text text-sm font-bold">
+                <button onClick={saveName} className="text-sm font-bold text-fuchsia-400">
                   Save
                 </button>
               </>
             ) : (
               <>
-                <p className="text-xl font-bold text-white">{displayName}</p>
+                <p className="text-2xl font-bold text-white">{displayName}</p>
                 <button onClick={() => setEditing(true)} className="text-white/40 hover:text-white">
                   <Pencil className="h-4 w-4" />
                 </button>
               </>
             )}
           </div>
-          <p className="mt-1 text-xs text-white/40">{user?.email}</p>
+          <p className="mt-1 text-sm text-white/50">{user?.email}</p>
         </div>
 
         {/* Stats */}
-        <section className="mt-8 grid grid-cols-3 gap-3">
-          <StatCard label="Minutes" value={stats?.totalMinutes ?? 0} icon={Clock} />
-          <StatCard label="Songs" value={stats?.uniqueSongs ?? 0} icon={Music2} />
-          <StatCard label="Plays" value={stats?.totalPlays ?? 0} icon={Headphones} />
-        </section>
+        <div className="mx-4 mt-6 flex items-center justify-between rounded-2xl border border-white/5 bg-white/5 p-4">
+          <StatItem label="MINUTES" value={stats?.totalMinutes ?? 0} withDivider />
+          <StatItem label="SONGS" value={stats?.uniqueSongs ?? 0} withDivider />
+          <StatItem label="PLAYS" value={stats?.totalPlays ?? 0} />
+        </div>
+
+        {/* Menu */}
+        <div className="mt-8 flex flex-col gap-2 px-4">
+          <h3 className="mb-2 px-2 text-xs font-bold tracking-widest text-white/40">
+            ACCOUNT & SETTINGS
+          </h3>
+          {menu.map((item) => (
+            <button
+              key={item.key}
+              className="group flex w-full items-center justify-between rounded-xl p-3 transition-colors hover:bg-white/5"
+            >
+              <div className="flex items-center gap-4">
+                <div className="rounded-lg bg-white/5 p-2 text-white/70 transition-colors group-hover:bg-fuchsia-500/20 group-hover:text-fuchsia-400">
+                  <item.icon size={20} />
+                </div>
+                <span className="font-medium text-white/90">{item.label}</span>
+              </div>
+              <ChevronRight size={20} className="text-white/20" />
+            </button>
+          ))}
+        </div>
 
         {/* Sign out */}
         <button
           onClick={handleSign}
-          className="glass mt-10 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
+          className="mx-4 mt-8 flex w-[calc(100%-2rem)] items-center justify-center gap-2 rounded-xl border border-red-500/20 p-4 font-semibold text-red-400 transition-colors hover:bg-red-500/10"
         >
           <LogOut className="h-4 w-4" />
           Sign out
@@ -174,22 +211,25 @@ function ProfilePage() {
   );
 }
 
-function StatCard({
+function StatItem({
   label,
   value,
-  icon: Icon,
+  withDivider,
 }: {
   label: string;
   value: number;
-  icon: React.ComponentType<{ className?: string }>;
+  withDivider?: boolean;
 }) {
   return (
-    <div className="glass gradient-border rounded-2xl p-3 text-center">
-      <Icon className="mx-auto h-4 w-4 text-white/40" />
-      <p className="vibe-text mt-2 text-xl font-bold tabular-nums">
+    <div
+      className={`flex flex-1 flex-col items-center ${
+        withDivider ? "border-r border-white/10" : ""
+      }`}
+    >
+      <span className="text-xl font-bold text-white tabular-nums">
         {value.toLocaleString()}
-      </p>
-      <p className="mt-1 text-[10px] uppercase tracking-wider text-white/40">{label}</p>
+      </span>
+      <span className="mt-1 text-xs tracking-wider text-white/50">{label}</span>
     </div>
   );
 }
