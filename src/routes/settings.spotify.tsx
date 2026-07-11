@@ -9,6 +9,7 @@ import {
   spotifyImportLiked,
   spotifyListPlaylists,
   spotifyImportPlaylist,
+  spotifyAutoSync,
 } from "@/lib/spotify.functions";
 import {
   ArrowLeft,
@@ -22,6 +23,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 
