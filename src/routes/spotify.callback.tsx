@@ -58,7 +58,7 @@ function SpotifyCallback() {
   return (
     <main className="grid min-h-screen place-items-center bg-black px-6 text-white">
       <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-        {status === "working" && <Loader2 className="h-8 w-8 animate-spin text-white/70" />}
+        {(status === "working" || status === "syncing") && <Loader2 className="h-8 w-8 animate-spin text-white/70" />}
         {status === "done" && <CheckCircle2 className="h-10 w-10 text-emerald-400" />}
         {status === "error" && <XCircle className="h-10 w-10 text-red-400" />}
         <p className="text-sm text-white/80">{msg}</p>
