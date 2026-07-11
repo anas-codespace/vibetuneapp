@@ -31,6 +31,7 @@ import { SyncedLyrics } from "@/components/SyncedLyrics";
 import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
 import { QueueDrawer } from "@/components/QueueDrawer";
 import { cn } from "@/lib/utils";
+import { cleanYouTubeTitle } from "@/utils/textUtils";
 
 export interface VibeTrack {
   youtubeId: string;
@@ -410,7 +411,7 @@ function MiniPlayer(p: MiniProps) {
           <Visualizer playing={p.isPlaying} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-white">{p.track.title}</p>
+          <p className="truncate text-sm font-semibold text-white">{cleanYouTubeTitle(p.track.title)}</p>
           <p className="truncate text-xs text-white/50">{p.track.artist}</p>
         </div>
         <button
@@ -531,79 +532,86 @@ function FullPlayer(p: FullProps) {
 
         {tab === "player" ? (
           <div className="flex flex-1 flex-col px-6">
-            {/* Album art */}
+            {/* Album art — enforced perfect square, no letterboxing */}
             <div className="flex flex-1 items-center justify-center py-6">
               <motion.div
                 layoutId="album-art"
-                className="relative aspect-square w-full max-w-sm overflow-hidden rounded-3xl shadow-[0_30px_80px_-20px_rgba(236,0,140,0.55)]"
+                className="relative mx-auto mb-6 mt-8 aspect-square w-full max-w-[340px] overflow-hidden rounded-3xl border border-white/10 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]"
               >
                 {p.track.thumbnailUrl ? (
-                  <img src={p.track.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={p.track.thumbnailUrl}
+                    alt="Album Art"
+                    className="absolute inset-0 h-full w-full scale-100 object-cover transition-transform duration-500"
+                  />
                 ) : (
-                  <div className="vibe-gradient h-full w-full" />
+                  <div className="vibe-gradient absolute inset-0 h-full w-full" />
                 )}
               </motion.div>
             </div>
 
             {/* Title + artist */}
             <div className="text-center">
-              <h2 className="line-clamp-2 text-xl font-bold text-white">{p.track.title}</h2>
-              <p className="mt-1 text-sm text-white/60">{p.track.artist}</p>
+              <h2 className="line-clamp-1 text-2xl font-bold tracking-tight text-white">
+                {cleanYouTubeTitle(p.track.title)}
+              </h2>
+              <p className="mt-1 text-base text-white/60">{p.track.artist}</p>
             </div>
 
-            {/* Progress */}
-            <div className="mt-6">
+            {/* Progress — thin bar, iOS-style thumb (hidden until hover/active) */}
+            <div className="group mt-8">
               <Slider
                 value={[p.duration ? (p.progress / p.duration) * 100 : 0]}
                 onValueChange={(v) => p.duration && p.onSeek((v[0] / 100) * p.duration)}
                 max={100}
                 step={0.1}
+                className="[&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:opacity-0 [&_[role=slider]]:transition-opacity group-hover:[&_[role=slider]]:opacity-100 [&_[role=slider]:focus-visible]:opacity-100 [&_[role=slider]:active]:opacity-100"
               />
-              <div className="mt-1 flex justify-between text-[10px] tabular-nums text-white/40">
+              <div className="mt-2 flex justify-between text-[11px] tabular-nums text-white/40">
                 <span>{fmt(p.progress)}</span>
                 <span>-{fmt(Math.max(0, p.duration - p.progress))}</span>
               </div>
             </div>
 
-            {/* Controls */}
-            <div className="mt-6 flex items-center justify-center gap-6">
+            {/* Controls — larger play, ergonomically spaced */}
+            <div className="mt-8 flex items-center justify-center gap-6">
               <button
                 onClick={handleLike}
                 aria-label={isLiked ? "Unlike" : "Like"}
-                className="grid h-12 w-12 place-items-center rounded-full text-white/80 transition hover:bg-white/5"
+                className="grid h-10 w-10 place-items-center rounded-full text-white/70 transition hover:bg-white/5 hover:text-white"
               >
                 <Heart
-                  className={cn("h-6 w-6 transition", isLiked && "fill-current")}
+                  className={cn("h-5 w-5 transition", isLiked && "fill-current")}
                   style={isLiked ? { color: "#EC008C", filter: "drop-shadow(0 0 8px rgba(236,0,140,0.7))" } : undefined}
                 />
               </button>
               <button
                 onClick={p.onPrev}
                 aria-label="Previous"
-                className="grid h-12 w-12 place-items-center rounded-full text-white/80 hover:bg-white/5"
+                className="grid h-10 w-10 place-items-center rounded-full text-white/80 hover:bg-white/5 hover:text-white"
               >
                 <SkipBack className="h-6 w-6" fill="currentColor" />
               </button>
               <button
                 onClick={p.onToggle}
                 aria-label={p.isPlaying ? "Pause" : "Play"}
-                className="vibe-gradient grid h-16 w-16 place-items-center rounded-full text-white shadow-[0_0_30px_-4px_rgba(236,0,140,0.7)] active:scale-95"
+                className="vibe-gradient mx-2 grid h-20 w-20 place-items-center rounded-full text-white shadow-[0_0_40px_-6px_rgba(236,0,140,0.75)] transition active:scale-95"
               >
-                {p.isPlaying ? <Pause className="h-7 w-7" fill="currentColor" /> : <Play className="h-7 w-7 translate-x-0.5" fill="currentColor" />}
+                {p.isPlaying ? <Pause className="h-9 w-9" fill="currentColor" /> : <Play className="h-9 w-9 translate-x-0.5" fill="currentColor" />}
               </button>
               <button
                 onClick={p.onNext}
                 aria-label="Next"
-                className="grid h-12 w-12 place-items-center rounded-full text-white/80 hover:bg-white/5"
+                className="grid h-10 w-10 place-items-center rounded-full text-white/80 hover:bg-white/5 hover:text-white"
               >
                 <SkipForward className="h-6 w-6" fill="currentColor" />
               </button>
               <button
                 onClick={() => setAddOpen(true)}
                 aria-label="Add to playlist"
-                className="grid h-12 w-12 place-items-center rounded-full text-white/80 transition hover:bg-white/5"
+                className="grid h-10 w-10 place-items-center rounded-full text-white/70 transition hover:bg-white/5 hover:text-white"
               >
-                <Plus className="h-6 w-6" />
+                <Plus className="h-5 w-5" />
               </button>
             </div>
 
