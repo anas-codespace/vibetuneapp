@@ -32,7 +32,7 @@ function AppHome() {
   const profileFn = useServerFn(getMyProfile);
   const tracksFn = useServerFn(tracksForArtists);
   const { play, startMix } = usePlayer();
-  const [filter, setFilter] = useState<Filter>("For You");
+  
   const [moodOpen, setMoodOpen] = useState(false);
   const [mixLoading, setMixLoading] = useState(false);
 
