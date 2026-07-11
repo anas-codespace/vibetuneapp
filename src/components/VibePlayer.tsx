@@ -518,7 +518,14 @@ function FullPlayer(p: FullProps) {
               </button>
             ))}
           </div>
-          <div className="w-10" />
+          <button
+            onClick={() => setQueueOpen(true)}
+            aria-label="Up next"
+            className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10"
+          >
+            <ListMusic className="h-5 w-5" />
+          </button>
+
         </div>
 
         {tab === "player" ? (
