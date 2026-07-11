@@ -13,6 +13,7 @@ import {
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { BulkAddToPlaylistSheet } from "@/components/BulkAddToPlaylistSheet";
 import { cn } from "@/lib/utils";
+import { useDownloads } from "@/hooks/use-downloads";
 
 export const Route = createFileRoute("/library")({
   head: () => ({ meta: [{ title: "Library · Vibtune" }] }),
