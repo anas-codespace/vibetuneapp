@@ -8,6 +8,7 @@ import {
   ChevronRight,
   History,
   LogOut,
+  Music2,
   Pencil,
   Shield,
   Sliders,
