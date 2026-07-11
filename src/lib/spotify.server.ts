@@ -74,3 +74,186 @@ export async function getRelatedArtistsByName(name: string, limit = 8): Promise<
       genres: a.genres,
     }));
 }
+
+// ---------- Track search (Client Credentials) ----------
+
+export interface SpotifyTrackMeta {
+  id: string;
+  name: string;
+  artists: string[];
+  album: string;
+  albumArt: string | null;
+  durationMs: number;
+  isrc?: string;
+}
+
+interface RawTrack {
+  id: string;
+  name: string;
+  duration_ms: number;
+  album: { name: string; images: { url: string }[] };
+  artists: { name: string }[];
+  external_ids?: { isrc?: string };
+}
+
+function mapTrack(t: RawTrack): SpotifyTrackMeta {
+  return {
+    id: t.id,
+    name: t.name,
+    artists: t.artists.map((a) => a.name),
+    album: t.album?.name ?? "",
+    albumArt: t.album?.images?.[0]?.url ?? null,
+    durationMs: t.duration_ms,
+    isrc: t.external_ids?.isrc,
+  };
+}
+
+export async function searchTracks(query: string, limit = 20): Promise<SpotifyTrackMeta[]> {
+  const token = await getSpotifyToken();
+  const url = `https://api.spotify.com/v1/search?type=track&limit=${limit}&q=${encodeURIComponent(query)}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return [];
+  const data = (await res.json()) as { tracks: { items: RawTrack[] } };
+  return data.tracks.items.map(mapTrack);
+}
+
+// ---------- User OAuth (Authorization Code) ----------
+
+export const SPOTIFY_SCOPES = [
+  "user-read-email",
+  "user-read-private",
+  "user-library-read",
+  "playlist-read-private",
+  "playlist-read-collaborative",
+  "user-top-read",
+].join(" ");
+
+export function buildAuthUrl(redirectUri: string, state: string): string {
+  const id = process.env.SPOTIFY_CLIENT_ID!;
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: id,
+    scope: SPOTIFY_SCOPES,
+    redirect_uri: redirectUri,
+    state,
+    show_dialog: "true",
+  });
+  return `https://accounts.spotify.com/authorize?${params.toString()}`;
+}
+
+interface TokenResp {
+  access_token: string;
+  refresh_token?: string;
+  expires_in: number;
+  scope: string;
+  token_type: string;
+}
+
+async function tokenExchange(body: URLSearchParams): Promise<TokenResp> {
+  const id = process.env.SPOTIFY_CLIENT_ID!;
+  const secret = process.env.SPOTIFY_CLIENT_SECRET!;
+  const basic = btoa(`${id}:${secret}`);
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
+  if (!res.ok) throw new Error(`Spotify token exchange failed: ${res.status} ${await res.text()}`);
+  return (await res.json()) as TokenResp;
+}
+
+export async function exchangeAuthCode(code: string, redirectUri: string): Promise<TokenResp> {
+  return tokenExchange(
+    new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: redirectUri,
+    }),
+  );
+}
+
+export async function refreshUserToken(refreshToken: string): Promise<TokenResp> {
+  return tokenExchange(
+    new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    }),
+  );
+}
+
+export async function spotifyGet<T>(userToken: string, path: string): Promise<T> {
+  const res = await fetch(`https://api.spotify.com/v1${path}`, {
+    headers: { Authorization: `Bearer ${userToken}` },
+  });
+  if (!res.ok) throw new Error(`Spotify ${path} → ${res.status}`);
+  return (await res.json()) as T;
+}
+
+export interface SpotifyProfile {
+  id: string;
+  display_name: string | null;
+  email?: string;
+  images?: { url: string }[];
+}
+
+export async function getUserProfile(userToken: string): Promise<SpotifyProfile> {
+  return spotifyGet<SpotifyProfile>(userToken, "/me");
+}
+
+export async function getMyLikedTracks(userToken: string, max = 200): Promise<SpotifyTrackMeta[]> {
+  const out: SpotifyTrackMeta[] = [];
+  let url = `/me/tracks?limit=50`;
+  while (out.length < max) {
+    const data = await spotifyGet<{ items: { track: RawTrack }[]; next: string | null }>(userToken, url);
+    for (const it of data.items) if (it.track) out.push(mapTrack(it.track));
+    if (!data.next) break;
+    url = data.next.replace("https://api.spotify.com/v1", "");
+  }
+  return out.slice(0, max);
+}
+
+export interface SpotifyPlaylistSummary {
+  id: string;
+  name: string;
+  image: string | null;
+  trackCount: number;
+  owner: string;
+}
+
+export async function getMyPlaylistsList(userToken: string): Promise<SpotifyPlaylistSummary[]> {
+  const out: SpotifyPlaylistSummary[] = [];
+  let url = `/me/playlists?limit=50`;
+  while (true) {
+    const data = await spotifyGet<{
+      items: Array<{ id: string; name: string; images: { url: string }[]; tracks: { total: number }; owner: { display_name: string } }>;
+      next: string | null;
+    }>(userToken, url);
+    for (const p of data.items) {
+      out.push({
+        id: p.id,
+        name: p.name,
+        image: p.images?.[0]?.url ?? null,
+        trackCount: p.tracks.total,
+        owner: p.owner.display_name,
+      });
+    }
+    if (!data.next) break;
+    url = data.next.replace("https://api.spotify.com/v1", "");
+  }
+  return out;
+}
+
+export async function getPlaylistTracks(userToken: string, playlistId: string, max = 300): Promise<SpotifyTrackMeta[]> {
+  const out: SpotifyTrackMeta[] = [];
+  let url = `/playlists/${playlistId}/tracks?limit=100`;
+  while (out.length < max) {
+    const data = await spotifyGet<{ items: { track: RawTrack | null }[]; next: string | null }>(userToken, url);
+    for (const it of data.items) if (it.track) out.push(mapTrack(it.track));
+    if (!data.next) break;
+    url = data.next.replace("https://api.spotify.com/v1", "");
+  }
+  return out.slice(0, max);
+}

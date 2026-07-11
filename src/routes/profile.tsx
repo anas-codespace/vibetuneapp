@@ -8,6 +8,7 @@ import {
   ChevronRight,
   History,
   LogOut,
+  Music2,
   Pencil,
   Shield,
   Sliders,
@@ -139,6 +140,7 @@ function ProfilePage() {
   const displayName = profile?.display_name ?? user?.email?.split("@")[0] ?? "Vibtune";
 
   const menu: { key: string; label: string; icon: typeof Sliders; to?: string }[] = [
+    { key: "spotify", label: "Connect Spotify", icon: Music2, to: "/settings/spotify" },
     { key: "audio", label: "Audio Quality & EQ", icon: Sliders, to: "/settings/audio" },
     { key: "history", label: "Playback History", icon: History, to: "/settings/history" },
     { key: "notifications", label: "Notifications", icon: Bell, to: "/settings/notifications" },
