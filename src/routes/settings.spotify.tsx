@@ -303,7 +303,40 @@ function SpotifySettings() {
               </button>
             )}
           </div>
+
+          {!connected && pendingAuthUrl && (
+            <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-4">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                <div className="flex-1 text-xs leading-relaxed text-amber-100/90">
+                  <p className="font-semibold text-amber-200">
+                    {redirectBlocked ? "Redirect blocked" : "Didn't get redirected?"}
+                  </p>
+                  <p className="mt-1 text-amber-100/70">
+                    Spotify's login page refuses to load inside embedded frames (like the
+                    in-app preview) for security. If nothing opened, use the link below to
+                    finish signing in — it'll come back here automatically.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={openInNewTab}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-amber-300 px-3 py-1.5 text-[11px] font-semibold text-black hover:brightness-110"
+                    >
+                      <Link2 className="h-3.5 w-3.5" /> Open in new tab
+                    </button>
+                    <button
+                      onClick={copyAuthUrl}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/15"
+                    >
+                      Copy login link
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
+
 
         {connected && (
           <>
