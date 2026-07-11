@@ -17,8 +17,6 @@ export const Route = createFileRoute("/app")({
   component: AppHome,
 });
 
-const FILTERS = ["For You", "New Releases", "Chill", "Tamil", "Lo-Fi"] as const;
-type Filter = (typeof FILTERS)[number];
 
 function timeGreeting(): string {
   const h = new Date().getHours();
