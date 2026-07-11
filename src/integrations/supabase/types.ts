@@ -144,6 +144,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bio: string | null
           created_at: string
           display_name: string | null
           fav_artists: Json
@@ -155,6 +156,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bio?: string | null
           created_at?: string
           display_name?: string | null
           fav_artists?: Json
@@ -166,6 +168,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bio?: string | null
           created_at?: string
           display_name?: string | null
           fav_artists?: Json
