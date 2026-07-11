@@ -103,19 +103,14 @@ export async function searchMusic(query: string, maxResults = 20): Promise<YTTra
     `&maxResults=50&q=${encodeURIComponent(q)}&key=${key()}`;
   const searchRes = await fetch(searchUrl);
   if (!searchRes.ok) {
-    const fallback = fallbackSearch(query, maxResults);
-    if (fallback.length > 0) SEARCH_CACHE.set(cacheKey, fallback);
-    return fallback;
+    console.error("[youtube] search failed", searchRes.status, await searchRes.text().catch(() => ""));
+    return [];
   }
   const searchData = (await searchRes.json()) as {
     items: Array<{ id: { videoId?: string } }>;
   };
   const ids = searchData.items.map((i) => i.id.videoId).filter((v): v is string => !!v);
-  if (ids.length === 0) {
-    const fallback = fallbackSearch(query, maxResults);
-    if (fallback.length > 0) SEARCH_CACHE.set(cacheKey, fallback);
-    return fallback;
-  }
+  if (ids.length === 0) return [];
 
   const items = await fetchVideoDetails(ids);
 
@@ -132,7 +127,7 @@ export async function searchMusic(query: string, maxResults = 20): Promise<YTTra
   // Score & sort: official channels/titles + explicit song identifiers first.
   filtered.sort((a, b) => scoreVideo(b.v) - scoreVideo(a.v));
 
-  const tracks = filtered.slice(0, maxResults).map(({ v, seconds }) => ({
+  const tracks: YTTrack[] = filtered.slice(0, maxResults).map(({ v, seconds }) => ({
     youtubeId: v.id,
     title: v.snippet.title,
     artist: v.snippet.channelTitle.replace(/ *-? *Topic$/i, ""),
@@ -142,9 +137,8 @@ export async function searchMusic(query: string, maxResults = 20): Promise<YTTra
     isEmbeddable: v.status.embeddable,
   }));
 
-  const result = tracks.length > 0 ? tracks : fallbackSearch(query, maxResults);
-  if (result.length > 0) SEARCH_CACHE.set(cacheKey, result);
-  return result;
+  if (tracks.length > 0) SEARCH_CACHE.set(cacheKey, tracks);
+  return tracks;
 }
 
 export async function relatedArtistNames(seedArtist: string, limit = 8): Promise<string[]> {
