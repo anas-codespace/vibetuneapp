@@ -39,6 +39,7 @@ function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [localAvatar, setLocalAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
