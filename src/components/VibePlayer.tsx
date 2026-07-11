@@ -31,6 +31,7 @@ import { SyncedLyrics } from "@/components/SyncedLyrics";
 import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
 import { QueueDrawer } from "@/components/QueueDrawer";
 import { cn } from "@/lib/utils";
+import { cleanYouTubeTitle } from "@/utils/textUtils";
 
 export interface VibeTrack {
   youtubeId: string;
