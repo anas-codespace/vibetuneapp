@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Search as SearchIcon, X } from "lucide-react";
+import { ListPlus, Play, Search as SearchIcon, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { searchTracks } from "@/lib/music.functions";
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
