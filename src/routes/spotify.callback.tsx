@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { spotifyExchangeCode } from "@/lib/spotify.functions";
+import { spotifyExchangeCode, spotifyAutoSync } from "@/lib/spotify.functions";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/spotify/callback")({
