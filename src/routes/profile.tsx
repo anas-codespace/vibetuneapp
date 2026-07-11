@@ -39,6 +39,7 @@ function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [localAvatar, setLocalAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
@@ -66,6 +67,9 @@ function ProfilePage() {
 
   const handlePic = async (file: File) => {
     if (!user) return;
+    // Instant local preview
+    const previewUrl = URL.createObjectURL(file);
+    setLocalAvatar(previewUrl);
     setUploading(true);
     try {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
@@ -79,6 +83,7 @@ function ProfilePage() {
       qc.invalidateQueries({ queryKey: ["profile"] });
       toast.success("Avatar updated");
     } catch (e) {
+      setLocalAvatar(null);
       toast.error("Upload failed", { description: e instanceof Error ? e.message : "" });
     } finally {
       setUploading(false);
@@ -116,15 +121,25 @@ function ProfilePage() {
         {/* Avatar */}
         <div className="mt-8 flex flex-col items-center px-4">
           <div className="relative">
-            <div className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-white/5 shadow-xl">
-              {profile?.profile_pic_url ? (
-                <img src={profile.profile_pic_url} alt="" className="h-full w-full object-cover" />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-white/5 shadow-xl transition hover:opacity-90 disabled:opacity-50"
+              aria-label="Change avatar"
+            >
+              {localAvatar || profile?.profile_pic_url ? (
+                <img
+                  src={localAvatar ?? profile?.profile_pic_url ?? ""}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <span className="text-3xl font-black text-white">
                   {displayName.charAt(0).toUpperCase()}
                 </span>
               )}
-            </div>
+            </button>
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
@@ -185,6 +200,7 @@ function ProfilePage() {
           {menu.map((item) => (
             <button
               key={item.key}
+              onClick={() => toast.info(`${item.label} — coming soon`)}
               className="group flex w-full items-center justify-between rounded-xl p-3 transition-colors hover:bg-white/5"
             >
               <div className="flex items-center gap-4">
