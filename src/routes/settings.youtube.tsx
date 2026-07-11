@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { ChevronLeft, Search, Youtube, Loader2, AlertCircle } from "lucide-react";
-import { searchYouTubeOnly } from "@/lib/music.functions";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, Search, Youtube, Loader2, AlertCircle, Check, Download } from "lucide-react";
+import { toast } from "sonner";
+import { searchYouTubeOnly, importTracksToLibrary } from "@/lib/music.functions";
 import type { YTTrack } from "@/lib/youtube.server";
 
 export const Route = createFileRoute("/settings/youtube")({
@@ -23,10 +24,31 @@ function formatDuration(sec: number): string {
 
 function YouTubeSettingsPage() {
   const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const queryClient = useQueryClient();
 
   const searchMut = useMutation({
     mutationFn: async (q: string): Promise<YTTrack[]> => {
       return await searchYouTubeOnly({ data: { query: q, max: 12 } });
+    },
+    onSuccess: () => setSelected(new Set()),
+  });
+
+  const importMut = useMutation({
+    mutationFn: async (tracks: YTTrack[]) => {
+      return await importTracksToLibrary({ data: { tracks } });
+    },
+    onSuccess: (res) => {
+      toast.success(`Imported ${res.imported} track${res.imported === 1 ? "" : "s"}`, {
+        description: res.skipped > 0 ? `${res.skipped} already in library` : undefined,
+      });
+      setSelected(new Set());
+      queryClient.invalidateQueries({ queryKey: ["liked-songs"] });
+    },
+    onError: (err) => {
+      toast.error("Import failed", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
     },
   });
 
@@ -39,6 +61,26 @@ function YouTubeSettingsPage() {
 
   const results = searchMut.data ?? [];
   const errMsg = searchMut.error instanceof Error ? searchMut.error.message : null;
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selected.size === results.length) setSelected(new Set());
+    else setSelected(new Set(results.map((t) => t.youtubeId)));
+  };
+
+  const onImport = () => {
+    const picks = results.filter((t) => selected.has(t.youtubeId));
+    if (picks.length === 0) return;
+    importMut.mutate(picks);
+  };
 
   return (
     <div className="min-h-[100dvh] bg-black text-white pb-24">
@@ -54,7 +96,7 @@ function YouTubeSettingsPage() {
 
       <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
         <p className="text-sm text-white/60">
-          Run a live search against the YouTube Data API v3 to verify connectivity and quota.
+          Run a live search against the YouTube Data API v3, then select tracks to import into your Liked Songs.
         </p>
 
         <form onSubmit={onSubmit} className="flex gap-2">
@@ -95,30 +137,67 @@ function YouTubeSettingsPage() {
 
         {results.length > 0 && (
           <>
-            <div className="text-xs uppercase tracking-wider text-white/40">
-              {results.length} results
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={toggleAll}
+                className="text-xs uppercase tracking-wider text-white/60 hover:text-white"
+              >
+                {selected.size === results.length ? "Clear all" : "Select all"} · {results.length}
+              </button>
+              <button
+                type="button"
+                onClick={onImport}
+                disabled={selected.size === 0 || importMut.isPending}
+                className="flex items-center gap-2 rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-40"
+              >
+                {importMut.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                Import {selected.size > 0 ? `(${selected.size})` : ""}
+              </button>
             </div>
+
             <ul className="space-y-2">
-              {results.map((t) => (
-                <li
-                  key={t.youtubeId}
-                  className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 p-2 pr-4"
-                >
-                  <img
-                    src={t.thumbnailUrl}
-                    alt=""
-                    className="h-14 w-14 rounded-md object-cover"
-                    loading="lazy"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">{t.title}</div>
-                    <div className="truncate text-xs text-white/50">{t.artist}</div>
-                  </div>
-                  <div className="text-xs tabular-nums text-white/50">
-                    {formatDuration(t.durationSeconds)}
-                  </div>
-                </li>
-              ))}
+              {results.map((t) => {
+                const isSel = selected.has(t.youtubeId);
+                return (
+                  <li key={t.youtubeId}>
+                    <button
+                      type="button"
+                      onClick={() => toggle(t.youtubeId)}
+                      className={`flex w-full items-center gap-3 rounded-xl border p-2 pr-4 text-left transition ${
+                        isSel
+                          ? "border-red-500/60 bg-red-500/10"
+                          : "border-white/5 bg-white/5 hover:bg-white/10"
+                      }`}
+                    >
+                      <div
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
+                          isSel ? "border-red-500 bg-red-500" : "border-white/30"
+                        }`}
+                      >
+                        {isSel && <Check className="h-3.5 w-3.5 text-white" />}
+                      </div>
+                      <img
+                        src={t.thumbnailUrl}
+                        alt=""
+                        className="h-14 w-14 rounded-md object-cover"
+                        loading="lazy"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium">{t.title}</div>
+                        <div className="truncate text-xs text-white/50">{t.artist}</div>
+                      </div>
+                      <div className="text-xs tabular-nums text-white/50">
+                        {formatDuration(t.durationSeconds)}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </>
         )}
