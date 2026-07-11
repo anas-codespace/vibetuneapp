@@ -127,6 +127,8 @@ function LibraryPage() {
         </button>
       </div>
 
+      <SyncStatusBanner />
+
       {/* Quick access grid */}
       <section className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-4">
         <button
