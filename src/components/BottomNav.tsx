@@ -13,9 +13,29 @@ const items = [
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const set = () => {
+      root.style.setProperty("--bottom-nav-h", `${el.offsetHeight}px`);
+    };
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    window.addEventListener("resize", set);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", set);
+      root.style.removeProperty("--bottom-nav-h");
+    };
+  }, []);
 
   return (
     <nav
+      ref={navRef}
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-40 h-[72px] border-t border-white/5 bg-[#050505] pb-[env(safe-area-inset-bottom)]"
     >
