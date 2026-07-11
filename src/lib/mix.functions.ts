@@ -191,3 +191,55 @@ export const getExploreTracks = createServerFn({ method: "POST" })
 
     return searchMusic(fullQuery, 20);
   });
+
+/**
+ * Context-Aware Auto-Queue.
+ *
+ * Given the currently-playing track's metadata, fetch related tracks that
+ * share its hero/artist/movie vibe. Language is inferred lightly from the
+ * artist/title (Tamil/Telugu/Hindi keywords), defaulting to no suffix so the
+ * result set stays broad when we can't tell.
+ */
+const LANG_HINTS: Array<{ re: RegExp; label: string }> = [
+  { re: /anirudh|thalapathy|vijay|rajini|dhanush|tamil|kollywood|சிற|கிற/i, label: "Tamil" },
+  { re: /telugu|tollywood|allu|ntr|prabhas|jr\.?\s*ntr/i, label: "Telugu" },
+  { re: /hindi|bollywood|arijit|shreya|kishore|arrahman hindi/i, label: "Hindi" },
+  { re: /malayalam|mollywood/i, label: "Malayalam" },
+  { re: /kannada|sandalwood/i, label: "Kannada" },
+];
+
+function inferLanguage(title: string, artist: string): string {
+  const hay = `${title} ${artist}`;
+  for (const h of LANG_HINTS) if (h.re.test(hay)) return h.label;
+  return "";
+}
+
+export const getContextualQueue = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z
+      .object({
+        youtubeId: z.string().min(1).max(32),
+        title: z.string().min(1).max(240),
+        artist: z.string().min(1).max(240),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { youtubeId, title, artist } = data;
+    const lang = inferLanguage(title, artist);
+    // Highly contextual query: hero/artist + language hint + audio bias
+    const query = `${artist} ${lang} hit songs audio`.replace(/\s+/g, " ").trim();
+
+    const results = await searchMusic(query, 20).catch(() => [] as YTTrack[]);
+    // Drop current track + any dupes; cap at 15
+    const seen = new Set<string>([youtubeId]);
+    const out: YTTrack[] = [];
+    for (const t of results) {
+      if (seen.has(t.youtubeId)) continue;
+      seen.add(t.youtubeId);
+      out.push(t);
+      if (out.length >= 15) break;
+    }
+    return out;
+  });
+

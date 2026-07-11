@@ -2,13 +2,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Trash2, X } from "lucide-react";
 import { usePlayer } from "@/components/VibePlayer";
 
+
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
 export function QueueDrawer({ open, onClose }: Props) {
-  const { current, queue, index, isPlaying, removeFromQueue } = usePlayer();
+  const { current, queue, index, removeFromQueue } = usePlayer();
+
   const upNext = queue.slice(index + 1);
 
   return (
@@ -62,10 +64,10 @@ export function QueueDrawer({ open, onClose }: Props) {
                       <p className="truncate text-sm font-semibold text-white">{current.title}</p>
                       <p className="truncate text-xs text-white/50">{current.artist}</p>
                     </div>
-                    <EqIcon playing={isPlaying} />
                   </div>
                 </section>
               )}
+
 
               <section>
                 <p className="vibe-text mb-2 text-[10px] font-bold uppercase tracking-[0.25em]">
@@ -116,22 +118,3 @@ export function QueueDrawer({ open, onClose }: Props) {
   );
 }
 
-function EqIcon({ playing }: { playing: boolean }) {
-  return (
-    <div className="flex h-8 w-8 items-end justify-center gap-[2px]">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="vibe-gradient w-[3px] origin-bottom rounded-full"
-          style={{
-            height: "100%",
-            animation: playing
-              ? `vibeBar ${0.55 + i * 0.15}s ease-in-out ${i * 0.08}s infinite alternate`
-              : "none",
-            transform: playing ? undefined : "scaleY(0.2)",
-          }}
-        />
-      ))}
-    </div>
-  );
-}

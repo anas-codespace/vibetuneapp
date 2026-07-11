@@ -25,7 +25,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Slider } from "@/components/ui/slider";
 import { logListen } from "@/lib/profile.functions";
 import { getLikedIds, toggleLike } from "@/lib/library.functions";
-import { getSmartMix } from "@/lib/mix.functions";
+import { getSmartMix, getContextualQueue } from "@/lib/mix.functions";
 import { startAudioForeground, stopAudioForeground } from "@/lib/capacitor-audio";
 import { SyncedLyrics } from "@/components/SyncedLyrics";
 import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
@@ -110,6 +110,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   const pendingRef = useRef<string | null>(null);
   const logListenFn = useServerFn(logListen);
   const mixFn = useServerFn(getSmartMix);
+  const contextFn = useServerFn(getContextualQueue);
 
   useEffect(() => {
     let cancelled = false;
@@ -189,6 +190,29 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     pendingRef.current = youtubeId;
   }, []);
 
+  const autoPopulateQueue = useCallback((track: VibeTrack) => {
+    contextFn({
+      data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
+    })
+      .then((related) => {
+        if (!related?.length) return;
+        setQueue((prev) => {
+          const existing = new Set(prev.map((t) => t.youtubeId));
+          const additions: VibeTrack[] = related
+            .filter((t) => !existing.has(t.youtubeId))
+            .map((t) => ({
+              youtubeId: t.youtubeId,
+              title: t.title,
+              artist: t.artist,
+              thumbnailUrl: t.thumbnailUrl,
+              durationSeconds: t.durationSeconds,
+            }));
+          return [...prev, ...additions];
+        });
+      })
+      .catch(() => {});
+  }, [contextFn]);
+
   const play = useCallback((track: VibeTrack, q?: VibeTrack[]) => {
     const newQueue = q ?? [track];
     const idx = newQueue.findIndex((t) => t.youtubeId === track.youtubeId);
@@ -201,7 +225,10 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
       data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
     }).catch(() => {});
     startAudioForeground();
-  }, [loadAndPlay, logListenFn]);
+    // Context-aware auto-queue: append related tracks in the background
+    autoPopulateQueue(track);
+  }, [loadAndPlay, logListenFn, autoPopulateQueue]);
+
 
   const startMix = useCallback((tracks: VibeTrack[]) => {
     if (tracks.length === 0) return;
