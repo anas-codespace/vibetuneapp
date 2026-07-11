@@ -489,7 +489,7 @@ function FullPlayer(p: FullProps) {
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", stiffness: 280, damping: 32 }}
-      className="fixed inset-0 z-[70] flex flex-col bg-[#050505] pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-0 z-[100] flex h-[100dvh] flex-col overflow-hidden bg-[#050505] pb-[env(safe-area-inset-bottom)]"
     >
       {/* Ambient glow from artwork */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -503,9 +503,9 @@ function FullPlayer(p: FullProps) {
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/70 to-[#050505]" />
       </div>
 
-      <div className="relative z-10 flex flex-1 flex-col">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         {/* Drag handle */}
-        <div className="mx-auto my-4 h-1.5 w-12 shrink-0 rounded-full bg-white/20" />
+        <div className="mx-auto my-3 h-1.5 w-12 shrink-0 rounded-full bg-white/20" />
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-[env(safe-area-inset-top)] pb-2 pt-4">
           <button
