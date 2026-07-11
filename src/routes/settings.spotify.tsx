@@ -297,11 +297,12 @@ function SpotifySettings() {
             </div>
             {connected ? (
               <button
-                onClick={() => disconnectMut.mutate()}
+                onClick={() => setConfirmDisconnect(true)}
                 disabled={disconnectMut.isPending}
-                className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15"
+                className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15 disabled:opacity-50"
               >
-                <Unlink className="h-3.5 w-3.5" /> Disconnect
+                {disconnectMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Unlink className="h-3.5 w-3.5" />}
+                Disconnect
               </button>
             ) : (
               <button
