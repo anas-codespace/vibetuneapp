@@ -136,3 +136,12 @@ export const tracksForArtists = createServerFn({ method: "POST" })
     }
     return out;
   });
+
+/** Raw YouTube-only search (bypasses Spotify enrichment). Used by YouTube settings verification. */
+export const searchYouTubeOnly = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z.object({ query: z.string().min(1).max(200), max: z.number().int().min(1).max(25).optional() }).parse(d),
+  )
+  .handler(async ({ data }): Promise<YTTrack[]> => {
+    return searchMusic(data.query, data.max ?? 12);
+  });
