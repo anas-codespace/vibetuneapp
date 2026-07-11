@@ -214,6 +214,37 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     startAudioForeground();
   }, [loadAndPlay, logListenFn]);
 
+  const addToQueue = useCallback((track: VibeTrack) => {
+    setCurrent((cur) => {
+      if (!cur) {
+        // Nothing playing → start this track immediately.
+        setQueue([track]);
+        setIndex(0);
+        setMixMode(false);
+        loadAndPlay(track.youtubeId);
+        logListenFn({
+          data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
+        }).catch(() => {});
+        startAudioForeground();
+        toast.success("Playing now");
+        return track;
+      }
+      setQueue((q) => [...q, track]);
+      toast.success("Added to queue");
+      return cur;
+    });
+  }, [loadAndPlay, logListenFn]);
+
+  const removeFromQueue = useCallback((removeIdx: number) => {
+    setQueue((q) => {
+      if (removeIdx <= index || removeIdx >= q.length) return q;
+      const next = q.slice();
+      next.splice(removeIdx, 1);
+      return next;
+    });
+  }, [index]);
+
+
   // Auto-replenish: when mix mode is on and queue is running low, fetch more tracks
   const replenishQueue = useCallback(async (remaining: number) => {
     if (!mixMode || replenishRef.current || remaining >= 3) return;
