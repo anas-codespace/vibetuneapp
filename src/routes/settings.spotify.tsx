@@ -130,6 +130,7 @@ function SpotifySettings() {
   const [playlistResults, setPlaylistResults] = useState<Record<string, ImportResult>>({});
   const [pendingAuthUrl, setPendingAuthUrl] = useState<string | null>(null);
   const [redirectBlocked, setRedirectBlocked] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   const persistState = (state: string, redirectUri: string) => {
     sessionStorage.setItem("spotify_state", state);
