@@ -451,6 +451,50 @@ function SpotifySettings() {
           are matched to a playable version automatically.
         </p>
       </div>
+
+      {/* Disconnect confirmation */}
+      {confirmDisconnect && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-5 backdrop-blur-sm"
+          onClick={() => !disconnectMut.isPending && setConfirmDisconnect(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-3xl border border-white/10 bg-neutral-950 p-6 shadow-2xl"
+          >
+            <div className="flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-red-500/15 text-red-400">
+                <Unlink className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-base font-semibold">Disconnect Spotify?</h2>
+                <p className="mt-1 text-sm text-white/60">
+                  We'll remove your saved Spotify tokens. You'll need to reconnect to import
+                  playlists or enrich search results with Spotify metadata. Your already-imported
+                  tracks stay in your library.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setConfirmDisconnect(false)}
+                disabled={disconnectMut.isPending}
+                className="flex-1 rounded-full bg-white/10 px-4 py-2.5 text-sm font-medium hover:bg-white/15 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => disconnectMut.mutate()}
+                disabled={disconnectMut.isPending}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-500/90 disabled:opacity-70"
+              >
+                {disconnectMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                Disconnect
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
