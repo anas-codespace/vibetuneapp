@@ -169,22 +169,34 @@ function SearchPage() {
               <ul className="space-y-2">
                 {rest.map((t) => (
                   <li key={t.youtubeId}>
-                    <button
-                      onClick={() => play(t, tracks)}
-                      className="flex w-full items-center gap-3 rounded-2xl p-2 text-left transition hover:bg-white/5 active:scale-[0.98]"
-                    >
-                      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg">
-                        {t.thumbnailUrl ? (
-                          <img src={t.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="vibe-gradient h-full w-full" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-white">{t.title}</p>
-                        <p className="truncate text-xs text-white/50">{t.artist}</p>
-                      </div>
-                    </button>
+                    <div className="flex w-full items-center gap-2 rounded-2xl p-2 transition hover:bg-white/5">
+                      <button
+                        onClick={() => play(t, tracks)}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left active:scale-[0.98]"
+                      >
+                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg">
+                          {t.thumbnailUrl ? (
+                            <img src={t.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="vibe-gradient h-full w-full" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-white">{t.title}</p>
+                          <p className="truncate text-xs text-white/50">{t.artist}</p>
+                        </div>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToQueue(t);
+                        }}
+                        aria-label="Add to queue"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+                      >
+                        <ListPlus className="h-4 w-4" />
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
