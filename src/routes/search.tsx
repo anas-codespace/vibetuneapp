@@ -117,10 +117,50 @@ function SearchPage() {
       </div>
 
       <div className="mx-auto mt-2 max-w-md px-5">
-        {!debounced && (
-          <div className="mt-16 text-center text-sm text-white/40">
-            Start typing to find your next vibe.
-          </div>
+        {!q.trim() && (
+          searchHistory.length > 0 ? (
+            <section className="mt-6">
+              <div className="mb-2 flex items-center justify-between px-1">
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">
+                  Recent Searches
+                </h2>
+                <button
+                  onClick={clearHistory}
+                  className="text-xs font-medium text-white/50 transition-colors hover:text-white"
+                >
+                  Clear All
+                </button>
+              </div>
+              <ul className="space-y-1">
+                {searchHistory.map((query) => (
+                  <li
+                    key={query}
+                    onClick={() => setQ(query)}
+                    className="group flex cursor-pointer items-center justify-between rounded-xl p-3 transition-colors hover:bg-white/5"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <History className="h-4 w-4 shrink-0 text-white/40" />
+                      <span className="truncate text-sm text-white/80">{query}</span>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFromHistory(query);
+                      }}
+                      aria-label={`Remove ${query}`}
+                      className="ml-2 grid h-7 w-7 shrink-0 place-items-center rounded-full text-white/30 opacity-0 transition-all hover:bg-white/10 hover:text-white group-hover:opacity-100"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : (
+            <div className="mt-16 text-center text-sm text-white/40">
+              Start typing to find your next vibe.
+            </div>
+          )
         )}
         {debounced && isFetching && tracks.length === 0 && (
           <div className="mt-6 space-y-3">
