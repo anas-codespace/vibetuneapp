@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { ChevronLeft, Download, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, ChevronLeft, Circle, Download, Trash2, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useDownloads } from "@/hooks/use-downloads";
 import { usePlayer } from "@/components/VibePlayer";
@@ -18,32 +18,104 @@ export const Route = createFileRoute("/library/downloaded")({
 function DownloadedPage() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
-  const { items, remove, clear } = useDownloads();
+  const { items, remove, removeMany, clear } = useDownloads();
   const { play } = usePlayer();
+
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
   }, [loading, session, navigate]);
 
+  useEffect(() => {
+    setSelected((prev) => {
+      const ids = new Set(items.map((t) => t.youtubeId));
+      const next = new Set<string>();
+      prev.forEach((id) => ids.has(id) && next.add(id));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [items]);
+
+  useEffect(() => {
+    if (items.length === 0 && selectMode) setSelectMode(false);
+  }, [items.length, selectMode]);
+
+  const allSelected = useMemo(
+    () => items.length > 0 && selected.size === items.length,
+    [items.length, selected.size],
+  );
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(items.map((t) => t.youtubeId)));
+  };
+
+  const enterSelect = (id?: string) => {
+    setSelectMode(true);
+    if (id) setSelected(new Set([id]));
+  };
+
+  const exitSelect = () => {
+    setSelectMode(false);
+    setSelected(new Set());
+  };
+
+  const removeSelected = () => {
+    if (selected.size === 0) return;
+    removeMany(Array.from(selected));
+    setSelected(new Set());
+  };
+
   return (
     <main className="relative min-h-screen px-5 pb-44 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
       <div className="mx-auto flex max-w-md items-center justify-between">
-        <Link
-          to="/library"
-          aria-label="Back"
-          className="rounded-full bg-white/5 p-2 text-white transition-colors hover:bg-white/10"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="text-lg font-semibold text-white">Downloaded</h1>
-        <button
-          onClick={clear}
-          disabled={items.length === 0}
-          aria-label="Clear all"
-          className="rounded-full bg-white/5 p-2 text-white transition-colors hover:bg-white/10 disabled:opacity-30"
-        >
-          <Trash2 className="h-5 w-5" />
-        </button>
+        {selectMode ? (
+          <button
+            onClick={exitSelect}
+            aria-label="Cancel selection"
+            className="rounded-full bg-white/5 p-2 text-white transition-colors hover:bg-white/10"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        ) : (
+          <Link
+            to="/library"
+            aria-label="Back"
+            className="rounded-full bg-white/5 p-2 text-white transition-colors hover:bg-white/10"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Link>
+        )}
+        <h1 className="text-lg font-semibold text-white">
+          {selectMode ? `${selected.size} selected` : "Downloaded"}
+        </h1>
+        {selectMode ? (
+          <button
+            onClick={toggleAll}
+            disabled={items.length === 0}
+            className="rounded-full bg-white/5 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/10 disabled:opacity-30"
+          >
+            {allSelected ? "None" : "All"}
+          </button>
+        ) : (
+          <button
+            onClick={() => setSelectMode(true)}
+            disabled={items.length === 0}
+            className="rounded-full bg-white/5 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/10 disabled:opacity-30"
+          >
+            Select
+          </button>
+        )}
       </div>
 
       <section className="mx-auto mt-6 max-w-md">
@@ -66,35 +138,82 @@ function DownloadedPage() {
             </p>
           </div>
         ) : (
-          <ul className="space-y-2">
-            {items.map((t) => (
-              <li key={t.youtubeId} className="flex items-center gap-3 rounded-2xl p-2 transition hover:bg-white/5">
-                <button
-                  onClick={() => play(t, items)}
-                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          <ul className={`space-y-2 ${selectMode ? "pb-24" : ""}`}>
+            {items.map((t) => {
+              const isSelected = selected.has(t.youtubeId);
+              return (
+                <li
+                  key={t.youtubeId}
+                  className={`flex items-center gap-3 rounded-2xl p-2 transition ${
+                    isSelected ? "bg-white/10" : "hover:bg-white/5"
+                  }`}
                 >
-                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white/5">
-                    {t.thumbnailUrl ? (
-                      <img src={t.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                  <button
+                    onClick={() =>
+                      selectMode ? toggleOne(t.youtubeId) : play(t, items)
+                    }
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      if (!selectMode) enterSelect(t.youtubeId);
+                    }}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
+                    {selectMode ? (
+                      isSelected ? (
+                        <CheckCircle2 className="h-5 w-5 shrink-0 text-white" />
+                      ) : (
+                        <Circle className="h-5 w-5 shrink-0 text-white/40" />
+                      )
                     ) : null}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-white">{t.title}</p>
-                    <p className="truncate text-xs text-white/50">{t.artist}</p>
-                  </div>
-                </button>
-                <button
-                  onClick={() => remove(t.youtubeId)}
-                  aria-label="Remove from downloads"
-                  className="rounded-full p-2 text-white/50 transition hover:bg-white/10 hover:text-white"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </li>
-            ))}
+                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white/5">
+                      {t.thumbnailUrl ? (
+                        <img src={t.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-white">{t.title}</p>
+                      <p className="truncate text-xs text-white/50">{t.artist}</p>
+                    </div>
+                  </button>
+                  {!selectMode && (
+                    <button
+                      onClick={() => remove(t.youtubeId)}
+                      aria-label="Remove from downloads"
+                      className="rounded-full p-2 text-white/50 transition hover:bg-white/10 hover:text-white"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
+
+      {selectMode && items.length > 0 && (
+        <div
+          className="fixed inset-x-0 z-40 px-5"
+          style={{ bottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
+        >
+          <div className="mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/80 p-3 backdrop-blur-xl">
+            <button
+              onClick={clear}
+              className="rounded-full px-3 py-2 text-xs font-medium text-white/60 transition hover:text-white"
+            >
+              Clear all
+            </button>
+            <button
+              onClick={removeSelected}
+              disabled={selected.size === 0}
+              className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/40"
+            >
+              <Trash2 className="h-4 w-4" />
+              Remove{selected.size > 0 ? ` (${selected.size})` : ""}
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
