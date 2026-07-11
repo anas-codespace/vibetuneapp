@@ -42,16 +42,20 @@ export interface VibeTrack {
 interface PlayerCtx {
   current: VibeTrack | null;
   queue: VibeTrack[];
+  index: number;
   isPlaying: boolean;
   mixMode: boolean;
   play: (track: VibeTrack, queue?: VibeTrack[]) => void;
   startMix: (tracks: VibeTrack[]) => void;
+  addToQueue: (track: VibeTrack) => void;
+  removeFromQueue: (index: number) => void;
   toggle: () => void;
   next: () => void;
   prev: () => void;
   close: () => void;
   expand: () => void;
 }
+
 
 const Ctx = createContext<PlayerCtx | null>(null);
 
