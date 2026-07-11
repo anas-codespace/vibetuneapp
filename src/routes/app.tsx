@@ -98,7 +98,70 @@ function AppHome() {
 
   const continueListening = list.slice(0, 3);
   const madeForYou = list.slice(3, 13);
-  const heroArt = list[0]?.thumbnailUrl;
+
+  const quickPicks = [
+    { title: "Liked Songs", art: list[0]?.thumbnailUrl, icon: Heart, gradient: "from-pink-500 to-violet-500" },
+    { title: "Tamil Top 50", art: list[1]?.thumbnailUrl, icon: Disc3, gradient: "from-orange-500 to-pink-500" },
+    { title: "Anirudh Essentials", art: list[2]?.thumbnailUrl, icon: Sparkles, gradient: "from-violet-500 to-fuchsia-500" },
+    { title: "Late Night Lo-Fi", art: list[3]?.thumbnailUrl, icon: Radio, gradient: "from-indigo-500 to-purple-500" },
+    { title: "Daily Mix 1", art: list[4]?.thumbnailUrl, icon: Sparkles, gradient: "from-emerald-500 to-cyan-500" },
+    { title: "Recently Played", art: list[5]?.thumbnailUrl, icon: Play, gradient: "from-rose-500 to-orange-500" },
+  ];
+
+  const suggestedForYou = list.slice(0, 8);
+  const popularRadios = list.slice(6, 14);
+  const newReleases = list.slice(10, 20);
+
+  const renderCarousel = (
+    title: string,
+    items: VibeTrack[],
+    subtitleFor: (t: VibeTrack) => string,
+  ) => (
+    <div className="mt-8">
+      <div className="flex items-baseline justify-between">
+        <h3 className="text-base font-bold text-white">{title}</h3>
+        <button className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40 hover:text-white">
+          See all
+        </button>
+      </div>
+      <div className="-mx-5 mt-3 flex snap-x gap-4 overflow-x-auto px-5 pb-4 hide-scrollbar">
+        {isLoading &&
+          Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-36 w-36 shrink-0 animate-pulse rounded-md border border-white/5 bg-white/5"
+            />
+          ))}
+        {!isLoading &&
+          items.map((t) => (
+            <button
+              key={t.youtubeId}
+              onClick={() => play(t, items)}
+              className="w-36 flex-shrink-0 snap-start text-left"
+            >
+              <div className="aspect-square overflow-hidden rounded-md bg-white/5 shadow-lg shadow-black/50">
+                {t.thumbnailUrl ? (
+                  <img
+                    src={t.thumbnailUrl}
+                    alt={t.title}
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="vibe-gradient h-full w-full" />
+                )}
+              </div>
+              <p className="mt-2 truncate text-sm font-bold text-white">
+                {t.title}
+              </p>
+              <p className="line-clamp-2 text-xs text-white/60">
+                {subtitleFor(t)}
+              </p>
+            </button>
+          ))}
+      </div>
+    </div>
+  );
 
   return (
     <main className="relative min-h-screen bg-[#050505] pb-[140px]">
@@ -119,44 +182,45 @@ function AppHome() {
           <span className="vibe-text">.</span>
         </h2>
 
-
-        {/* Hero circular vibe card */}
-        <div className="relative mx-auto mt-6 flex h-56 items-center justify-center">
-          {/* glowing background ring */}
-          <div className="pointer-events-none absolute inset-0 grid place-items-center">
-            <div className="h-48 w-48 rounded-full bg-[radial-gradient(circle_at_center,rgba(236,0,140,0.45),rgba(125,63,243,0.25)_55%,transparent_72%)] blur-2xl" />
-          </div>
-          <button
-            onClick={handleSmartMix}
-            disabled={mixLoading}
-            className="group relative grid h-44 w-44 place-items-center overflow-hidden rounded-full border border-white/10 bg-[#0c0c0c] shadow-[0_0_60px_-10px_rgba(255,0,127,0.55)] active:scale-95"
-          >
-            {heroArt ? (
-              <img
-                src={heroArt}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover opacity-50"
-              />
-            ) : (
-              <div className="vibe-gradient absolute inset-0 opacity-50" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/70" />
-            <div className="relative z-10 px-6 text-center">
-              <Sparkles className="mx-auto h-5 w-5 text-pink-500" />
-              <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-white/60">
-                Today&rsquo;s Vibe
-              </p>
-              <p className="mt-1 text-sm font-medium leading-snug text-white">
-                Feel the rhythm.
-                <br />
-                Find your sound.
-              </p>
-            </div>
-          </button>
+        {/* Quick Picks 2-col grid */}
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          {quickPicks.map((qp, i) => {
+            const Icon = qp.icon;
+            return (
+              <button
+                key={qp.title}
+                onClick={() => {
+                  if (i === 0) handleSmartMix();
+                  else if (list[i]) play(list[i], list);
+                }}
+                className="group flex h-14 items-center overflow-hidden rounded-md bg-white/5 text-left transition-colors hover:bg-white/10 active:scale-[0.98]"
+              >
+                <div
+                  className={cn(
+                    "relative grid h-14 w-14 shrink-0 place-items-center bg-gradient-to-br",
+                    qp.gradient,
+                  )}
+                >
+                  {qp.art ? (
+                    <img
+                      src={qp.art}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover opacity-90"
+                    />
+                  ) : (
+                    <Icon className="h-5 w-5 text-white" strokeWidth={2} />
+                  )}
+                </div>
+                <p className="ml-3 mr-2 line-clamp-2 text-sm font-bold text-white">
+                  {qp.title}
+                </p>
+              </button>
+            );
+          })}
         </div>
 
         {/* Filter pills */}
-        <div className="-mx-5 mt-6 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="-mx-5 mt-6 flex gap-2 overflow-x-auto px-5 pb-1 hide-scrollbar">
           {FILTERS.map((f) => {
             const active = filter === f;
             return (
@@ -175,6 +239,13 @@ function AppHome() {
             );
           })}
         </div>
+
+        {/* Horizontal sections */}
+        {renderCarousel("Suggested For You", suggestedForYou, (t) => `Mix • ${t.artist}`)}
+        {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`)}
+        {renderCarousel("New Releases", newReleases, (t) => t.artist)}
+
+
 
         {/* Continue Listening */}
         <div className="mt-8 flex items-baseline justify-between">
