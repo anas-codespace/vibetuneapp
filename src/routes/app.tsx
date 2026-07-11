@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Bell, Menu, Play, Sparkles } from "lucide-react";
+import { Play, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { getMyProfile } from "@/lib/profile.functions";
@@ -101,28 +101,15 @@ function AppHome() {
   const heroArt = list[0]?.thumbnailUrl;
 
   return (
-    <main className="relative min-h-screen bg-[#050505] px-5 pb-[140px] pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+    <main className="relative min-h-screen bg-[#050505] pb-[140px]">
       {/* Header */}
-      <header className="mx-auto flex max-w-md items-center justify-between">
-        <button
-          aria-label="Open menu"
-          className="grid h-10 w-10 place-items-center rounded-full text-white/80 hover:bg-white/5"
-        >
-          <Menu className="h-5 w-5" strokeWidth={1.75} />
-        </button>
+      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#050505]/80 px-6 pb-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-md flex items-center justify-center">
         <h1 className="text-base font-bold tracking-tight text-white">
           Vibe<span className="text-pink-500">tune</span>
         </h1>
-        <button
-          aria-label="Notifications"
-          className="relative grid h-10 w-10 place-items-center rounded-full text-white/80 hover:bg-white/5"
-        >
-          <Bell className="h-5 w-5" strokeWidth={1.75} />
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(255,0,127,0.9)]" />
-        </button>
       </header>
 
-      <section className="mx-auto mt-6 max-w-md">
+      <section className="mx-auto mt-6 max-w-md px-5">
         {/* Greeting */}
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/40">
           {timeGreeting()}
@@ -131,6 +118,7 @@ function AppHome() {
           {displayName}
           <span className="vibe-text">.</span>
         </h2>
+
 
         {/* Hero circular vibe card */}
         <div className="relative mx-auto mt-6 flex h-56 items-center justify-center">
