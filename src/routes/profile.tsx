@@ -32,12 +32,14 @@ function ProfilePage() {
   const navigate = useNavigate();
   const profileFn = useServerFn(getMyProfile);
   const statsFn = useServerFn(getListeningStats);
-  const nameFn = useServerFn(updateDisplayName);
+  const saveFn = useServerFn(updateProfileDetails);
   const picFn = useServerFn(updateProfilePic);
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
 
