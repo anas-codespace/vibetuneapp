@@ -78,7 +78,7 @@ export const tracksForArtists = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }): Promise<YTTrack[]> => {
     const results = await Promise.all(
-      data.artists.slice(0, 8).map((a) => searchMusic(`${a} official audio`, 6)),
+      data.artists.slice(0, 10).map((a) => searchMusic(`${a} official audio`, 15)),
     );
     const seen = new Set<string>();
     const out: YTTrack[] = [];
