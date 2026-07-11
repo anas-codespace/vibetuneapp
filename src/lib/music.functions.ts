@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { searchArtist, getRelatedArtistsByName, searchTracks as spotifySearchTracks, type SpotifyArtistInfo, type SpotifyTrackMeta } from "./spotify.server";
 import {
   searchMusic,
