@@ -278,3 +278,124 @@ export const spotifyImportPlaylist = createServerFn({ method: "POST" })
     }
     return { playlistId: pl.id, total: tracks.length, added, skipped, failures };
   });
+
+// ---------- Auto-sync on login: Liked + all Playlists ----------
+
+import { getMyLikedTracks as _getMyLikedTracks, getMyPlaylistsList as _getMyPlaylistsList, getPlaylistTracks as _getPlaylistTracks } from "./spotify.server";
+
+export interface AutoSyncResult {
+  likedAdded: number;
+  likedSkipped: number;
+  playlistsCreated: number;
+  playlistsSkipped: number;
+  tracksAdded: number;
+}
+
+export const spotifyAutoSync = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AutoSyncResult> => {
+    const token = await getFreshUserToken(context.supabase, context.userId);
+
+    // --- Liked Songs ---
+    const liked = await _getMyLikedTracks(token, 200);
+    let likedAdded = 0;
+    let likedSkipped = 0;
+    for (const track of liked) {
+      let resolved: Awaited<ReturnType<typeof resolveToYoutube>> = null;
+      try {
+        resolved = await resolveToYoutube(track);
+      } catch {
+        likedSkipped++;
+        continue;
+      }
+      if (!resolved) {
+        likedSkipped++;
+        continue;
+      }
+      const { data: existing } = await context.supabase
+        .from("liked_songs")
+        .select("id")
+        .eq("user_id", context.userId)
+        .eq("youtube_id", resolved.youtubeId)
+        .maybeSingle();
+      if (existing) {
+        likedSkipped++;
+        continue;
+      }
+      const { error } = await context.supabase.from("liked_songs").insert({
+        user_id: context.userId,
+        youtube_id: resolved.youtubeId,
+        title: resolved.title,
+        artist: resolved.artist,
+        thumbnail_url: resolved.thumbnailUrl,
+      });
+      if (error) likedSkipped++;
+      else likedAdded++;
+    }
+
+    // --- Playlists ---
+    const playlists = await _getMyPlaylistsList(token);
+    let playlistsCreated = 0;
+    let playlistsSkipped = 0;
+    let tracksAdded = 0;
+
+    for (const p of playlists) {
+      // Skip if a playlist with the same name already exists (idempotent sync).
+      const { data: dup } = await context.supabase
+        .from("playlists")
+        .select("id")
+        .eq("user_id", context.userId)
+        .eq("name", p.name)
+        .maybeSingle();
+      if (dup) {
+        playlistsSkipped++;
+        continue;
+      }
+
+      const tracks = await _getPlaylistTracks(token, p.id, 300);
+      const { data: pl, error: plErr } = await context.supabase
+        .from("playlists")
+        .insert({ user_id: context.userId, name: p.name, cover_image: p.cover ?? null })
+        .select("id")
+        .single();
+      if (plErr || !pl) {
+        playlistsSkipped++;
+        continue;
+      }
+      playlistsCreated++;
+
+      const rows: Array<{
+        playlist_id: string;
+        user_id: string;
+        youtube_id: string;
+        title: string;
+        artist: string;
+        thumbnail_url: string | null;
+        position: number;
+      }> = [];
+      for (const t of tracks) {
+        let resolved: Awaited<ReturnType<typeof resolveToYoutube>> = null;
+        try {
+          resolved = await resolveToYoutube(t);
+        } catch {
+          continue;
+        }
+        if (!resolved) continue;
+        rows.push({
+          playlist_id: pl.id,
+          user_id: context.userId,
+          youtube_id: resolved.youtubeId,
+          title: resolved.title,
+          artist: resolved.artist,
+          thumbnail_url: resolved.thumbnailUrl,
+          position: rows.length,
+        });
+      }
+      if (rows.length) {
+        const { error } = await context.supabase.from("playlist_songs").insert(rows);
+        if (!error) tracksAdded += rows.length;
+      }
+    }
+
+    return { likedAdded, likedSkipped, playlistsCreated, playlistsSkipped, tracksAdded };
+  });
