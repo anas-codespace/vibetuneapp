@@ -10,6 +10,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
+  Download,
   Heart,
   ListMusic,
   Pause,
