@@ -28,6 +28,29 @@ export const Route = createFileRoute("/library")({
       { property: "og:type", content: "website" },
     ],
     links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/library" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Your Library",
+          description:
+            "Your Vibtune library: liked songs, downloaded tracks, and playlists synced from Spotify.",
+          url: "https://vibetuneapp.lovable.app/library",
+          isPartOf: {
+            "@type": "WebSite",
+            name: "Vibtune",
+            url: "https://vibetuneapp.lovable.app",
+          },
+          about: [
+            { "@type": "Thing", name: "Liked Songs" },
+            { "@type": "Thing", name: "Downloaded Tracks" },
+            { "@type": "Thing", name: "Playlists" },
+          ],
+        }),
+      },
+    ],
   }),
   component: LibraryPage,
 });

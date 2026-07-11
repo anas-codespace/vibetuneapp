@@ -13,7 +13,39 @@ import {
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 
 export const Route = createFileRoute("/library/$id")({
-  head: () => ({ meta: [{ title: "Playlist · Vibtune" }] }),
+  head: ({ params }) => {
+    const url = `https://vibetuneapp.lovable.app/library/${params.id}`;
+    return {
+      meta: [
+        { title: "Playlist · Vibtune" },
+        { name: "description", content: "A Vibtune playlist — play, share, and manage your tracks." },
+        { name: "robots", content: "noindex" },
+        { property: "og:title", content: "Playlist · Vibtune" },
+        { property: "og:description", content: "A Vibtune playlist — play, share, and manage your tracks." },
+        { property: "og:url", content: url },
+        { property: "og:type", content: "music.playlist" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "MusicPlaylist",
+            "@id": url,
+            url,
+            name: "Vibtune Playlist",
+            description: "A user-curated playlist on Vibtune.",
+            isPartOf: {
+              "@type": "WebSite",
+              name: "Vibtune",
+              url: "https://vibetuneapp.lovable.app",
+            },
+          }),
+        },
+      ],
+    };
+  },
   component: PlaylistPage,
 });
 
