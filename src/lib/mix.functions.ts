@@ -55,25 +55,48 @@ function interleave(tracks: YTTrack[]): YTTrack[] {
   return result;
 }
 
+/** Fisher–Yates shuffle so the mix feels fresh on every refresh. */
+function shuffle<T>(arr: T[]): T[] {
+  const out = arr.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/**
+ * Smart Suggestion algorithm.
+ *
+ * Step 1 — Seed extraction: pull recent listening_history + liked_songs,
+ *          score artists (likes weigh 2×, each play weighs 1×), take top 3.
+ *          Fallback: profile.fav_artists → language-based trending query.
+ * Step 2 — Parallel fetch: query YouTube per seed artist independently so
+ *          one slow/empty seed doesn't drown the mix.
+ * Step 3 — Freshness filter: drop tracks the user has already played 3+
+ *          times (avoid repetition) BUT keep any track they've liked.
+ * Step 4 — Shuffle & cap: dedupe, shuffle, then interleave by artist so no
+ *          two consecutive songs share an artist. Return top 20.
+ */
 export const getSmartMix = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
-    // Step 1: Extract top artists from listening history + liked songs
+    // ---- Step 1: Extract seed data --------------------------------------
     const [histRes, likedRes, profileRes] = await Promise.all([
       supabase
         .from("listening_history")
-        .select("artist")
+        .select("youtube_id, artist")
         .eq("user_id", userId)
         .order("played_at", { ascending: false })
-        .limit(100),
+        .limit(200),
       supabase
         .from("liked_songs")
-        .select("artist")
+        .select("youtube_id, artist")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(50),
+        .limit(100),
       supabase
         .from("profiles")
         .select("fav_artists, fav_languages")
@@ -81,25 +104,31 @@ export const getSmartMix = createServerFn({ method: "GET" })
         .maybeSingle(),
     ]);
 
-    // Count artist frequency
-    const freq = new Map<string, number>();
+    // Per-song play counts (used to filter over-played tracks later)
+    const playCount = new Map<string, number>();
+    // Per-artist frequency score
+    const artistScore = new Map<string, number>();
+
     for (const r of histRes.data ?? []) {
-      freq.set(r.artist, (freq.get(r.artist) ?? 0) + 1);
+      playCount.set(r.youtube_id, (playCount.get(r.youtube_id) ?? 0) + 1);
+      artistScore.set(r.artist, (artistScore.get(r.artist) ?? 0) + 1);
     }
+    // Likes weigh 2× on artist scoring; liked ids are "protected" from filtering
+    const likedIds = new Set<string>();
     for (const r of likedRes.data ?? []) {
-      freq.set(r.artist, (freq.get(r.artist) ?? 0) + 2); // likes count double
+      likedIds.add(r.youtube_id);
+      artistScore.set(r.artist, (artistScore.get(r.artist) ?? 0) + 2);
     }
 
-    const topArtists = [...freq.entries()]
+    let seedArtists = [...artistScore.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([name]) => name);
 
-    // Step 2: Fallback — use profile fav_artists or default keywords
-    let seedArtists: string[] = topArtists;
-
+    // Fallbacks when the user has no history yet
     if (seedArtists.length === 0) {
-      const favArtists = (profileRes.data?.fav_artists as Array<{ name: string }> | null) ?? [];
+      const favArtists =
+        (profileRes.data?.fav_artists as Array<{ name: string }> | null) ?? [];
       if (favArtists.length > 0) {
         seedArtists = favArtists.map((a) => a.name).slice(0, 3);
       } else {
@@ -109,16 +138,30 @@ export const getSmartMix = createServerFn({ method: "GET" })
       }
     }
 
-    // Step 3: Fetch from YouTube using smart query construction
-    const query = seedArtists
-      .slice(0, 2)
-      .map((a) => `${a} audio`)
-      .join(" OR ");
+    // ---- Step 2: Parallel fetch per seed artist -------------------------
+    const perSeedResults = await Promise.all(
+      seedArtists.map((a) =>
+        searchMusic(`${a} official audio`, 12).catch(() => [] as YTTrack[]),
+      ),
+    );
 
-    const raw = await searchMusic(query, 18);
+    // ---- Step 3: Merge + freshness filter -------------------------------
+    const seen = new Set<string>();
+    const pooled: YTTrack[] = [];
+    for (const list of perSeedResults) {
+      for (const t of list) {
+        if (seen.has(t.youtubeId)) continue;
+        // Drop tracks played 3+ times UNLESS the user has liked them
+        const plays = playCount.get(t.youtubeId) ?? 0;
+        if (plays >= 3 && !likedIds.has(t.youtubeId)) continue;
+        seen.add(t.youtubeId);
+        pooled.push(t);
+      }
+    }
 
-    // Step 4: Interleave and return
-    const mixed = interleave(raw);
+    // ---- Step 4: Shuffle, interleave by artist, cap at 20 ---------------
+    const shuffled = shuffle(pooled);
+    const mixed = interleave(shuffled).slice(0, 20);
     return mixed;
   });
 
