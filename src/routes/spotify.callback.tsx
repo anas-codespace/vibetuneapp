@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { spotifyExchangeCode } from "@/lib/spotify.functions";
+import { spotifyExchangeCode, spotifyAutoSync } from "@/lib/spotify.functions";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/spotify/callback")({
@@ -12,7 +12,8 @@ export const Route = createFileRoute("/spotify/callback")({
 function SpotifyCallback() {
   const navigate = useNavigate();
   const exchange = useServerFn(spotifyExchangeCode);
-  const [status, setStatus] = useState<"working" | "done" | "error">("working");
+  const autoSync = useServerFn(spotifyAutoSync);
+  const [status, setStatus] = useState<"working" | "syncing" | "done" | "error">("working");
   const [msg, setMsg] = useState<string>("Linking your Spotify account…");
   const ran = useRef(false);
 
@@ -34,20 +35,30 @@ function SpotifyCallback() {
         const res = await exchange({ data: { code, state, redirectUri: savedRedirect } });
         sessionStorage.removeItem("spotify_state");
         sessionStorage.removeItem("spotify_redirect_uri");
-        setMsg(`Connected as ${res.displayName ?? "Spotify user"}`);
+
+        setStatus("syncing");
+        setMsg(`Connected as ${res.displayName ?? "Spotify user"} — syncing your library…`);
+        try {
+          const sync = await autoSync({});
+          setMsg(
+            `Synced ${sync.likedAdded} liked · ${sync.playlistsCreated} playlist${sync.playlistsCreated === 1 ? "" : "s"} · ${sync.tracksAdded} tracks`,
+          );
+        } catch {
+          setMsg("Connected. Library sync will finish in the background.");
+        }
         setStatus("done");
-        setTimeout(() => navigate({ to: "/settings/spotify" }), 900);
+        setTimeout(() => navigate({ to: "/library" }), 1200);
       } catch (e) {
         setStatus("error");
         setMsg(e instanceof Error ? e.message : "Failed to connect Spotify");
       }
     })();
-  }, [exchange, navigate]);
+  }, [exchange, autoSync, navigate]);
 
   return (
     <main className="grid min-h-screen place-items-center bg-black px-6 text-white">
       <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-        {status === "working" && <Loader2 className="h-8 w-8 animate-spin text-white/70" />}
+        {(status === "working" || status === "syncing") && <Loader2 className="h-8 w-8 animate-spin text-white/70" />}
         {status === "done" && <CheckCircle2 className="h-10 w-10 text-emerald-400" />}
         {status === "error" && <XCircle className="h-10 w-10 text-red-400" />}
         <p className="text-sm text-white/80">{msg}</p>
