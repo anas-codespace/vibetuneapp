@@ -18,7 +18,17 @@ import { SyncStatusBanner } from "@/components/SyncStatusBanner";
 import { useSyncStatus } from "@/hooks/use-sync-status";
 
 export const Route = createFileRoute("/library")({
-  head: () => ({ meta: [{ title: "Library · Vibtune" }] }),
+  head: () => ({
+    meta: [
+      { title: "Your Library · Vibtune" },
+      { name: "description", content: "Your Vibtune library: liked songs, downloaded tracks, and playlists synced from Spotify — all in one place." },
+      { property: "og:title", content: "Your Library · Vibtune" },
+      { property: "og:description", content: "Liked songs, downloads, and playlists — your music library on Vibtune." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/library" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/library" }],
+  }),
   component: LibraryPage,
 });
 
