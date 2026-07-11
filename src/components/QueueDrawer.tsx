@@ -9,7 +9,8 @@ interface Props {
 }
 
 export function QueueDrawer({ open, onClose }: Props) {
-  const { current, queue, index, isPlaying, removeFromQueue } = usePlayer();
+  const { current, queue, index, removeFromQueue } = usePlayer();
+
   const upNext = queue.slice(index + 1);
 
   return (
