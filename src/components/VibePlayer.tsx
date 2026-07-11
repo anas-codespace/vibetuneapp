@@ -190,6 +190,29 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     pendingRef.current = youtubeId;
   }, []);
 
+  const autoPopulateQueue = useCallback((track: VibeTrack) => {
+    contextFn({
+      data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
+    })
+      .then((related) => {
+        if (!related?.length) return;
+        setQueue((prev) => {
+          const existing = new Set(prev.map((t) => t.youtubeId));
+          const additions: VibeTrack[] = related
+            .filter((t) => !existing.has(t.youtubeId))
+            .map((t) => ({
+              youtubeId: t.youtubeId,
+              title: t.title,
+              artist: t.artist,
+              thumbnailUrl: t.thumbnailUrl,
+              durationSeconds: t.durationSeconds,
+            }));
+          return [...prev, ...additions];
+        });
+      })
+      .catch(() => {});
+  }, [contextFn]);
+
   const play = useCallback((track: VibeTrack, q?: VibeTrack[]) => {
     const newQueue = q ?? [track];
     const idx = newQueue.findIndex((t) => t.youtubeId === track.youtubeId);
@@ -202,7 +225,10 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
       data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
     }).catch(() => {});
     startAudioForeground();
-  }, [loadAndPlay, logListenFn]);
+    // Context-aware auto-queue: append related tracks in the background
+    autoPopulateQueue(track);
+  }, [loadAndPlay, logListenFn, autoPopulateQueue]);
+
 
   const startMix = useCallback((tracks: VibeTrack[]) => {
     if (tracks.length === 0) return;
