@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Trash2, X } from "lucide-react";
 import { usePlayer } from "@/components/VibePlayer";
 
+
 interface Props {
   open: boolean;
   onClose: () => void;
