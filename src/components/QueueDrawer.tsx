@@ -118,22 +118,3 @@ export function QueueDrawer({ open, onClose }: Props) {
   );
 }
 
-function EqIcon({ playing }: { playing: boolean }) {
-  return (
-    <div className="flex h-8 w-8 items-end justify-center gap-[2px]">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="vibe-gradient w-[3px] origin-bottom rounded-full"
-          style={{
-            height: "100%",
-            animation: playing
-              ? `vibeBar ${0.55 + i * 0.15}s ease-in-out ${i * 0.08}s infinite alternate`
-              : "none",
-            transform: playing ? undefined : "scaleY(0.2)",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
