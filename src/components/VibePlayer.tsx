@@ -533,6 +533,13 @@ function FullPlayer(p: FullProps) {
   });
   const isLiked = (likedIds ?? []).includes(p.track.youtubeId);
 
+  const { isDownloaded, toggle: toggleDownload } = useDownloads();
+  const downloaded = isDownloaded(p.track.youtubeId);
+  const handleDownload = () => {
+    toggleDownload(p.track);
+    toast.success(downloaded ? "Removed from downloads" : "Saved to downloads");
+  };
+
   const handleLike = async () => {
     try {
       await toggleFn({
