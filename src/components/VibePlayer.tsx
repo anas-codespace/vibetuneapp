@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Slider } from "@/components/ui/slider";
 import { logListen } from "@/lib/profile.functions";
 import { getLikedIds, toggleLike } from "@/lib/library.functions";
