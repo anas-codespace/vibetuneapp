@@ -411,7 +411,7 @@ function MiniPlayer(p: MiniProps) {
           <Visualizer playing={p.isPlaying} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-white">{p.track.title}</p>
+          <p className="truncate text-sm font-semibold text-white">{cleanYouTubeTitle(p.track.title)}</p>
           <p className="truncate text-xs text-white/50">{p.track.artist}</p>
         </div>
         <button
