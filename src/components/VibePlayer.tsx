@@ -449,6 +449,15 @@ function FullPlayer(p: FullProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
 
+  // Lock background scroll while the full-screen player is mounted.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   const likedFn = useServerFn(getLikedIds);
   const toggleFn = useServerFn(toggleLike);
   const qc = useQueryClient();
