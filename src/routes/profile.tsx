@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/profile.functions";
 import {
   getListeningStats,
-  updateDisplayName,
+  updateProfileDetails,
   updateProfilePic,
 } from "@/lib/library.functions";
 
