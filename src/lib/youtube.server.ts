@@ -31,11 +31,20 @@ export function isoDurationToSeconds(iso: string): number {
 const OFFICIAL_LABEL_RE =
   /vevo|sony music|think music|t-series|aditya music|saregama|zee music|lahari music|divo|wynk|yrf|speed records|mass appeal|def jam|universal music|warner music|columbia records|republic records|atlantic records/i;
 
-/** Titles/keywords we down-rank (lyrical/status/etc.). */
-const DOWNRANK_RE = /lyrical\s*video|lyric\s*video|whatsapp\s*status|status\s*video|8d\s*audio|slowed|reverb|nightcore/i;
+/** Titles/keywords we down-rank (status/8d/etc.). */
+const DOWNRANK_RE = /whatsapp\s*status|status\s*video|8d\s*audio|slowed|reverb|nightcore/i;
+
+/** Hard-block: non-song promotional content. */
+const FORBIDDEN_KEYWORDS_RE =
+  /trailer|teaser|promo|glimpse|making\s*of|sneak\s*peek|interview|announcement|first\s*look|behind\s*the\s*scenes|bts\s*video/i;
+
+/** Positive song identifiers → +15 score. */
+const SONG_KEYWORDS_RE =
+  /\blyric(?:s|al)?\b|\baudio\b|full\s*video\s*song|video\s*song|full\s*song|official\s*song/i;
 
 /** Extra negatives appended to the user query to natively exclude junk. */
-const QUERY_NEGATIVES = "-shorts -jukebox -mashup -8d -cover -status -reaction";
+const QUERY_NEGATIVES =
+  "-trailer -teaser -promo -glimpse -making -shorts -jukebox -mashup -8d -cover -status -reaction -interview -announcement";
 
 const FALLBACK_TRACKS: YTTrack[] = [
   {
@@ -172,6 +181,7 @@ function scoreVideo(v: RawVideoItem): number {
   if (OFFICIAL_LABEL_RE.test(channel)) score += 20;
   if (/official/i.test(title) || /official/i.test(channel)) score += 10;
   if (/-\s*topic$/i.test(channel)) score += 5; // auto-generated artist channels
+  if (SONG_KEYWORDS_RE.test(title)) score += 15; // explicit song identifiers
   if (DOWNRANK_RE.test(title)) score -= 10;
 
   return score;
