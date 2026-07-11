@@ -398,10 +398,11 @@ function MiniPlayer(p: MiniProps) {
           p.onExpand();
         }
       }}
-      className="fixed inset-x-0 z-40 cursor-pointer px-4 text-left"
-      style={{ bottom: "calc(80px + env(safe-area-inset-bottom))" }}
+      className="fixed left-2 right-2 z-[60] flex h-14 cursor-pointer items-center overflow-hidden rounded-xl border border-white/10 bg-[#1a1a1a]/80 px-3 shadow-2xl backdrop-blur-xl"
+      style={{ bottom: "calc(72px + env(safe-area-inset-bottom) + 8px)" }}
     >
-      <div className="relative mx-auto flex max-w-md items-center gap-3 overflow-hidden rounded-2xl border border-pink-500/20 bg-[#1A1A1A] p-2 pr-3 shadow-[0_0_28px_-8px_rgba(255,0,127,0.5)] md:max-w-lg">
+      <div className="relative mx-auto flex w-full max-w-md items-center gap-3">
+
         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
           {p.track.thumbnailUrl ? (
             <img src={p.track.thumbnailUrl} alt="" className="h-full w-full object-cover" />
