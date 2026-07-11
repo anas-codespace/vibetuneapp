@@ -128,37 +128,70 @@ function SpotifySettings() {
   const [importingId, setImportingId] = useState<string | null>(null);
   const [likedResult, setLikedResult] = useState<ImportResult | null>(null);
   const [playlistResults, setPlaylistResults] = useState<Record<string, ImportResult>>({});
+  const [pendingAuthUrl, setPendingAuthUrl] = useState<string | null>(null);
+  const [redirectBlocked, setRedirectBlocked] = useState(false);
+
+  const persistState = (state: string, redirectUri: string) => {
+    sessionStorage.setItem("spotify_state", state);
+    sessionStorage.setItem("spotify_redirect_uri", redirectUri);
+    try {
+      // Callback route also breaks out of the preview iframe; mirror state there.
+      if (window.top && window.top !== window.self) {
+        window.top.sessionStorage.setItem("spotify_state", state);
+        window.top.sessionStorage.setItem("spotify_redirect_uri", redirectUri);
+      }
+    } catch {
+      /* cross-origin top; ignore */
+    }
+  };
 
   const connectMut = useMutation({
     mutationFn: async () => {
       const redirectUri = `${window.location.origin}/spotify/callback`;
       const { url, state } = await getAuthUrl({ data: { redirectUri } });
-      sessionStorage.setItem("spotify_state", state);
-      sessionStorage.setItem("spotify_redirect_uri", redirectUri);
-      try {
-        // Persist state to the top window so callback (which also breaks out) can read it
-        if (window.top && window.top !== window.self) {
-          window.top.sessionStorage.setItem("spotify_state", state);
-          window.top.sessionStorage.setItem("spotify_redirect_uri", redirectUri);
-        }
-      } catch {
-        // cross-origin (e.g. Lovable preview) — ignore, top window will still navigate
-      }
-      // Spotify's auth page sends X-Frame-Options: DENY, so it cannot load inside
-      // any iframe (including the Lovable preview). Break out to the top-level
-      // window; fall back to opening a new tab if the parent frame is cross-origin.
+      persistState(state, redirectUri);
+      setPendingAuthUrl(url);
+
+      // Spotify's auth page sends X-Frame-Options: DENY, so it cannot render inside
+      // any iframe (including the Lovable preview). Try to escape to the top-level
+      // window; if that's cross-origin (blocked), fall back to opening a new tab.
+      // Either way we keep the URL in state so the user always has a manual link.
       try {
         if (window.top && window.top !== window.self) {
           window.top.location.href = url;
           return;
         }
+        window.location.href = url;
       } catch {
-        window.open(url, "_blank", "noopener,noreferrer");
-        return;
+        const popup = window.open(url, "_blank", "noopener,noreferrer");
+        if (!popup) {
+          // Popup blocked too — surface the manual fallback.
+          setRedirectBlocked(true);
+          toast.error("Browser blocked the redirect. Use the 'Open in new tab' link below.");
+        }
       }
-      window.location.href = url;
     },
   });
+
+  const openInNewTab = () => {
+    if (!pendingAuthUrl) return;
+    const popup = window.open(pendingAuthUrl, "_blank", "noopener,noreferrer");
+    if (!popup) {
+      setRedirectBlocked(true);
+      toast.error("Popup blocked — allow popups for this site or copy the link.");
+    }
+  };
+
+  const copyAuthUrl = async () => {
+    if (!pendingAuthUrl) return;
+    try {
+      await navigator.clipboard.writeText(pendingAuthUrl);
+      toast.success("Login link copied — paste it into a new tab.");
+    } catch {
+      toast.error("Couldn't copy — long-press the link to copy manually.");
+    }
+  };
+
 
   const disconnectMut = useMutation({
     mutationFn: () => disconnect(),
@@ -270,7 +303,40 @@ function SpotifySettings() {
               </button>
             )}
           </div>
+
+          {!connected && pendingAuthUrl && (
+            <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-4">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                <div className="flex-1 text-xs leading-relaxed text-amber-100/90">
+                  <p className="font-semibold text-amber-200">
+                    {redirectBlocked ? "Redirect blocked" : "Didn't get redirected?"}
+                  </p>
+                  <p className="mt-1 text-amber-100/70">
+                    Spotify's login page refuses to load inside embedded frames (like the
+                    in-app preview) for security. If nothing opened, use the link below to
+                    finish signing in — it'll come back here automatically.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={openInNewTab}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-amber-300 px-3 py-1.5 text-[11px] font-semibold text-black hover:brightness-110"
+                    >
+                      <Link2 className="h-3.5 w-3.5" /> Open in new tab
+                    </button>
+                    <button
+                      onClick={copyAuthUrl}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/15"
+                    >
+                      Copy login link
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
+
 
         {connected && (
           <>
