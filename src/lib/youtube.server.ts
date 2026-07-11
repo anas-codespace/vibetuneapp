@@ -257,11 +257,16 @@ export async function searchMusic(query: string, maxResults = 20): Promise<YTTra
   const items = await fetchVideoDetails(ids);
 
   // Strict duration + embeddable filter (no Shorts, no jukebox/full albums).
-  const filtered = items
+  const durationFiltered = items
     .map((v) => ({ v, seconds: isoDurationToSeconds(v.contentDetails.duration) }))
     .filter(({ v, seconds }) => v.status.embeddable && seconds >= 60 && seconds <= 600);
 
-  // Score & sort: official channels/titles first.
+  // The Guillotine: hard-block trailers/teasers/promos/etc by title.
+  const filtered = durationFiltered.filter(
+    ({ v }) => !FORBIDDEN_KEYWORDS_RE.test(v.snippet.title),
+  );
+
+  // Score & sort: official channels/titles + explicit song identifiers first.
   filtered.sort((a, b) => scoreVideo(b.v) - scoreVideo(a.v));
 
   const tracks = filtered.slice(0, maxResults).map(({ v, seconds }) => ({
