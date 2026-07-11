@@ -507,18 +507,23 @@ function FullPlayer(p: FullProps) {
             <ChevronDown className="h-5 w-5" />
           </button>
           <div className="flex gap-1 rounded-full bg-white/5 p-1">
-            {(["player", "lyrics"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-xs font-semibold capitalize transition",
-                  tab === t ? "vibe-gradient text-white shadow-[0_0_18px_-4px_rgba(236,0,140,0.6)]" : "text-white/55",
-                )}
-              >
-                {t}
-              </button>
-            ))}
+            {(["player", "lyrics"] as const).map((t) => {
+              const active = activeView === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => setActiveView(t)}
+                  className={cn(
+                    "rounded-full px-4 py-1.5 text-xs font-semibold capitalize transition",
+                    active
+                      ? "bg-gradient-to-r from-fuchsia-600 to-pink-500 text-white shadow-[0_0_18px_-4px_rgba(236,0,140,0.6)]"
+                      : "bg-white/5 text-white/50 hover:text-white",
+                  )}
+                >
+                  {t}
+                </button>
+              );
+            })}
           </div>
           <button
             onClick={() => setQueueOpen(true)}
