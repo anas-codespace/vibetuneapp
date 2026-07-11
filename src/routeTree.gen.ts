@@ -20,6 +20,7 @@ import { Route as LibraryRouteImport } from './routes/library'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LibraryDownloadedRouteImport } from './routes/library.downloaded'
 import { Route as LibraryIdRouteImport } from './routes/library.$id'
 import { Route as ApiAnalyzeMoodRouteImport } from './routes/api/analyze-mood'
 import { Route as ApiPublicHealthYoutubeRouteImport } from './routes/api/public/health.youtube'
@@ -79,6 +80,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibraryDownloadedRoute = LibraryDownloadedRouteImport.update({
+  id: '/downloaded',
+  path: '/downloaded',
+  getParentRoute: () => LibraryRoute,
+} as any)
 const LibraryIdRoute = LibraryIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/verify': typeof VerifyRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
+  '/library/downloaded': typeof LibraryDownloadedRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRoutesByTo {
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/verify': typeof VerifyRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
+  '/library/downloaded': typeof LibraryDownloadedRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRoutesById {
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/verify': typeof VerifyRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
+  '/library/downloaded': typeof LibraryDownloadedRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRouteTypes {
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/api/analyze-mood'
     | '/library/$id'
+    | '/library/downloaded'
     | '/api/public/health/youtube'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/api/analyze-mood'
     | '/library/$id'
+    | '/library/downloaded'
     | '/api/public/health/youtube'
   id:
     | '__root__'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/api/analyze-mood'
     | '/library/$id'
+    | '/library/downloaded'
     | '/api/public/health/youtube'
   fileRoutesById: FileRoutesById
 }
@@ -290,6 +302,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/library/downloaded': {
+      id: '/library/downloaded'
+      path: '/downloaded'
+      fullPath: '/library/downloaded'
+      preLoaderRoute: typeof LibraryDownloadedRouteImport
+      parentRoute: typeof LibraryRoute
+    }
     '/library/$id': {
       id: '/library/$id'
       path: '/$id'
@@ -316,10 +335,12 @@ declare module '@tanstack/react-router' {
 
 interface LibraryRouteChildren {
   LibraryIdRoute: typeof LibraryIdRoute
+  LibraryDownloadedRoute: typeof LibraryDownloadedRoute
 }
 
 const LibraryRouteChildren: LibraryRouteChildren = {
   LibraryIdRoute: LibraryIdRoute,
+  LibraryDownloadedRoute: LibraryDownloadedRoute,
 }
 
 const LibraryRouteWithChildren =
