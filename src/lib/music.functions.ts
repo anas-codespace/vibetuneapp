@@ -66,10 +66,10 @@ export const expandSimilarArtists = createServerFn({ method: "POST" })
 
 export const searchTracks = createServerFn({ method: "POST" })
   .inputValidator((d) =>
-    z.object({ query: z.string().min(1).max(200), max: z.number().int().min(1).max(40).optional() }).parse(d),
+    z.object({ query: z.string().min(1).max(200), max: z.number().int().min(1).max(50).optional() }).parse(d),
   )
   .handler(async ({ data }): Promise<YTTrack[]> => {
-    return searchMusic(data.query, data.max ?? 20);
+    return searchMusic(data.query, data.max ?? 40);
   });
 
 export const tracksForArtists = createServerFn({ method: "POST" })
@@ -78,7 +78,7 @@ export const tracksForArtists = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }): Promise<YTTrack[]> => {
     const results = await Promise.all(
-      data.artists.slice(0, 8).map((a) => searchMusic(`${a} official audio`, 6)),
+      data.artists.slice(0, 10).map((a) => searchMusic(`${a} official audio`, 15)),
     );
     const seen = new Set<string>();
     const out: YTTrack[] = [];
