@@ -26,6 +26,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { setSyncStatus } from "@/hooks/use-sync-status";
 
 export const Route = createFileRoute("/settings/spotify")({
   head: () => ({ meta: [{ title: "Spotify · Vibetune" }] }),
