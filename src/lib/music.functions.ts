@@ -146,3 +146,59 @@ export const searchYouTubeOnly = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<YTTrack[]> => {
     return searchMusic(data.query, data.max ?? 12);
   });
+
+const TrackInput = z.object({
+  youtubeId: z.string().min(1),
+  title: z.string().min(1),
+  artist: z.string().min(1),
+  thumbnailUrl: z.string().url().optional().nullable(),
+  durationSeconds: z.number().int().nonnegative().optional(),
+  isEmbeddable: z.boolean().optional(),
+});
+
+/** Import selected YouTube tracks into the user's Liked Songs (idempotent). */
+export const importTracksToLibrary = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ tracks: z.array(TrackInput).min(1).max(50) }).parse(d),
+  )
+  .handler(async ({ data, context }): Promise<{ imported: number; skipped: number }> => {
+    const { supabase, userId } = context;
+
+    // Upsert into songs catalog (shared).
+    const songRows = data.tracks.map((t) => ({
+      youtube_id: t.youtubeId,
+      title: t.title,
+      artist: t.artist,
+      thumbnail_url: t.thumbnailUrl ?? null,
+      duration_seconds: t.durationSeconds ?? null,
+      is_embeddable: t.isEmbeddable ?? true,
+    }));
+    await supabase.from("songs").upsert(songRows, { onConflict: "youtube_id", ignoreDuplicates: true });
+
+    // Find already-liked to compute skipped.
+    const ids = data.tracks.map((t) => t.youtubeId);
+    const { data: existing } = await supabase
+      .from("liked_songs")
+      .select("youtube_id")
+      .eq("user_id", userId)
+      .in("youtube_id", ids);
+    const already = new Set((existing ?? []).map((r) => r.youtube_id));
+
+    const likedRows = data.tracks
+      .filter((t) => !already.has(t.youtubeId))
+      .map((t) => ({
+        user_id: userId,
+        youtube_id: t.youtubeId,
+        title: t.title,
+        artist: t.artist,
+        thumbnail_url: t.thumbnailUrl ?? null,
+      }));
+
+    if (likedRows.length > 0) {
+      const { error } = await supabase.from("liked_songs").insert(likedRows);
+      if (error) throw new Error(error.message);
+    }
+
+    return { imported: likedRows.length, skipped: already.size };
+  });
