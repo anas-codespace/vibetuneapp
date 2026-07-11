@@ -30,16 +30,47 @@ function parseLrc(lrc: string): LyricLine[] {
   return lines;
 }
 
-// Clean "Artist - Topic", remove "(Official Audio)" etc.
-function cleanQuery(title: string, artist: string) {
-  const cleanArtist = artist.replace(/\s*-?\s*Topic\s*$/i, "").trim();
-  const cleanTitle = title
-    .replace(/\((?:official|lyric|audio|video|hd|hq|mv|m\/v|visualizer)[^)]*\)/gi, "")
-    .replace(/\[(?:official|lyric|audio|video|hd|hq|mv|m\/v|visualizer)[^\]]*\]/gi, "")
-    .replace(/[|｜]\s*.*/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  return { cleanArtist, cleanTitle };
+const LABEL_RE = /music|series|records|entertainment|vevo|channel|official|label|studios?|productions?/i;
+
+function coreTitle(title: string): string {
+  let t = title.split("-")[0].split("|")[0].split("｜")[0].trim();
+  t = t.replace(/\[.*?\]|\(.*?\)/g, "").trim();
+  t = t.replace(/\s+/g, " ").trim();
+  return t;
+}
+
+function firstWords(t: string, n = 3): string {
+  return t.split(/\s+/).slice(0, n).join(" ");
+}
+
+type LrclibHit = {
+  syncedLyrics?: string | null;
+  plainLyrics?: string | null;
+};
+
+async function fetchFromLRCLIB(query: string): Promise<LrclibHit | null> {
+  if (!query.trim()) return null;
+  try {
+    const res = await fetch(
+      `https://lrclib.net/api/search?q=${encodeURIComponent(query)}`,
+      { headers: { "User-Agent": "Vibtune/1.0" } },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as LrclibHit[];
+    if (!Array.isArray(data) || data.length === 0) return null;
+    return data.find((d) => d.syncedLyrics || d.plainLyrics) ?? data[0];
+  } catch {
+    return null;
+  }
+}
+
+function toResult(hit: LrclibHit | null): LyricsResult {
+  if (!hit) return { source: "none", synced: null, plain: null };
+  return {
+    source: "lrclib",
+    synced: hit.syncedLyrics ? parseLrc(hit.syncedLyrics) : null,
+    plain: hit.plainLyrics ?? null,
+  };
 }
 
 export async function fetchLyrics(title: string, artist: string): Promise<LyricsResult> {
@@ -47,39 +78,31 @@ export async function fetchLyrics(title: string, artist: string): Promise<Lyrics
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL) return hit.value;
 
-  const { cleanArtist, cleanTitle } = cleanQuery(title, artist);
-  const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(cleanArtist)}&track_name=${encodeURIComponent(cleanTitle)}`;
-  let result: LyricsResult = { source: "none", synced: null, plain: null };
-  try {
-    const res = await fetch(url, { headers: { "User-Agent": "Vibtune/1.0" } });
-    if (res.ok) {
-      const json = (await res.json()) as { syncedLyrics?: string | null; plainLyrics?: string | null };
-      result = {
-        source: "lrclib",
-        synced: json.syncedLyrics ? parseLrc(json.syncedLyrics) : null,
-        plain: json.plainLyrics ?? null,
-      };
-    } else if (res.status === 404) {
-      // Try search endpoint as fallback
-      const sr = await fetch(
-        `https://lrclib.net/api/search?track_name=${encodeURIComponent(cleanTitle)}&artist_name=${encodeURIComponent(cleanArtist)}`,
-        { headers: { "User-Agent": "Vibtune/1.0" } },
-      );
-      if (sr.ok) {
-        const arr = (await sr.json()) as Array<{ syncedLyrics?: string | null; plainLyrics?: string | null }>;
-        const first = arr[0];
-        if (first) {
-          result = {
-            source: "lrclib",
-            synced: first.syncedLyrics ? parseLrc(first.syncedLyrics) : null,
-            plain: first.plainLyrics ?? null,
-          };
-        }
-      }
-    }
-  } catch {
-    // Network error — leave default.
+  const core = coreTitle(title);
+  const cleanArtist = artist.replace(/\s*-?\s*Topic\s*$/i, "").trim();
+  const isLabel = !cleanArtist || LABEL_RE.test(cleanArtist);
+
+  let trackData: LrclibHit | null = null;
+
+  // Attempt 1: title + artist (only if artist isn't a label).
+  if (!isLabel) {
+    trackData = await fetchFromLRCLIB(`${core} ${cleanArtist}`);
   }
+
+  // Attempt 2: title only — very effective for label-uploaded tracks.
+  if (!trackData) {
+    trackData = await fetchFromLRCLIB(core);
+  }
+
+  // Attempt 3: first 2-3 words of the title as a last resort.
+  if (!trackData) {
+    const short = firstWords(core, 3);
+    if (short && short.toLowerCase() !== core.toLowerCase()) {
+      trackData = await fetchFromLRCLIB(short);
+    }
+  }
+
+  const result = toResult(trackData);
   cache.set(key, { value: result, at: Date.now() });
   return result;
 }
