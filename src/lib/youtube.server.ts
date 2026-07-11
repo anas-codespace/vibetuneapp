@@ -237,7 +237,7 @@ export async function searchMusic(query: string, maxResults = 20): Promise<YTTra
   const searchUrl =
     `${YT_BASE}/search?part=id&type=video` +
     `&videoCategoryId=10&regionCode=IN&videoEmbeddable=true` +
-    `&maxResults=30&q=${encodeURIComponent(q)}&key=${key()}`;
+    `&maxResults=50&q=${encodeURIComponent(q)}&key=${key()}`;
   const searchRes = await fetch(searchUrl);
   if (!searchRes.ok) {
     const fallback = fallbackSearch(query, maxResults);
