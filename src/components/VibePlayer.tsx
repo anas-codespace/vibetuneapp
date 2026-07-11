@@ -535,8 +535,15 @@ function FullPlayer(p: FullProps) {
 
         </div>
 
-        {tab === "player" ? (
-          <div className="flex flex-1 flex-col px-6">
+        {activeView === "player" ? (
+          <motion.div
+            key="player-view"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="flex flex-1 flex-col px-6"
+          >
             {/* Album art — enforced perfect square, no letterboxing */}
             <div className="flex flex-1 items-center justify-center py-6">
               <motion.div
