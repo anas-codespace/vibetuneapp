@@ -115,6 +115,7 @@ function SpotifySettings() {
   const importLiked = useServerFn(spotifyImportLiked);
   const listPlaylists = useServerFn(spotifyListPlaylists);
   const importPlaylist = useServerFn(spotifyImportPlaylist);
+  const autoSync = useServerFn(spotifyAutoSync);
 
   const connection = useQuery({
     queryKey: ["spotify-connection"],
