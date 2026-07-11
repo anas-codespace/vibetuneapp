@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Circle, Heart, ListMusic, ListPlus, Plus, X } from "lucide-react";
+import { CheckCircle2, Circle, Download, Heart, ListMusic, ListPlus, Plus, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
   createPlaylist,
