@@ -51,7 +51,13 @@ export function useDownloads() {
     write(read().filter((t) => t.youtubeId !== id));
   }, []);
 
+  const removeMany = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+    const set = new Set(ids);
+    write(read().filter((t) => !set.has(t.youtubeId)));
+  }, []);
+
   const clear = useCallback(() => write([]), []);
 
-  return { items, isDownloaded, toggle, remove, clear };
+  return { items, isDownloaded, toggle, remove, removeMany, clear };
 }
