@@ -106,9 +106,16 @@ function SpotifyCallback() {
         setTimeout(() => navigate({ to: "/library" }), 1200);
       } catch (e) {
         setStatus("error");
-        const message = e instanceof Error ? e.message : "Failed to connect Spotify";
-        setMsg(message);
-        setSyncStatus({ phase: "error", source: "spotify", message });
+        const raw = e instanceof Error ? e.message : "Failed to connect Spotify";
+        const info = classifyError(raw);
+        setMsg(info.message);
+        setSyncStatus({ phase: "error", source: "spotify", message: info.message });
+        try {
+          sessionStorage.setItem(
+            "spotify_last_error",
+            JSON.stringify({ at: Date.now(), code: info.code, message: info.message, hint: info.hint, raw }),
+          );
+        } catch { /* ignore */ }
       }
     })();
   }, [exchange, autoSync, navigate]);
@@ -123,7 +130,7 @@ function SpotifyCallback() {
         {status === "error" && (
           <button
             onClick={() => navigate({ to: "/settings/spotify" })}
-            className="mt-2 rounded-full bg-white/10 px-4 py-2 text-xs font-medium hover:bg-white/15"
+            className="mt-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black hover:brightness-110"
           >
             Back to Spotify settings
           </button>
@@ -132,3 +139,4 @@ function SpotifyCallback() {
     </main>
   );
 }
+
