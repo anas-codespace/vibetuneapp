@@ -480,9 +480,12 @@ function MiniPlayer(p: MiniProps) {
             <SkipForward className="h-5 w-5" fill="currentColor" />
           </button>
         </div>
-        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-white/5">
-          <div className="vibe-gradient-h h-full transition-[width] duration-200" style={{ width: `${pct}%` }} />
-        </div>
+      </div>
+      <div className="absolute bottom-0 left-0 h-[2px] w-full bg-white/10">
+        <div
+          className="h-full bg-white"
+          style={{ width: `${pct}%`, transition: "width 0.1s linear" }}
+        />
       </div>
       <span className="sr-only">{fmt(p.progress)} / {fmt(p.duration)}</span>
     </motion.div>
