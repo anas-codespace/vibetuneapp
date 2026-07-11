@@ -13,7 +13,17 @@ import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app")({
-  head: () => ({ meta: [{ title: "Vibetune" }] }),
+  head: () => ({
+    meta: [
+      { title: "Vibtune — Personalized Music Player" },
+      { name: "description", content: "Your Vibtune home: smart mixes, quick picks, and mood-aware playlists tailored to how you're feeling right now." },
+      { property: "og:title", content: "Vibtune — Personalized Music Player" },
+      { property: "og:description", content: "Smart mixes, quick picks, and mood-aware playlists tuned to your vibe." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/app" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/app" }],
+  }),
   component: AppHome,
 });
 
