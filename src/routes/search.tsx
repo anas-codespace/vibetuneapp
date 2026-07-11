@@ -161,14 +161,14 @@ function SearchPage() {
             </div>
           )
         )}
-        {debounced && isFetching && tracks.length === 0 && (
+        {debounced && isFetching && results.length === 0 && (
           <div className="mt-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="glass h-16 animate-pulse rounded-2xl" />
             ))}
           </div>
         )}
-        {debounced && !isFetching && tracks.length === 0 && (
+        {debounced && !isFetching && results.length === 0 && (
           <p className="mt-12 text-center text-sm text-white/40">
             No results for "{debounced}".
           </p>
@@ -181,21 +181,27 @@ function SearchPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-4"
             >
-              <h2 className="vibe-text mb-2 text-[10px] font-bold uppercase tracking-[0.25em]">
+              <h2 className="vibe-text mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em]">
                 Top result
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[#1DB954]">
+                  <Music2 className="h-2.5 w-2.5" /> Spotify
+                </span>
               </h2>
               <button
-                onClick={() => play(top, tracks)}
+                onClick={() => play(toVibe(top), vibeTracks)}
                 className="glass-strong gradient-border relative flex w-full items-center gap-3 overflow-hidden rounded-2xl p-3 text-left active:scale-[0.99]"
               >
                 <div className="vibe-gradient h-20 w-20 shrink-0 overflow-hidden rounded-xl">
-                  {top.thumbnailUrl && (
-                    <img src={top.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                  {top.albumArt && (
+                    <img src={top.albumArt} alt="" className="h-full w-full object-cover" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 text-base font-bold text-white">{top.title}</p>
                   <p className="mt-1 text-xs text-white/60">{top.artist}</p>
+                  {top.album && (
+                    <p className="mt-0.5 truncate text-[11px] text-white/40">{top.album}</p>
+                  )}
                 </div>
                 <div className="vibe-gradient grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-[0_0_18px_-4px_rgba(236,0,140,0.7)]">
                   <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />
@@ -217,12 +223,12 @@ function SearchPage() {
                 {artists.map((a) => (
                   <button
                     key={a.artist}
-                    onClick={() => play(a, tracks)}
+                    onClick={() => play(toVibe(a), vibeTracks)}
                     className="group flex w-20 shrink-0 flex-col items-center gap-2"
                   >
                     <div className="vibe-gradient h-20 w-20 overflow-hidden rounded-full ring-2 ring-white/10">
-                      {a.thumbnailUrl && (
-                        <img src={a.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                      {a.albumArt && (
+                        <img src={a.albumArt} alt="" className="h-full w-full object-cover" />
                       )}
                     </div>
                     <p className="line-clamp-2 text-center text-[11px] text-white/70">{a.artist}</p>
@@ -246,25 +252,28 @@ function SearchPage() {
                   <li key={t.youtubeId}>
                     <div className="flex w-full items-center gap-2 rounded-2xl p-2 transition hover:bg-white/5">
                       <button
-                        onClick={() => play(t, tracks)}
+                        onClick={() => play(toVibe(t), vibeTracks)}
                         className="flex min-w-0 flex-1 items-center gap-3 text-left active:scale-[0.98]"
                       >
                         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg">
-                          {t.thumbnailUrl ? (
-                            <img src={t.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                          {t.albumArt ? (
+                            <img src={t.albumArt} alt="" className="h-full w-full object-cover" />
                           ) : (
                             <div className="vibe-gradient h-full w-full" />
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-white">{t.title}</p>
-                          <p className="truncate text-xs text-white/50">{t.artist}</p>
+                          <p className="truncate text-xs text-white/50">
+                            {t.artist}
+                            {t.album ? ` · ${t.album}` : ""}
+                          </p>
                         </div>
                       </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          addToQueue(t);
+                          addToQueue(toVibe(t));
                         }}
                         aria-label="Add to queue"
                         className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
