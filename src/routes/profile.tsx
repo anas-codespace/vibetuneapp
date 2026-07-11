@@ -121,15 +121,25 @@ function ProfilePage() {
         {/* Avatar */}
         <div className="mt-8 flex flex-col items-center px-4">
           <div className="relative">
-            <div className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-white/5 shadow-xl">
-              {profile?.profile_pic_url ? (
-                <img src={profile.profile_pic_url} alt="" className="h-full w-full object-cover" />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-white/5 shadow-xl transition hover:opacity-90 disabled:opacity-50"
+              aria-label="Change avatar"
+            >
+              {localAvatar || profile?.profile_pic_url ? (
+                <img
+                  src={localAvatar ?? profile?.profile_pic_url ?? ""}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <span className="text-3xl font-black text-white">
                   {displayName.charAt(0).toUpperCase()}
                 </span>
               )}
-            </div>
+            </button>
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
