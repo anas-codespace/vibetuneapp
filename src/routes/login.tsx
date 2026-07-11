@@ -8,7 +8,17 @@ import { lovable } from "@/integrations/lovable";
 import { VibtuneLogo } from "@/components/VibtuneLogo";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Log in · Vibtune" }] }),
+  head: () => ({
+    meta: [
+      { title: "Log in · Vibtune" },
+      { name: "description", content: "Log in to Vibtune to keep vibing — pick up your playlists, liked songs, and mood mixes from any device." },
+      { property: "og:title", content: "Log in · Vibtune" },
+      { property: "og:description", content: "Sign in to your Vibtune account to keep the music going." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/login" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/login" }],
+  }),
   component: LoginPage,
 });
 

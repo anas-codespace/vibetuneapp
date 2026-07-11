@@ -11,7 +11,17 @@ import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 
 export const Route = createFileRoute("/search")({
-  head: () => ({ meta: [{ title: "Search · Vibtune" }] }),
+  head: () => ({
+    meta: [
+      { title: "Search · Vibtune" },
+      { name: "description", content: "Search millions of tracks on Vibtune — songs, artists, and albums resolved from Spotify and YouTube in one tap." },
+      { property: "og:title", content: "Search · Vibtune" },
+      { property: "og:description", content: "Find any song, artist, or album on Vibtune." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/search" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/search" }],
+  }),
   component: SearchPage,
 });
 

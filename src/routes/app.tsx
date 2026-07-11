@@ -13,7 +13,17 @@ import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app")({
-  head: () => ({ meta: [{ title: "Vibetune" }] }),
+  head: () => ({
+    meta: [
+      { title: "Vibtune — Personalized Music Player" },
+      { name: "description", content: "Your Vibtune home: smart mixes, quick picks, and mood-aware playlists tailored to how you're feeling right now." },
+      { property: "og:title", content: "Vibtune — Personalized Music Player" },
+      { property: "og:description", content: "Smart mixes, quick picks, and mood-aware playlists tuned to your vibe." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/app" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/app" }],
+  }),
   component: AppHome,
 });
 
@@ -166,7 +176,8 @@ function AppHome() {
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#000000]/80 px-6 pb-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-md flex items-center justify-center">
         <h1 className="text-base font-bold tracking-tight text-white">
-          Vibe<span className="text-pink-500">tune</span>
+          <span aria-hidden="true">Vibe<span className="text-pink-500">tune</span></span>
+          <span className="sr-only">Vibtune — Personalized Music Player</span>
         </h1>
       </header>
 

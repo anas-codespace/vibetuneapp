@@ -9,7 +9,17 @@ import { lovable } from "@/integrations/lovable";
 import { VibtuneLogo } from "@/components/VibtuneLogo";
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({ meta: [{ title: "Sign up · Vibtune" }] }),
+  head: () => ({
+    meta: [
+      { title: "Sign up · Vibtune" },
+      { name: "description", content: "Create a free Vibtune account to unlock smart mixes, mood-aware playlists, and cross-device sync in seconds." },
+      { property: "og:title", content: "Sign up · Vibtune" },
+      { property: "og:description", content: "Create your Vibtune account and start vibing in seconds." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/signup" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/signup" }],
+  }),
   component: SignupPage,
 });
 

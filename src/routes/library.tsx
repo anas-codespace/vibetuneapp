@@ -18,7 +18,17 @@ import { SyncStatusBanner } from "@/components/SyncStatusBanner";
 import { useSyncStatus } from "@/hooks/use-sync-status";
 
 export const Route = createFileRoute("/library")({
-  head: () => ({ meta: [{ title: "Library · Vibtune" }] }),
+  head: () => ({
+    meta: [
+      { title: "Your Library · Vibtune" },
+      { name: "description", content: "Your Vibtune library: liked songs, downloaded tracks, and playlists synced from Spotify — all in one place." },
+      { property: "og:title", content: "Your Library · Vibtune" },
+      { property: "og:description", content: "Liked songs, downloads, and playlists — your music library on Vibtune." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/library" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/library" }],
+  }),
   component: LibraryPage,
 });
 
@@ -139,7 +149,7 @@ function LibraryPage() {
             className="absolute -bottom-4 -right-4 h-20 w-20 rotate-12 text-white/20 transition-transform group-hover:scale-110"
             fill="currentColor"
           />
-          <h3 className="relative z-10 text-lg font-bold text-white">Liked Songs</h3>
+          <h2 className="relative z-10 text-lg font-bold text-white">Liked Songs</h2>
           <p className="relative z-10 text-sm text-white/80">{liked?.length ?? 0} songs</p>
         </button>
         <Link
@@ -147,7 +157,7 @@ function LibraryPage() {
           className="group relative flex h-28 flex-col justify-end overflow-hidden rounded-lg border border-white/5 bg-white/5 p-4 transition hover:bg-white/10 active:scale-[0.98]"
         >
           <Download className="absolute -bottom-4 -right-4 h-20 w-20 rotate-12 text-white/10 transition-transform group-hover:scale-110" />
-          <h3 className="relative z-10 text-lg font-bold text-white">Downloaded</h3>
+          <h2 className="relative z-10 text-lg font-bold text-white">Downloaded</h2>
           <p className="relative z-10 text-sm text-white/50">
             {downloads.length} {downloads.length === 1 ? "track" : "tracks"}
           </p>

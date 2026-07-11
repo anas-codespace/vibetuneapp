@@ -24,7 +24,18 @@ import {
 } from "@/lib/library.functions";
 
 export const Route = createFileRoute("/profile")({
-  head: () => ({ meta: [{ title: "Profile · Vibtune" }] }),
+  head: () => ({
+    meta: [
+      { title: "Profile · Vibtune" },
+      { name: "description", content: "Manage your Vibtune profile: display name, bio, avatar, and account settings." },
+      { property: "og:title", content: "Profile · Vibtune" },
+      { property: "og:description", content: "Your Vibtune profile and account settings." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/profile" },
+      { property: "og:type", content: "profile" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/profile" }],
+  }),
   component: ProfilePage,
 });
 

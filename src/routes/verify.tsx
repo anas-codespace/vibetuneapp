@@ -9,7 +9,18 @@ import { VibtuneLogo } from "@/components/VibtuneLogo";
 const SearchSchema = z.object({ email: z.string().email().optional() });
 
 export const Route = createFileRoute("/verify")({
-  head: () => ({ meta: [{ title: "Verify · Vibtune" }] }),
+  head: () => ({
+    meta: [
+      { title: "Verify · Vibtune" },
+      { name: "description", content: "Confirm your Vibtune email address to activate your account and start listening." },
+      { property: "og:title", content: "Verify · Vibtune" },
+      { property: "og:description", content: "Confirm your email to activate your Vibtune account." },
+      { property: "og:url", content: "https://vibetuneapp.lovable.app/verify" },
+      { property: "og:type", content: "website" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://vibetuneapp.lovable.app/verify" }],
+  }),
   validateSearch: (s) => SearchSchema.parse(s),
   component: VerifyPage,
 });
