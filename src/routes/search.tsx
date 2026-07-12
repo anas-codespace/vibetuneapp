@@ -139,7 +139,7 @@ function SearchPage() {
                   ? "Spotify now requires an active Premium subscription on the developer account that owns this app."
                   : availability.data?.status === "not_configured"
                     ? "Spotify credentials are not configured."
-                    : availability.data?.message ?? "Spotify is temporarily unreachable."}
+                    : (availability.data && "message" in availability.data ? availability.data.message : null) ?? "Spotify is temporarily unreachable."}
               </p>
               <Link to="/settings/spotify" className="mt-1 inline-block font-medium text-amber-200 underline">
                 Open Spotify settings
