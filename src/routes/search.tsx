@@ -296,6 +296,23 @@ function SearchPage() {
           </div>
         )}
 
+        {debounced && !isFetching && correction && results.length > 0 && (
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+            Showing results for{" "}
+            <button
+              type="button"
+              onClick={() => setQ(correction)}
+              className="font-semibold text-white underline decoration-white/40 underline-offset-2 hover:decoration-white"
+            >
+              {correction}
+            </button>
+            . Search instead for{" "}
+            <span className="text-white/50">&ldquo;{debounced}&rdquo;</span>?
+          </div>
+        )}
+
+
+
         <AnimatePresence>
           {top && (
             <motion.section
