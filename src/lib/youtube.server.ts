@@ -53,6 +53,14 @@ const DOWNRANK_RE = /whatsapp\s*status|status\s*video|8d\s*audio|slowed|reverb|n
 const FORBIDDEN_KEYWORDS_RE =
   /trailer|teaser|promo|glimpse|making\s*of|sneak\s*peek|interview|announcement|first\s*look|behind\s*the\s*scenes|bts\s*video|fan\s*made|fanmade|whatsapp\s*status|\bstatus\b|lyrical\s*(video|whatsapp)?|lyric\s*video|\bmashup\b|\bremix\b|\bcover\b/i;
 
+/** Quality Gate — low-quality keywords blocked regardless of channel. */
+const LOW_QUALITY_RE =
+  /\bstatus\b|whatsapp|\bedit\b|\bcover\b|\bmashup\b|\bremix\b|slowed|reverb|nightcore|8d\s*audio|ringtone|fan\s*made|fanmade/i;
+
+/** Quality Gate — high-quality keywords that signal a legitimate release. */
+const HIGH_QUALITY_RE =
+  /\bofficial\b|\baudio\b|full\s*video|full\s*song|video\s*song|\banthem\b|\bhd\b|\b4k\b/i;
+
 /** Positive song identifiers → +15. */
 const SONG_KEYWORDS_RE =
   /\bofficial\s*(audio|video|song|anthem)\b|\banthem\b|\bcampaign\s*song\b|\baudio\b|full\s*video\s*song|video\s*song|full\s*song/i;
