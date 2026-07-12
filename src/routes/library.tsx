@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Circle, Download, Heart, ListMusic, ListPlus, Plus, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useOnboardingGate } from "@/hooks/use-onboarding-gate";
 import {
   createPlaylist,
   getLikedSongs,
@@ -57,6 +58,7 @@ export const Route = createFileRoute("/library")({
 
 function LibraryPage() {
   const { session, loading } = useAuth();
+  useOnboardingGate();
   const navigate = useNavigate();
   const likedFn = useServerFn(getLikedSongs);
   const plFn = useServerFn(getMyPlaylists);

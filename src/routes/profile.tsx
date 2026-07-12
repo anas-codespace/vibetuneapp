@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { useOnboardingGate } from "@/hooks/use-onboarding-gate";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/profile.functions";
 import {
@@ -43,6 +44,7 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { session, loading, user } = useAuth();
+  useOnboardingGate();
   const navigate = useNavigate();
   const profileFn = useServerFn(getMyProfile);
   const statsFn = useServerFn(getListeningStats);
