@@ -54,7 +54,19 @@ export const spotifyExchangeCode = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    console.log("[oauth-debug][spotify] spotifyExchangeCode start", {
+      userIdPrefix: context.userId.slice(0, 8),
+      redirectUri: data.redirectUri,
+      statePrefix: data.state.slice(0, 12),
+      stateLen: data.state.length,
+      stateMatchesUser: data.state.startsWith(`${context.userId}.`),
+      codeLen: data.code.length,
+    });
     if (!data.state.startsWith(`${context.userId}.`)) {
+      console.error("[oauth-debug][spotify] state/user mismatch", {
+        userIdPrefix: context.userId.slice(0, 8),
+        statePrefix: data.state.slice(0, 12),
+      });
       throw new Error("Invalid state");
     }
     const tok = await exchangeAuthCode(data.code, data.redirectUri);
@@ -75,7 +87,15 @@ export const spotifyExchangeCode = createServerFn({ method: "POST" })
         },
         { onConflict: "user_id" },
       );
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("[oauth-debug][spotify] token upsert failed", { message: error.message });
+      throw new Error(error.message);
+    }
+    console.log("[oauth-debug][spotify] exchange complete", {
+      spotifyUserId: profile.id,
+      displayName: profile.display_name,
+      expiresAt,
+    });
     return { connected: true, displayName: profile.display_name };
   });
 
