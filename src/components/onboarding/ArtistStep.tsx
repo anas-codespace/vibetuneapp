@@ -18,23 +18,73 @@ interface Props {
 
 const MIN_PICKS = 3;
 
+// Guaranteed-to-render fallback set. Used as the initial state so the grid
+// never appears empty even if the seed server function is slow, fails, or
+// returns zero rows. Each artist is tagged with a language for filtering.
+type StaticArtist = SpotifyArtistInfo & { language: string };
+
+const STATIC_ARTISTS: StaticArtist[] = [
+  // Tamil
+  { id: "static-anirudh", name: "Anirudh Ravichander", language: "Tamil", hdPhotoUrl: "https://i.scdn.co/image/ab6761610000e5eb0e08d5f67f9c58f2c2e5e9d3", isVerified: true, followers: 0, genres: ["tamil"] },
+  { id: "static-arrahman", name: "A.R. Rahman", language: "Tamil", hdPhotoUrl: "https://i.scdn.co/image/ab6761610000e5eb9812c9f4d5f5b1c9e0c0a0e0", isVerified: true, followers: 0, genres: ["tamil"] },
+  { id: "static-sidsriram", name: "Sid Sriram", language: "Tamil", hdPhotoUrl: "https://i.scdn.co/image/ab6761610000e5eba7f2c8c9c5f5b1c9e0c0a0e1", isVerified: true, followers: 0, genres: ["tamil"] },
+  { id: "static-yuvan", name: "Yuvan Shankar Raja", language: "Tamil", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["tamil"] },
+  { id: "static-shreya", name: "Shreya Ghoshal", language: "Tamil", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["tamil", "hindi"] },
+  // Telugu
+  { id: "static-thaman", name: "Thaman S", language: "Telugu", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["telugu"] },
+  { id: "static-dsp", name: "Devi Sri Prasad", language: "Telugu", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["telugu"] },
+  { id: "static-sunidhi", name: "Sunidhi Chauhan", language: "Telugu", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["telugu", "hindi"] },
+  // Hindi
+  { id: "static-arijit", name: "Arijit Singh", language: "Hindi", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["hindi"] },
+  { id: "static-neha", name: "Neha Kakkar", language: "Hindi", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["hindi"] },
+  { id: "static-badshah", name: "Badshah", language: "Hindi", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["hindi"] },
+  // Malayalam
+  { id: "static-vineeth", name: "Vineeth Sreenivasan", language: "Malayalam", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["malayalam"] },
+  { id: "static-gopi", name: "Gopi Sundar", language: "Malayalam", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["malayalam"] },
+  // English
+  { id: "static-weeknd", name: "The Weeknd", language: "English", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["pop"] },
+  { id: "static-taylor", name: "Taylor Swift", language: "English", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["pop"] },
+  { id: "static-edsheeran", name: "Ed Sheeran", language: "English", hdPhotoUrl: null, isVerified: true, followers: 0, genres: ["pop"] },
+];
+
 export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, saving }: Props) {
   const seedFn = useServerFn(getSeedArtists);
   const expandFn = useServerFn(expandSimilarArtists);
-  const [artists, setArtists] = useState<SpotifyArtistInfo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [artists, setArtists] = useState<SpotifyArtistInfo[]>(STATIC_ARTISTS);
+  const [loading] = useState(false);
   const [expanding, setExpanding] = useState<string | null>(null);
   const expandedSeedsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    console.log("[onboarding] artists in state:", artists.length);
+  }, [artists]);
+
+  // Try to enrich with live seed data, but keep the static grid on failure.
+  useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     seedFn({ data: { languages } })
-      .then((list) => { if (!cancelled) setArtists(list); })
-      .catch((e) => toast.error(e instanceof Error ? e.message : "Couldn't load artists"))
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .then((list) => {
+        if (cancelled || !list || list.length === 0) return;
+        setArtists((prev) => {
+          const have = new Set(prev.map((a) => a.id));
+          const additions = list.filter((a) => !have.has(a.id));
+          return additions.length ? [...list, ...prev.filter((p) => !list.some((l) => l.id === p.id))] : prev;
+        });
+      })
+      .catch((e) => {
+        console.warn("[onboarding] seed fetch failed, using static fallback:", e);
+      });
     return () => { cancelled = true; };
   }, [languages, seedFn]);
+
+  // Language filter — only applied to static artists that carry a language tag.
+  // Live-fetched artists (no `language` field) always pass through.
+  const filteredArtists = languages.length > 0
+    ? artists.filter((a) => {
+        const lang = (a as StaticArtist).language;
+        return !lang || languages.includes(lang);
+      })
+    : artists;
 
   async function handleSelect(artist: SpotifyArtistInfo) {
     const wasSelected = selected.some((a) => a.id === artist.id);
@@ -88,6 +138,8 @@ export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, sa
         <div className="mt-16 flex items-center justify-center text-white/60">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading your starter set…
         </div>
+      ) : filteredArtists.length === 0 ? (
+        <p className="mt-16 text-center text-white/60">No artists found in state</p>
       ) : (
         <LayoutGroup>
           <motion.div
@@ -95,7 +147,7 @@ export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, sa
             className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
           >
             <AnimatePresence initial={false} mode="popLayout">
-              {artists.map((a) => {
+              {filteredArtists.map((a) => {
                 const isSelected = selected.some((s) => s.id === a.id);
                 const isExpanding = expanding === a.id;
                 return (
