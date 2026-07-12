@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { getMyProfile } from "@/lib/profile.functions";
 import { tracksForArtists, searchYouTubeOnly } from "@/lib/music.functions";
+import type { YTTrack } from "@/lib/youtube.server";
 import { getSmartMix } from "@/lib/mix.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
