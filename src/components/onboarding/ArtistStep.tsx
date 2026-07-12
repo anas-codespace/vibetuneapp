@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Search } from "lucide-react";
 import type { SpotifyArtistInfo } from "@/lib/music.types";
 import { cn } from "@/lib/utils";
+
 
 interface Props {
   languages: string[];
@@ -162,46 +163,19 @@ export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, sa
       {/* Grid */}
       <div className="mt-6 grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
         {displayArtists.length > 0 ? (
-          displayArtists.map((name) => {
-            const isSelected = selectedNames.has(name);
-            return (
-              <button
-                key={name}
-                type="button"
-                onClick={() => onToggle(toArtistInfo(name))}
-                className="group flex cursor-pointer flex-col items-center gap-2"
-              >
-                <div
-                  className={cn(
-                    "relative rounded-full p-1 transition-all",
-                    isSelected
-                      ? "scale-105 bg-gradient-to-tr from-pink-500 to-purple-500"
-                      : "bg-transparent group-hover:bg-white/10",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "flex h-20 w-20 items-center justify-center rounded-full text-3xl font-bold text-white shadow-inner",
-                      getAvatarColor(name),
-                    )}
-                  >
-                    {getInitials(name)}
-                  </div>
-
-                  {isSelected && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
-                      <Check className="h-8 w-8 text-white" strokeWidth={3} />
-                    </div>
-                  )}
-                </div>
-                <p className="line-clamp-2 text-center text-xs font-medium text-white/90">{name}</p>
-              </button>
-            );
-          })
+          displayArtists.map((name) => (
+            <ArtistCard
+              key={name}
+              name={name}
+              isSelected={selectedNames.has(name)}
+              onToggle={() => onToggle(toArtistInfo(name))}
+            />
+          ))
         ) : (
           <div className="col-span-full py-10 text-center text-white/50">No artists found.</div>
         )}
       </div>
+
 
       {/* Fixed bottom bar */}
       <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black via-black/90 to-transparent px-6 pb-6 pt-10">
