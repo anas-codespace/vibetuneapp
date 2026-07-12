@@ -44,6 +44,7 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { session, loading, user } = useAuth();
+  useOnboardingGate();
   const navigate = useNavigate();
   const profileFn = useServerFn(getMyProfile);
   const statsFn = useServerFn(getListeningStats);
