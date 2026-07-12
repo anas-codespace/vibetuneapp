@@ -49,9 +49,9 @@ const OFFICIAL_LABEL_RE =
 /** Titles/keywords we down-rank. */
 const DOWNRANK_RE = /whatsapp\s*status|status\s*video|8d\s*audio|slowed|reverb|nightcore/i;
 
-/** Hard-block: non-song promo + fan-made lyric/status videos. */
+/** Hard-block: non-song promo + fan-made lyric/status/mashup uploads. */
 const FORBIDDEN_KEYWORDS_RE =
-  /trailer|teaser|promo|glimpse|making\s*of|sneak\s*peek|interview|announcement|first\s*look|behind\s*the\s*scenes|bts\s*video|fan\s*made|fanmade|whatsapp\s*status|\bstatus\b|lyrical\s*(video|whatsapp)?|lyric\s*video/i;
+  /trailer|teaser|promo|glimpse|making\s*of|sneak\s*peek|interview|announcement|first\s*look|behind\s*the\s*scenes|bts\s*video|fan\s*made|fanmade|whatsapp\s*status|\bstatus\b|lyrical\s*(video|whatsapp)?|lyric\s*video|\bmashup\b|\bremix\b|\bcover\b/i;
 
 /** Positive song identifiers → +15. */
 const SONG_KEYWORDS_RE =
