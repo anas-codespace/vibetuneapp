@@ -31,11 +31,10 @@ export const Route = createFileRoute("/api/public/debug/spotify")({
             const sUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=5`;
             const sRes = await fetch(sUrl, { headers: { Authorization: `Bearer ${token}` } });
             out.searchStatus = sRes.status;
-            const sJson = (await sRes.json().catch(() => ({}))) as {
-              tracks?: { items?: Array<{ name: string; artists: Array<{ name: string }> }> };
-              error?: unknown;
-            };
-            if (!sRes.ok) out.searchError = sJson.error;
+            const sText = await sRes.text();
+            out.searchBody = sText.slice(0, 500);
+            let sJson: { tracks?: { items?: Array<{ name: string; artists: Array<{ name: string }> }> } } = {};
+            try { sJson = JSON.parse(sText); } catch { /* noop */ }
             out.trackCount = sJson.tracks?.items?.length ?? 0;
             out.tracks = (sJson.tracks?.items ?? []).map((t) => ({
               name: t.name,
