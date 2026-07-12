@@ -7,6 +7,13 @@ import { Heart, History, MoreHorizontal, Play, Search as SearchIcon, X, Music2 }
 import { Link } from "@tanstack/react-router";
 
 const HISTORY_KEY = "vibetune_search_history";
+
+function formatDuration(seconds: number): string {
+  if (!seconds || seconds < 0) return "";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 import { useAuth } from "@/hooks/use-auth";
 import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
 import { searchYouTubeOnly } from "@/lib/music.functions";
@@ -380,9 +387,10 @@ function SearchPage() {
                         </div>
                         <div className="flex min-w-0 flex-col truncate">
                           <span className="truncate font-medium text-white">{t.title}</span>
-                          {t.artist && (
-                            <span className="truncate text-xs text-white/50">{t.artist}</span>
-                          )}
+                          <span className="truncate text-xs text-white/50">
+                            {t.artist || "Official Channel"}
+                            {t.durationSeconds ? ` · ${formatDuration(t.durationSeconds)}` : ""}
+                          </span>
                         </div>
                       </button>
                       <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">

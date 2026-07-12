@@ -49,9 +49,9 @@ const OFFICIAL_LABEL_RE =
 /** Titles/keywords we down-rank. */
 const DOWNRANK_RE = /whatsapp\s*status|status\s*video|8d\s*audio|slowed|reverb|nightcore/i;
 
-/** Hard-block: non-song promo + fan-made lyric/status videos. */
+/** Hard-block: non-song promo + fan-made lyric/status/mashup uploads. */
 const FORBIDDEN_KEYWORDS_RE =
-  /trailer|teaser|promo|glimpse|making\s*of|sneak\s*peek|interview|announcement|first\s*look|behind\s*the\s*scenes|bts\s*video|fan\s*made|fanmade|whatsapp\s*status|\bstatus\b|lyrical\s*(video|whatsapp)?|lyric\s*video/i;
+  /trailer|teaser|promo|glimpse|making\s*of|sneak\s*peek|interview|announcement|first\s*look|behind\s*the\s*scenes|bts\s*video|fan\s*made|fanmade|whatsapp\s*status|\bstatus\b|lyrical\s*(video|whatsapp)?|lyric\s*video|\bmashup\b|\bremix\b|\bcover\b/i;
 
 /** Positive song identifiers → +15. */
 const SONG_KEYWORDS_RE =
@@ -79,11 +79,33 @@ interface RawVideoItem {
   id: string;
   snippet: {
     title: string;
+    channelId: string;
     channelTitle: string;
     thumbnails: Record<string, { url: string }>;
   };
   contentDetails: { duration: string };
   status: { embeddable: boolean };
+}
+
+/**
+ * Whitelist of verified official Indian music label channel IDs.
+ * Populated from env var YOUTUBE_OFFICIAL_CHANNEL_IDS (comma-separated) plus
+ * a small set of high-confidence defaults. Channel-title regex
+ * (OFFICIAL_LABEL_RE) remains the fallback so a channel is treated as
+ * "official" if EITHER its ID is whitelisted OR its name matches a known label.
+ */
+const DEFAULT_OFFICIAL_IDS = [
+  "UCn4rEMqKtwBQ6-oEwbd4PcA", // Sony Music South
+  "UCq-Fj5jknLsUf-MWSy4_brA", // T-Series
+  "UCvS8DnkYnGw7GcQ4WgnFN4g", // Saregama Music
+  "UCn372MiubHTkPFwxKVv45LQ", // Lahari Music
+  "UCf-PcSHzYAtfroVPGT_UYag", // Aditya Music
+  "UCLXo7UDZvByw2ixzpQCufnA", // Vevo
+];
+function officialChannelIds(): Set<string> {
+  const extra = (process.env.YOUTUBE_OFFICIAL_CHANNEL_IDS ?? "")
+    .split(",").map((s) => s.trim()).filter(Boolean);
+  return new Set([...DEFAULT_OFFICIAL_IDS, ...extra]);
 }
 
 /** Score a video: higher = better. Official labels & "Official" keyword win. */
@@ -186,16 +208,23 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
     ({ v }) => !FORBIDDEN_KEYWORDS_RE.test(v.snippet.title),
   );
 
-  // Verified-channel priority: official label / VEVO / -Topic first, then the rest.
+  // Verified-channel priority: whitelist by channel ID OR by label-name regex.
+  const officialIds = officialChannelIds();
+  const isOfficialChannel = (v: RawVideoItem) =>
+    officialIds.has(v.snippet.channelId) ||
+    OFFICIAL_LABEL_RE.test(v.snippet.channelTitle) ||
+    /vevo$/i.test(v.snippet.channelTitle) ||
+    /-\s*topic$/i.test(v.snippet.channelTitle);
+
   filtered.sort((a, b) => scoreVideo(b.v) - scoreVideo(a.v));
-  const isOfficialChannel = (channel: string) =>
-    OFFICIAL_LABEL_RE.test(channel) || /vevo$/i.test(channel) || /-\s*topic$/i.test(channel);
-  const officialFirst = [
-    ...filtered.filter(({ v }) => isOfficialChannel(v.snippet.channelTitle)),
-    ...filtered.filter(({ v }) => !isOfficialChannel(v.snippet.channelTitle)),
-  ];
+
+  // Task 2 (strict): if any official-channel results exist, discard the rest.
+  // For political queries we already broadened; keep everything so anthems
+  // uploaded to party channels still appear even if not in the ID whitelist.
+  const officialOnly = filtered.filter(({ v }) => isOfficialChannel(v));
+  const finalPool = !isPolitical && officialOnly.length > 0 ? officialOnly : filtered;
   filtered.length = 0;
-  filtered.push(...officialFirst);
+  filtered.push(...finalPool);
 
   // Task 3: Only expose the channel as "artist" when it's a verified/official-looking
   // channel (label, VEVO, or auto-generated "- Topic"). Generic uploader channels
