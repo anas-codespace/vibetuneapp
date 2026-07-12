@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { searchArtist, getRelatedArtistsByName, searchTracks as spotifySearchTracks, type SpotifyArtistInfo, type SpotifyTrackMeta } from "./spotify.server";
 import {
   searchMusic,
+  searchMusicWithCorrection,
   relatedArtistNames,
   type YTTrack,
 } from "./youtube.server";
