@@ -12,6 +12,7 @@ import {
   Pencil,
   Shield,
   Sliders,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,6 +23,7 @@ import {
   updateProfileDetails,
   updateProfilePic,
 } from "@/lib/library.functions";
+import { deleteMyAccount } from "@/lib/account.functions";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -46,6 +48,7 @@ function ProfilePage() {
   const statsFn = useServerFn(getListeningStats);
   const saveFn = useServerFn(updateProfileDetails);
   const picFn = useServerFn(updateProfilePic);
+  const deleteFn = useServerFn(deleteMyAccount);
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
@@ -54,6 +57,8 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
@@ -97,6 +102,24 @@ function ProfilePage() {
     await supabase.auth.signOut();
     navigate({ to: "/" });
   };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteFn();
+      await supabase.auth.signOut();
+      toast.success("Account deleted");
+      navigate({ to: "/" });
+    } catch (e) {
+      toast.error("Couldn't delete account", {
+        description: e instanceof Error ? e.message : "",
+      });
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
+
+
 
   const handlePic = async (file: File) => {
     if (!user) return;
@@ -324,7 +347,60 @@ function ProfilePage() {
           <LogOut className="h-4 w-4" />
           Sign out
         </button>
+
+        {/* Danger Zone */}
+        <div className="mx-4 mt-10">
+          <h3 className="mb-2 px-2 text-xs font-bold tracking-widest text-red-500/80">
+            DANGER ZONE
+          </h3>
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
+            <p className="mb-3 text-sm text-white/70">
+              Permanently delete your account and all associated data. This action
+              cannot be undone.
+            </p>
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-3 font-semibold text-red-500 transition-colors hover:bg-red-500/20"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Account
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-red-500/30 bg-neutral-950 p-6 shadow-2xl">
+            <div className="mb-3 flex items-center gap-2 text-red-500">
+              <Trash2 className="h-5 w-5" />
+              <h2 className="text-lg font-bold">Delete Account?</h2>
+            </div>
+            <p className="mb-5 text-sm text-white/70">
+              This will permanently delete your profile, playlists, liked songs,
+              listening history, and all other data. This{" "}
+              <span className="font-semibold text-white">cannot be undone</span>.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="flex-1 rounded-xl border border-white/10 py-3 text-sm font-semibold text-white/80 hover:bg-white/5 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 rounded-xl bg-red-500 py-3 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-50"
+              >
+                {deleting ? "Deleting…" : "Delete Forever"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
