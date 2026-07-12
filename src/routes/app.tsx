@@ -110,7 +110,7 @@ function AppHome() {
     youtubeId: t.youtubeId,
     title: t.title,
     artist: t.artist,
-    thumbnailUrl: t.thumbnailUrl,
+    thumbnailUrl: t.thumbnailUrl ?? undefined,
     durationSeconds: t.durationSeconds,
   });
 
