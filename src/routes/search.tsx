@@ -332,7 +332,7 @@ function SearchPage() {
                     onClick={() => play(toVibe(a), vibeTracks)}
                     className="group flex w-24 shrink-0 snap-start flex-col items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-md"
                   >
-                    <div className="h-24 w-24 overflow-hidden rounded-full ring-1 ring-white/10 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] transition-transform group-hover:scale-[1.03] group-focus-visible:scale-[1.03]">
+                    <div className="aspect-square w-24 overflow-hidden rounded-full ring-1 ring-white/10 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] transition-transform group-hover:scale-[1.03] group-focus-visible:scale-[1.03]">
                       {a.albumArt ? (
                         <img src={a.albumArt} alt="" draggable={false} className="h-full w-full object-cover" />
                       ) : (
@@ -340,7 +340,7 @@ function SearchPage() {
                       )}
                     </div>
                     <p className="line-clamp-2 text-center text-xs font-medium text-white/80">{a.artist}</p>
-                    <p className="-mt-1 text-[10px] uppercase tracking-widest text-white/40">Artist</p>
+                    <p className="-mt-1 text-[10px] uppercase tracking-wider text-white/40">Artist</p>
                   </button>
                 ))}
               </HorizontalCarousel>
