@@ -49,17 +49,17 @@ const OFFICIAL_LABEL_RE =
 /** Titles/keywords we down-rank (status/8d/etc.). */
 const DOWNRANK_RE = /whatsapp\s*status|status\s*video|8d\s*audio|slowed|reverb|nightcore/i;
 
-/** Hard-block: non-song promotional content. */
+/** Hard-block: non-song promo + fan-made lyric/status videos. */
 const FORBIDDEN_KEYWORDS_RE =
-  /trailer|teaser|promo|glimpse|making\s*of|sneak\s*peek|interview|announcement|first\s*look|behind\s*the\s*scenes|bts\s*video/i;
+  /trailer|teaser|promo|glimpse|making\s*of|sneak\s*peek|interview|announcement|first\s*look|behind\s*the\s*scenes|bts\s*video|fan\s*made|fanmade|whatsapp\s*status|\bstatus\b|lyrical\s*(video|whatsapp)?|lyric\s*video/i;
 
-/** Positive song identifiers → +15 score. */
+/** Positive song identifiers → +15. "lyrics/lyrical" excluded to avoid boosting fan-made lyric uploads. */
 const SONG_KEYWORDS_RE =
-  /\blyric(?:s|al)?\b|\baudio\b|full\s*video\s*song|video\s*song|full\s*song|official\s*song/i;
+  /\bofficial\s*audio\b|\bofficial\s*video\b|\baudio\b|full\s*video\s*song|video\s*song|full\s*song|official\s*song/i;
 
 /** Extra negatives appended to the user query to natively exclude junk. */
 const QUERY_NEGATIVES =
-  "-trailer -teaser -promo -glimpse -making -shorts -jukebox -mashup -8d -cover -status -reaction -interview -announcement";
+  "-trailer -teaser -promo -glimpse -making -shorts -jukebox -mashup -8d -cover -status -reaction -interview -announcement -lyrical -\"fan made\" -\"lyric video\"";
 
 interface RawVideoItem {
   id: string;
@@ -111,11 +111,9 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return cached;
 
-  // Task 1: Strict-match query — prioritise the artist/topic name with "official"
-  // and let YouTube's Music category (10) do the topical filtering. Drop the
-  // aggressive language bias and the "songs" auto-suffix that was pulling in
-  // unrelated compilations.
-  const q = `${query} official ${QUERY_NEGATIVES}`.trim();
+  // Task 1: Force "official audio" bias in the query so YouTube returns
+  // label uploads first and de-prioritises fan-made lyric/status videos.
+  const q = `${query} official audio ${QUERY_NEGATIVES}`.trim();
   const searchUrl =
     `${YT_BASE}/search?part=snippet&type=video` +
     `&videoCategoryId=10&videoEmbeddable=true` +
@@ -156,7 +154,16 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
     ({ v }) => !FORBIDDEN_KEYWORDS_RE.test(v.snippet.title),
   );
 
+  // Verified-channel priority: official label / VEVO / -Topic first, then the rest.
   filtered.sort((a, b) => scoreVideo(b.v) - scoreVideo(a.v));
+  const isOfficialChannel = (channel: string) =>
+    OFFICIAL_LABEL_RE.test(channel) || /vevo$/i.test(channel) || /-\s*topic$/i.test(channel);
+  const officialFirst = [
+    ...filtered.filter(({ v }) => isOfficialChannel(v.snippet.channelTitle)),
+    ...filtered.filter(({ v }) => !isOfficialChannel(v.snippet.channelTitle)),
+  ];
+  filtered.length = 0;
+  filtered.push(...officialFirst);
 
   // Task 3: Only expose the channel as "artist" when it's a verified/official-looking
   // channel (label, VEVO, or auto-generated "- Topic"). Generic uploader channels
