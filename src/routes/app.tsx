@@ -12,6 +12,8 @@ import { tracksForArtists, searchYouTubeOnly } from "@/lib/music.functions";
 import { getSmartMix } from "@/lib/mix.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
+import { FALLBACK_TRACKS } from "@/data/fallbackTracks";
+
 
 export const Route = createFileRoute("/app")({
   head: () => ({
@@ -75,7 +77,19 @@ function AppHome() {
 
   const { data: tracks, isLoading } = useQuery({
     queryKey: ["tracks-for", seedArtists],
-    queryFn: () => tracksFn({ data: { artists: seedArtists } }),
+    queryFn: async () => {
+      try {
+        const res = await tracksFn({ data: { artists: seedArtists } });
+        if (!res || res.length === 0) {
+          console.warn("[Vibtune Protect] tracksForArtists empty, using fallback.");
+          return [];
+        }
+        return res;
+      } catch (err) {
+        console.error("[Vibtune Protect] tracksForArtists failed, using fallback.", err);
+        return [];
+      }
+    },
     enabled: !!session,
     staleTime: 1000 * 60 * 10,
   });
@@ -86,10 +100,23 @@ function AppHome() {
 
   const { data: trending, isLoading: trendingLoading } = useQuery({
     queryKey: ["trending-default", trendingQuery],
-    queryFn: () => trendingFn({ data: { query: trendingQuery, max: 20 } }),
+    queryFn: async () => {
+      try {
+        const res = await trendingFn({ data: { query: trendingQuery, max: 20 } });
+        if (!res || res.length === 0) {
+          console.warn(`[Vibtune Protect] trending empty for "${trendingQuery}", using fallback.`);
+          return [];
+        }
+        return res;
+      } catch (err) {
+        console.error(`[Vibtune Protect] trending failed for "${trendingQuery}", using fallback.`, err);
+        return [];
+      }
+    },
     enabled: !!session,
     staleTime: 1000 * 60 * 30,
   });
+
 
   const mixFn = useServerFn(getSmartMix);
 
@@ -123,8 +150,12 @@ function AppHome() {
   const list: VibeTrack[] = (tracks ?? []).map(mapTrack);
   const trendingList: VibeTrack[] = (trending ?? []).map(mapTrack);
 
-  // Fallback: if personalized list is empty, use trending for cards & carousels.
-  const primary: VibeTrack[] = list.length > 0 ? list : trendingList;
+  // Bulletproof: if both live sources are empty (post-load), use static fallback.
+  const primary: VibeTrack[] =
+    list.length > 0 ? list : trendingList.length > 0 ? trendingList : FALLBACK_TRACKS;
+
+  const ensureFilled = (items: VibeTrack[]): VibeTrack[] =>
+    items.length > 0 ? items : FALLBACK_TRACKS;
 
   const quickPicks = [
     { title: "Liked Songs", art: primary[0]?.thumbnailUrl, icon: Heart, gradient: "from-pink-500 to-violet-500" },
@@ -135,16 +166,21 @@ function AppHome() {
     { title: "Recently Played", art: primary[5]?.thumbnailUrl, icon: Play, gradient: "from-rose-500 to-orange-500" },
   ];
 
-  const suggestedForYou = primary.slice(0, 20);
-  const trendingNow = trendingList.length > 0 ? trendingList.slice(0, 20) : primary.slice(0, 20);
-  const popularRadios = primary.slice(15, 35);
-  const newReleases = primary.slice(25, 50);
+  const suggestedForYou = ensureFilled(primary.slice(0, 20));
+  const trendingNow = ensureFilled(
+    trendingList.length > 0 ? trendingList.slice(0, 20) : primary.slice(0, 20),
+  );
+  const popularRadios = ensureFilled(primary.slice(15, 35).length > 0 ? primary.slice(15, 35) : primary.slice(0, 20));
+  const newReleases = ensureFilled(primary.slice(25, 50).length > 0 ? primary.slice(25, 50) : primary.slice(0, 20));
+
 
   const renderCarousel = (
     title: string,
     items: VibeTrack[],
     subtitleFor: (t: VibeTrack) => string,
+    sectionLoading = false,
   ) => (
+
     <div className="mt-8">
       <div className="flex items-baseline justify-between">
         <h3 className="text-base font-bold text-white">{title}</h3>
