@@ -9,6 +9,7 @@ import { Link } from "@tanstack/react-router";
 const HISTORY_KEY = "vibetune_search_history";
 import { useAuth } from "@/hooks/use-auth";
 import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
+import { searchYouTubeOnly } from "@/lib/music.functions";
 
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { HorizontalCarousel } from "@/components/HorizontalCarousel";
@@ -43,6 +44,7 @@ function SearchPage() {
   const [q, setQ] = useState("");
   const debounced = useDebounced(q.trim(), 320);
   const fn = useServerFn(spotifySearchPlayable);
+  const ytFn = useServerFn(searchYouTubeOnly);
   const { play, addToQueue } = usePlayer();
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
@@ -81,17 +83,46 @@ function SearchPage() {
   const { data, isFetching, error } = useQuery({
     queryKey: ["search", debounced],
     queryFn: async () => {
+      // Task 1: Sanitize + enhance the query to guarantee music results.
+      const raw = debounced;
+      const enhanced = /\b(song|songs|music|track|album)\b/i.test(raw)
+        ? raw
+        : `${raw} songs`;
+
+      let results: SpotifyPlayableResult[] = [];
       try {
-        const res = await fn({ data: { query: debounced, max: 24 } });
-        return res ?? [];
+        results = (await fn({ data: { query: enhanced, max: 24 } })) ?? [];
       } catch (err) {
-        console.error("[search] request failed:", err);
-        throw err;
+        console.error("[search] Spotify search failed:", err);
       }
+      console.log("[search] API Response (primary):", { query: enhanced, count: results.length });
+
+      // Task 3: Fallback — if primary returns 0, try a broad YouTube-only search
+      // with special chars stripped and just the primary keyword.
+      if (results.length === 0) {
+        const broad = raw.replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+        const fallbackQ = broad ? `${broad} song` : enhanced;
+        try {
+          const yt = (await ytFn({ data: { query: fallbackQ, max: 20 } })) ?? [];
+          console.log("[search] API Response (fallback YT):", { query: fallbackQ, count: yt.length });
+          results = yt.map((t): SpotifyPlayableResult => ({
+            spotifyId: `yt:${t.youtubeId}`,
+            youtubeId: t.youtubeId,
+            title: t.title,
+            artist: t.artist,
+            album: "",
+            albumArt: t.thumbnailUrl ?? null,
+            durationSeconds: t.durationSeconds,
+          }));
+        } catch (err) {
+          console.error("[search] YT fallback failed:", err);
+        }
+      }
+      return results;
     },
     enabled: !!session && debounced.length > 1,
     staleTime: 1000 * 60 * 5,
-    placeholderData: undefined, // force clear results on new query
+    placeholderData: undefined,
     retry: 1,
   });
 
