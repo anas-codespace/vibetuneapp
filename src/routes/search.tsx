@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { History, ListPlus, Play, Search as SearchIcon, X, Music2, AlertTriangle } from "lucide-react";
+import { History, ListPlus, Play, Search as SearchIcon, X, Music2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 const HISTORY_KEY = "vibetune_search_history";
 import { useAuth } from "@/hooks/use-auth";
 import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
-import { useSpotifyAvailability } from "@/hooks/use-spotify-availability";
+
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 
 export const Route = createFileRoute("/search")({
