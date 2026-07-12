@@ -353,27 +353,27 @@ function SearchPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-8"
             >
-              <h2 className="mb-2 text-[10px] font-bold uppercase tracking-[0.28em] text-white/50">
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/50">
                 Songs
               </h2>
-              <ul>
+              <ul className="space-y-0.5">
                 {rest.map((t) => (
                   <li key={t.youtubeId}>
-                    <div className="group flex w-full items-center gap-4 rounded-xl px-2 py-3 transition-colors hover:bg-white/[0.04]">
+                    <div className="group flex w-full items-center gap-4 rounded-lg p-2 transition-colors hover:bg-white/5">
                       <button
                         onClick={() => play(toVibe(t), vibeTracks)}
                         className="flex min-w-0 flex-1 items-center gap-4 text-left"
                       >
-                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md shadow-[0_6px_16px_-8px_rgba(0,0,0,0.7)]">
+                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md">
                           {t.albumArt ? (
                             <img src={t.albumArt} alt="" className="h-full w-full object-cover" />
                           ) : (
                             <div className="vibe-gradient h-full w-full" />
                           )}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-base font-medium text-white">{t.title}</p>
-                          <p className="truncate text-sm text-white/60">{t.artist}</p>
+                        <div className="flex min-w-0 flex-col truncate">
+                          <span className="truncate font-medium text-white">{t.title}</span>
+                          <span className="truncate text-xs text-white/50">{t.artist}</span>
                         </div>
                       </button>
                       <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
