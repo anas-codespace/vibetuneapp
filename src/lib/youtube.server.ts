@@ -174,10 +174,12 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
 
   const items = await fetchVideoDetails(ids);
 
-  // Strict duration: 90s..480s (drop ringtones/shorts and jukeboxes/full movies).
+  // Duration bounds — widen for political anthems (often 60s–10min).
+  const minDur = isPolitical ? 45 : 90;
+  const maxDur = isPolitical ? 600 : 480;
   const durationFiltered = items
     .map((v) => ({ v, seconds: isoDurationToSeconds(v.contentDetails.duration) }))
-    .filter(({ v, seconds }) => v.status.embeddable && seconds >= 90 && seconds <= 480);
+    .filter(({ v, seconds }) => v.status.embeddable && seconds >= minDur && seconds <= maxDur);
 
   // Guillotine: hard-block trailers/teasers/promos/etc by title.
   const filtered = durationFiltered.filter(
