@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Search } from "lucide-react";
 import type { SpotifyArtistInfo } from "@/lib/music.types";
 import { cn } from "@/lib/utils";
+
 
 interface Props {
   languages: string[];
@@ -93,6 +94,96 @@ function getAvatarColor(name: string) {
   return AVATAR_COLORS[index % AVATAR_COLORS.length];
 }
 
+// Simple in-memory cache to avoid refetching across tab switches
+const imageCache = new Map<string, string | null>();
+
+function ArtistCard({
+  name,
+  isSelected,
+  onToggle,
+}: {
+  name: string;
+  isSelected: boolean;
+  onToggle: () => void;
+}) {
+  const [imgUrl, setImgUrl] = useState<string | null>(() => imageCache.get(name) ?? null);
+  const [loading, setLoading] = useState(() => !imageCache.has(name));
+
+  useEffect(() => {
+    if (imageCache.has(name)) {
+      setImgUrl(imageCache.get(name) ?? null);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/public/artist-image?name=${encodeURIComponent(name)}`)
+      .then((r) => r.json())
+      .then((data: { image: string | null }) => {
+        if (cancelled) return;
+        imageCache.set(name, data.image ?? null);
+        setImgUrl(data.image ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) imageCache.set(name, null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [name]);
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="group flex cursor-pointer flex-col items-center gap-2"
+    >
+      <div
+        className={cn(
+          "relative rounded-full p-1 transition-all",
+          isSelected
+            ? "scale-105 bg-gradient-to-tr from-pink-500 to-purple-500"
+            : "bg-transparent group-hover:bg-white/10",
+        )}
+      >
+        {loading ? (
+          <div className="h-20 w-20 animate-pulse rounded-full bg-neutral-800" />
+        ) : imgUrl ? (
+          <img
+            src={imgUrl}
+            alt={name}
+            loading="lazy"
+            className="h-20 w-20 rounded-full object-cover shadow-lg"
+            onError={() => {
+              imageCache.set(name, null);
+              setImgUrl(null);
+            }}
+          />
+        ) : (
+          <div
+            className={cn(
+              "flex h-20 w-20 items-center justify-center rounded-full text-3xl font-bold text-white shadow-inner",
+              getAvatarColor(name),
+            )}
+          >
+            {getInitials(name)}
+          </div>
+        )}
+
+        {isSelected && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+            <Check className="h-8 w-8 text-white" strokeWidth={3} />
+          </div>
+        )}
+      </div>
+      <p className="line-clamp-2 text-center text-xs font-medium text-white/90">{name}</p>
+    </button>
+  );
+}
+
 
 export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, saving }: Props) {
   const availableLanguages = useMemo(() => {
@@ -162,46 +253,19 @@ export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, sa
       {/* Grid */}
       <div className="mt-6 grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
         {displayArtists.length > 0 ? (
-          displayArtists.map((name) => {
-            const isSelected = selectedNames.has(name);
-            return (
-              <button
-                key={name}
-                type="button"
-                onClick={() => onToggle(toArtistInfo(name))}
-                className="group flex cursor-pointer flex-col items-center gap-2"
-              >
-                <div
-                  className={cn(
-                    "relative rounded-full p-1 transition-all",
-                    isSelected
-                      ? "scale-105 bg-gradient-to-tr from-pink-500 to-purple-500"
-                      : "bg-transparent group-hover:bg-white/10",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "flex h-20 w-20 items-center justify-center rounded-full text-3xl font-bold text-white shadow-inner",
-                      getAvatarColor(name),
-                    )}
-                  >
-                    {getInitials(name)}
-                  </div>
-
-                  {isSelected && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
-                      <Check className="h-8 w-8 text-white" strokeWidth={3} />
-                    </div>
-                  )}
-                </div>
-                <p className="line-clamp-2 text-center text-xs font-medium text-white/90">{name}</p>
-              </button>
-            );
-          })
+          displayArtists.map((name) => (
+            <ArtistCard
+              key={name}
+              name={name}
+              isSelected={selectedNames.has(name)}
+              onToggle={() => onToggle(toArtistInfo(name))}
+            />
+          ))
         ) : (
           <div className="col-span-full py-10 text-center text-white/50">No artists found.</div>
         )}
       </div>
+
 
       {/* Fixed bottom bar */}
       <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black via-black/90 to-transparent px-6 pb-6 pt-10">

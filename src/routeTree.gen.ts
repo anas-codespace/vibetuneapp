@@ -32,6 +32,7 @@ import { Route as SettingsAudioRouteImport } from './routes/settings.audio'
 import { Route as LibraryDownloadedRouteImport } from './routes/library.downloaded'
 import { Route as LibraryIdRouteImport } from './routes/library.$id'
 import { Route as ApiAnalyzeMoodRouteImport } from './routes/api/analyze-mood'
+import { Route as ApiPublicArtistImageRouteImport } from './routes/api/public/artist-image'
 import { Route as ApiPublicHealthYoutubeRouteImport } from './routes/api/public/health.youtube'
 
 const VerifyRoute = VerifyRouteImport.update({
@@ -149,6 +150,11 @@ const ApiAnalyzeMoodRoute = ApiAnalyzeMoodRouteImport.update({
   path: '/api/analyze-mood',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicArtistImageRoute = ApiPublicArtistImageRouteImport.update({
+  id: '/api/public/artist-image',
+  path: '/api/public/artist-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHealthYoutubeRoute = ApiPublicHealthYoutubeRouteImport.update({
   id: '/api/public/health/youtube',
   path: '/api/public/health/youtube',
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/settings/youtube': typeof SettingsYoutubeRoute
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
+  '/api/public/artist-image': typeof ApiPublicArtistImageRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRoutesByTo {
@@ -205,6 +212,7 @@ export interface FileRoutesByTo {
   '/settings/youtube': typeof SettingsYoutubeRoute
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
+  '/api/public/artist-image': typeof ApiPublicArtistImageRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRoutesById {
@@ -232,6 +240,7 @@ export interface FileRoutesById {
   '/settings/youtube': typeof SettingsYoutubeRoute
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
+  '/api/public/artist-image': typeof ApiPublicArtistImageRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRouteTypes {
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
     | '/settings/youtube'
     | '/songs/$id'
     | '/spotify/callback'
+    | '/api/public/artist-image'
     | '/api/public/health/youtube'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/settings/youtube'
     | '/songs/$id'
     | '/spotify/callback'
+    | '/api/public/artist-image'
     | '/api/public/health/youtube'
   id:
     | '__root__'
@@ -312,6 +323,7 @@ export interface FileRouteTypes {
     | '/settings/youtube'
     | '/songs/$id'
     | '/spotify/callback'
+    | '/api/public/artist-image'
     | '/api/public/health/youtube'
   fileRoutesById: FileRoutesById
 }
@@ -337,6 +349,7 @@ export interface RootRouteChildren {
   SettingsYoutubeRoute: typeof SettingsYoutubeRoute
   SongsIdRoute: typeof SongsIdRoute
   SpotifyCallbackRoute: typeof SpotifyCallbackRoute
+  ApiPublicArtistImageRoute: typeof ApiPublicArtistImageRoute
   ApiPublicHealthYoutubeRoute: typeof ApiPublicHealthYoutubeRoute
 }
 
@@ -503,6 +516,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAnalyzeMoodRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/artist-image': {
+      id: '/api/public/artist-image'
+      path: '/api/public/artist-image'
+      fullPath: '/api/public/artist-image'
+      preLoaderRoute: typeof ApiPublicArtistImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/health/youtube': {
       id: '/api/public/health/youtube'
       path: '/api/public/health/youtube'
@@ -548,6 +568,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsYoutubeRoute: SettingsYoutubeRoute,
   SongsIdRoute: SongsIdRoute,
   SpotifyCallbackRoute: SpotifyCallbackRoute,
+  ApiPublicArtistImageRoute: ApiPublicArtistImageRoute,
   ApiPublicHealthYoutubeRoute: ApiPublicHealthYoutubeRoute,
 }
 export const routeTree = rootRouteImport
