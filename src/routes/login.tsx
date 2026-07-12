@@ -156,9 +156,10 @@ function LoginPage() {
           Continue with Spotify
         </button>
 
-        <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-wider text-white/40">
+        <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-widest text-white/30">
           <span className="h-px flex-1 bg-white/10" /> or email <span className="h-px flex-1 bg-white/10" />
         </div>
+
 
         <label className="mb-4 block">
           <span className="mb-1.5 block text-xs uppercase tracking-wider text-white/50">Email</span>
