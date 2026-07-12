@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
 
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
+import { HorizontalCarousel } from "@/components/HorizontalCarousel";
 
 export const Route = createFileRoute("/search")({
   head: () => ({
@@ -251,16 +252,20 @@ function SearchPage() {
               <h2 className="mb-4 text-[10px] font-bold uppercase tracking-[0.28em] text-white/50">
                 Artists
               </h2>
-              <div className="-mx-5 flex gap-5 overflow-x-auto px-5 pb-2" style={{ scrollbarWidth: "none" }}>
+              <HorizontalCarousel
+                ariaLabel="Artists — use arrow keys or swipe"
+                className="-mx-5 gap-5 px-5 pb-2"
+              >
                 {artists.map((a) => (
                   <button
                     key={a.artist}
+                    data-carousel-item
                     onClick={() => play(toVibe(a), vibeTracks)}
-                    className="group flex w-24 shrink-0 flex-col items-center gap-2.5"
+                    className="group flex w-24 shrink-0 snap-start flex-col items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-md"
                   >
-                    <div className="h-24 w-24 overflow-hidden rounded-full ring-1 ring-white/10 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] transition-transform group-hover:scale-[1.03]">
+                    <div className="h-24 w-24 overflow-hidden rounded-full ring-1 ring-white/10 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] transition-transform group-hover:scale-[1.03] group-focus-visible:scale-[1.03]">
                       {a.albumArt ? (
-                        <img src={a.albumArt} alt="" className="h-full w-full object-cover" />
+                        <img src={a.albumArt} alt="" draggable={false} className="h-full w-full object-cover" />
                       ) : (
                         <div className="vibe-gradient h-full w-full" />
                       )}
@@ -269,7 +274,7 @@ function SearchPage() {
                     <p className="-mt-1 text-[10px] uppercase tracking-widest text-white/40">Artist</p>
                   </button>
                 ))}
-              </div>
+              </HorizontalCarousel>
             </motion.section>
           )}
 
