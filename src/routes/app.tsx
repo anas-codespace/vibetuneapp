@@ -189,14 +189,16 @@ function AppHome() {
         </button>
       </div>
       <div className="-mx-5 mt-3 flex snap-x snap-mandatory scroll-px-5 gap-x-5 overflow-x-auto px-5 pb-6 hide-scrollbar [&>*]:snap-always">
-        {isLoading &&
+        {(isLoading || sectionLoading) &&
           Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-40 w-40 shrink-0 animate-pulse rounded-md border border-white/5 bg-white/5 sm:w-44"
-            />
+            <div key={i} className="flex w-40 shrink-0 flex-col gap-2 sm:w-44">
+              <div className="aspect-square w-full animate-pulse rounded-md bg-neutral-800" />
+              <div className="mt-2 h-4 w-24 animate-pulse rounded bg-neutral-800" />
+              <div className="h-3 w-16 animate-pulse rounded bg-neutral-900" />
+            </div>
           ))}
-        {!isLoading &&
+
+        {!(isLoading || sectionLoading) &&
           items.map((t) => (
             <button
               key={t.youtubeId}
