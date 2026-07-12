@@ -16,7 +16,7 @@ function formatDuration(seconds: number): string {
 }
 import { useAuth } from "@/hooks/use-auth";
 import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
-import { searchYouTubeOnly } from "@/lib/music.functions";
+import { searchYouTubeWithCorrection } from "@/lib/music.functions";
 
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { HorizontalCarousel } from "@/components/HorizontalCarousel";
@@ -51,7 +51,7 @@ function SearchPage() {
   const [q, setQ] = useState("");
   const debounced = useDebounced(q.trim(), 320);
   const fn = useServerFn(spotifySearchPlayable);
-  const ytFn = useServerFn(searchYouTubeOnly);
+  const ytFn = useServerFn(searchYouTubeWithCorrection);
   const { play, addToQueue } = usePlayer();
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
@@ -89,13 +89,14 @@ function SearchPage() {
 
   const { data, isFetching, error } = useQuery({
     queryKey: ["search", debounced],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ results: SpotifyPlayableResult[]; correction: string | null }> => {
       // Task 1: Strict-match query — send the user's term as-is (no " songs"
       // suffix, which was matching irrelevant compilations). The backend now
       // appends "official" and category=Music.
       const raw = debounced;
 
       let results: SpotifyPlayableResult[] = [];
+      let correction: string | null = null;
       try {
         results = (await fn({ data: { query: raw, max: 24 } })) ?? [];
       } catch (err) {
@@ -103,13 +104,16 @@ function SearchPage() {
       }
       console.log("[search] API Response (primary):", { query: raw, count: results.length });
 
-      // Fallback — if primary returns 0, try YouTube-only with the same raw term.
+      // Fallback — if primary returns 0, try YouTube-only with typo-tolerant
+      // correction (transliteration → trim → Levenshtein autocomplete).
       if (results.length === 0) {
         const broad = raw.replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
         try {
-          const yt = (await ytFn({ data: { query: broad || raw, max: 20 } })) ?? [];
-          console.log("[search] API Response (fallback YT):", { query: broad, count: yt.length });
-          results = yt.map((t): SpotifyPlayableResult => ({
+          const yt = await ytFn({ data: { query: broad || raw, max: 20 } });
+          const tracks = yt?.tracks ?? [];
+          correction = yt?.correctedQuery ?? null;
+          console.log("[search] API Response (fallback YT):", { query: broad, count: tracks.length, correction });
+          results = tracks.map((t): SpotifyPlayableResult => ({
             spotifyId: `yt:${t.youtubeId}`,
             youtubeId: t.youtubeId,
             title: t.title,
@@ -132,7 +136,7 @@ function SearchPage() {
           return bHit - aHit;
         });
       }
-      return results;
+      return { results, correction };
     },
     enabled: !!session && debounced.length > 1,
     staleTime: 1000 * 60 * 5,
@@ -142,11 +146,12 @@ function SearchPage() {
 
 
   useEffect(() => {
-    if (data && data.length > 0 && debounced.length > 1) addToHistory(debounced);
+    if (data && data.results.length > 0 && debounced.length > 1) addToHistory(debounced);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, debounced]);
 
-  const results: SpotifyPlayableResult[] = data ?? [];
+  const results: SpotifyPlayableResult[] = data?.results ?? [];
+  const correction = data?.correction ?? null;
   const toVibe = (t: SpotifyPlayableResult): VibeTrack => ({
     youtubeId: t.youtubeId,
     title: t.title,
@@ -290,6 +295,23 @@ function SearchPage() {
             No songs found. Try a different artist or movie.
           </div>
         )}
+
+        {debounced && !isFetching && correction && results.length > 0 && (
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+            Showing results for{" "}
+            <button
+              type="button"
+              onClick={() => setQ(correction)}
+              className="font-semibold text-white underline decoration-white/40 underline-offset-2 hover:decoration-white"
+            >
+              {correction}
+            </button>
+            . Search instead for{" "}
+            <span className="text-white/50">&ldquo;{debounced}&rdquo;</span>?
+          </div>
+        )}
+
+
 
         <AnimatePresence>
           {top && (

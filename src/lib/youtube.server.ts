@@ -201,31 +201,124 @@ function transliterationVariants(query: string, cap = 6): string[] {
   return out;
 }
 
+/** Classic Levenshtein edit distance. Small strings only (queries). */
+export function levenshtein(a: string, b: string): number {
+  const s = a.toLowerCase();
+  const t = b.toLowerCase();
+  if (s === t) return 0;
+  if (!s.length) return t.length;
+  if (!t.length) return s.length;
+  const prev = new Array(t.length + 1);
+  for (let j = 0; j <= t.length; j++) prev[j] = j;
+  for (let i = 1; i <= s.length; i++) {
+    let cur = i;
+    for (let j = 1; j <= t.length; j++) {
+      const cost = s[i - 1] === t[j - 1] ? 0 : 1;
+      const next = Math.min(prev[j] + 1, cur + 1, prev[j - 1] + cost);
+      prev[j - 1] = cur;
+      cur = next;
+    }
+    prev[t.length] = cur;
+  }
+  return prev[t.length];
+}
+
+/** Similarity 0..1 based on Levenshtein / max length. */
+function similarity(a: string, b: string): number {
+  const max = Math.max(a.length, b.length);
+  if (!max) return 1;
+  return 1 - levenshtein(a, b) / max;
+}
+
+/** Fetch YouTube autocomplete suggestions for a query (best-effort). */
+async function ytSuggestions(query: string): Promise<string[]> {
+  try {
+    const url = `https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0" } });
+    if (!res.ok) return [];
+    const data = (await res.json()) as [string, string[]];
+    return Array.isArray(data?.[1]) ? data[1].slice(0, 10) : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
- * Typo-tolerant wrapper around the strict search.
- * Tries: raw → transliteration variants → trim-last-char retry.
- * Returns first non-empty result set. Also caches by original query.
+ * Pick the best correction candidate from a list using Levenshtein similarity
+ * against the original query. Returns null if nothing is close enough.
  */
-export async function searchMusic(query: string, maxResults = 30): Promise<YTTrack[]> {
+function bestCorrection(original: string, candidates: string[], minSim = 0.55): string | null {
+  const orig = original.trim().toLowerCase();
+  let best: { text: string; sim: number } | null = null;
+  for (const cand of candidates) {
+    const c = cand.trim();
+    if (!c || c.toLowerCase() === orig) continue;
+    const sim = similarity(orig, c.toLowerCase());
+    if (sim >= minSim && (!best || sim > best.sim)) best = { text: c, sim };
+  }
+  return best?.text ?? null;
+}
+
+/**
+ * Typo-tolerant strict search. Returns tracks plus (when the raw query didn't
+ * work) the corrected query string that actually produced results — so callers
+ * can surface a "Did you mean …?" hint.
+ *
+ * Strategy:
+ *   1. Raw query.
+ *   2. Transliteration variants (Tamil ↔ Roman).
+ *   3. Trim-last-char (single-typo tail).
+ *   4. Levenshtein-scored YouTube autocomplete suggestion.
+ */
+export async function searchMusicWithCorrection(
+  query: string,
+  maxResults = 30,
+): Promise<{ tracks: YTTrack[]; correctedQuery: string | null }> {
   const original = query.trim();
-  if (!original) return [];
+  if (!original) return { tracks: [], correctedQuery: null };
+
   const cacheKey = `${CACHE_VERSION}::tolerant::${original.toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
-  if (cached) return cached;
+  if (cached) return { tracks: cached, correctedQuery: null };
 
-  const attempts: string[] = [];
-  attempts.push(...transliterationVariants(original));
-  // Trim-last-char fallback for likely single-typo tails.
-  if (original.length > 3) attempts.push(original.slice(0, -1));
+  // Attempt 1: raw query.
+  const rawHit = await searchMusicOnce(original, maxResults);
+  if (rawHit.length > 0) {
+    SEARCH_CACHE.set(cacheKey, rawHit);
+    return { tracks: rawHit, correctedQuery: null };
+  }
 
-  for (const attempt of attempts) {
+  // Attempts 2–3: transliteration + trim-last-char.
+  const secondary: string[] = [];
+  for (const v of transliterationVariants(original)) if (v !== original) secondary.push(v);
+  if (original.length > 3) secondary.push(original.slice(0, -1));
+
+  for (const attempt of secondary) {
     const tracks = await searchMusicOnce(attempt, maxResults);
     if (tracks.length > 0) {
       SEARCH_CACHE.set(cacheKey, tracks);
-      return tracks;
+      return { tracks, correctedQuery: attempt };
     }
   }
-  return [];
+
+  // Attempt 4: YouTube autocomplete + Levenshtein scoring.
+  const suggestions = await ytSuggestions(original);
+  const corrected = bestCorrection(original, suggestions);
+  if (corrected) {
+    const tracks = await searchMusicOnce(corrected, maxResults);
+    if (tracks.length > 0) {
+      SEARCH_CACHE.set(cacheKey, tracks);
+      return { tracks, correctedQuery: corrected };
+    }
+  }
+
+  return { tracks: [], correctedQuery: null };
+}
+
+/** Back-compat wrapper — tracks only. */
+export async function searchMusic(query: string, maxResults = 30): Promise<YTTrack[]> {
+  const { tracks } = await searchMusicWithCorrection(query, maxResults);
+  return tracks;
 }
 
 /**
