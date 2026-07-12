@@ -111,12 +111,15 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return cached;
 
-  // Force Tamil/Indian music context + strip junk formats.
-  const q = `${query} tamil official audio OR lyric video ${QUERY_NEGATIVES}`.trim();
+  // Task 1: Strict-match query — prioritise the artist/topic name with "official"
+  // and let YouTube's Music category (10) do the topical filtering. Drop the
+  // aggressive language bias and the "songs" auto-suffix that was pulling in
+  // unrelated compilations.
+  const q = `${query} official ${QUERY_NEGATIVES}`.trim();
   const searchUrl =
     `${YT_BASE}/search?part=snippet&type=video` +
-    `&videoCategoryId=10&regionCode=IN&relevanceLanguage=ta&videoEmbeddable=true` +
-    `&maxResults=50&q=${encodeURIComponent(q)}&key=${key()}`;
+    `&videoCategoryId=10&videoEmbeddable=true` +
+    `&maxResults=20&q=${encodeURIComponent(q)}&key=${key()}`;
 
   let searchRes: Response;
   try {
@@ -155,15 +158,29 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
 
   filtered.sort((a, b) => scoreVideo(b.v) - scoreVideo(a.v));
 
-  const tracks: YTTrack[] = filtered.slice(0, maxResults).map(({ v, seconds }) => ({
-    youtubeId: v.id,
-    title: cleanTitle(v.snippet.title),
-    artist: v.snippet.channelTitle.replace(/ *-? *Topic$/i, ""),
-    thumbnailUrl:
-      v.snippet.thumbnails.high?.url ?? v.snippet.thumbnails.default?.url ?? "",
-    durationSeconds: seconds,
-    isEmbeddable: v.status.embeddable,
-  }));
+  // Task 3: Only expose the channel as "artist" when it's a verified/official-looking
+  // channel (label, VEVO, or auto-generated "- Topic"). Generic uploader channels
+  // ("Song Tracks", "DesiWave", etc.) get an empty artist so the UI can fall back
+  // to the cleaned title as the primary descriptor.
+  const looksLikeRealArtistChannel = (channel: string) =>
+    OFFICIAL_LABEL_RE.test(channel) ||
+    /vevo$/i.test(channel) ||
+    /-?\s*topic$/i.test(channel) ||
+    /official/i.test(channel);
+
+  const tracks: YTTrack[] = filtered.slice(0, maxResults).map(({ v, seconds }) => {
+    const rawChannel = v.snippet.channelTitle;
+    const cleanChannel = rawChannel.replace(/ *-? *Topic$/i, "").trim();
+    return {
+      youtubeId: v.id,
+      title: cleanTitle(v.snippet.title),
+      artist: looksLikeRealArtistChannel(rawChannel) ? cleanChannel : "",
+      thumbnailUrl:
+        v.snippet.thumbnails.high?.url ?? v.snippet.thumbnails.default?.url ?? "",
+      durationSeconds: seconds,
+      isEmbeddable: v.status.embeddable,
+    };
+  });
 
   if (tracks.length > 0) SEARCH_CACHE.set(cacheKey, tracks);
   return tracks;
