@@ -79,15 +79,20 @@ function SignupPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center px-6 py-12">
-      <Link to="/" className="absolute left-6 top-6"><VibtuneLogo className="h-9" /></Link>
+    <main className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-black p-4">
       <motion.form
         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
         onSubmit={handleSubmit}
-        className="glass-strong w-full max-w-md rounded-3xl p-8"
+        className="glass-strong w-full max-w-md rounded-3xl p-5 sm:p-7 max-h-[95vh] overflow-y-auto"
       >
-        <h1 className="mb-2 text-3xl font-bold">Start your <span className="vibe-text">vibe</span></h1>
-        <p className="mb-6 text-sm text-white/60">Sign up with Google, or with your email and a password.</p>
+        <div className="mb-4 flex flex-col items-center">
+          <Link to="/" aria-label="Vibtune home" className="mb-3">
+            <VibtuneLogo className="h-12 w-12 sm:h-14 sm:w-14" />
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-bold text-center">Start your <span className="vibe-text">vibe</span></h1>
+          <p className="mt-1.5 text-sm text-white/60 text-center">Sign up with Google, or with your email and a password.</p>
+        </div>
+
 
         <button
           type="button" onClick={handleGoogle} disabled={googleLoading || loading}
