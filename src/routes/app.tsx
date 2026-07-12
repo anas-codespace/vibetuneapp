@@ -245,17 +245,10 @@ function AppHome() {
 
         {/* Horizontal sections */}
         {renderCarousel("Suggested For You", suggestedForYou, (t) => `Mix • ${t.artist}`)}
+        {(trendingLoading || trendingNow.length > 0) &&
+          renderCarousel("Trending Now", trendingNow, (t) => t.artist || "Trending")}
         {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`)}
         {renderCarousel("New Releases", newReleases, (t) => t.artist)}
-
-
-
-
-        {!isLoading && list.length === 0 && (
-          <p className="mt-8 text-sm text-white/50">
-            No tracks yet. Finish onboarding to personalize your feed.
-          </p>
-        )}
       </section>
 
       <VibeCheck
