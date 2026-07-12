@@ -211,12 +211,11 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
     .map((v) => ({ v, seconds: isoDurationToSeconds(v.contentDetails.duration) }))
     .filter(({ v, seconds }) => v.status.embeddable && seconds >= minDur && seconds <= maxDur);
 
-  // Guillotine: hard-block trailers/teasers/promos/etc by title.
-  const filtered = durationFiltered.filter(
-    ({ v }) => !FORBIDDEN_KEYWORDS_RE.test(v.snippet.title),
-  );
-
-  // Verified-channel priority: whitelist by channel ID OR by label-name regex.
+  // Guillotine + Quality Gate: block trailers/teasers/promos AND low-quality
+  // keywords (status, whatsapp, edit, cover, mashup, remix, ringtone) regardless
+  // of channel. Titles must ALSO look like a real release: either contain a
+  // high-quality signal ("official", "audio", "full video/song", "anthem", HD/4K)
+  // OR come from a verified-looking channel (checked below).
   const officialIds = officialChannelIds();
   const isOfficialChannel = (v: RawVideoItem) =>
     officialIds.has(v.snippet.channelId) ||
@@ -224,13 +223,42 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
     /vevo$/i.test(v.snippet.channelTitle) ||
     /-\s*topic$/i.test(v.snippet.channelTitle);
 
+  const filtered = durationFiltered.filter(({ v }) => {
+    const t = v.snippet.title;
+    if (FORBIDDEN_KEYWORDS_RE.test(t)) return false;
+    if (LOW_QUALITY_RE.test(t)) return false;
+    // Quality Gate: keep only titles that either signal a real release OR
+    // originate from a verified channel.
+    return HIGH_QUALITY_RE.test(t) || isOfficialChannel(v);
+  });
+
   filtered.sort((a, b) => scoreVideo(b.v) - scoreVideo(a.v));
 
-  // Task 2 (strict): if any official-channel results exist, discard the rest.
-  // For political queries we already broadened; keep everything so anthems
-  // uploaded to party channels still appear even if not in the ID whitelist.
-  const officialOnly = filtered.filter(({ v }) => isOfficialChannel(v));
-  const finalPool = !isPolitical && officialOnly.length > 0 ? officialOnly : filtered;
+  // Tiered whitelist strategy:
+  //   Layer 1 (priority): results from OFFICIAL_CHANNEL_IDS whitelist only.
+  //   Layer 2 (fallback): if Layer 1 < 3 results, append verified-quality
+  //                       channels (VEVO, "- Topic", label-name regex).
+  //   Layer 3 (safety):   if still empty, allow the general quality-gated pool.
+  // Political queries keep everything so anthems on party channels aren't lost.
+  const tier1 = filtered.filter(({ v }) => officialIds.has(v.snippet.channelId));
+  const tier2 = filtered.filter(
+    ({ v }) =>
+      !officialIds.has(v.snippet.channelId) &&
+      (OFFICIAL_LABEL_RE.test(v.snippet.channelTitle) ||
+        /vevo$/i.test(v.snippet.channelTitle) ||
+        /-\s*topic$/i.test(v.snippet.channelTitle)),
+  );
+
+  let finalPool: typeof filtered;
+  if (isPolitical) {
+    finalPool = filtered;
+  } else if (tier1.length >= 3) {
+    finalPool = tier1;
+  } else if (tier1.length + tier2.length >= 3) {
+    finalPool = [...tier1, ...tier2];
+  } else {
+    finalPool = filtered;
+  }
   filtered.length = 0;
   filtered.push(...finalPool);
 
