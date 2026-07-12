@@ -7,6 +7,13 @@ import { Heart, History, MoreHorizontal, Play, Search as SearchIcon, X, Music2 }
 import { Link } from "@tanstack/react-router";
 
 const HISTORY_KEY = "vibetune_search_history";
+
+function formatDuration(seconds: number): string {
+  if (!seconds || seconds < 0) return "";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 import { useAuth } from "@/hooks/use-auth";
 import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
 import { searchYouTubeOnly } from "@/lib/music.functions";
