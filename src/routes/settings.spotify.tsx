@@ -305,6 +305,9 @@ function SpotifySettings() {
   });
 
   const connected = !!connection.data;
+  const availability = useSpotifyAvailability();
+  const availabilityMsg =
+    availability.data && "message" in availability.data ? availability.data.message : null;
 
   return (
     <main className="min-h-screen bg-black pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] text-white">
