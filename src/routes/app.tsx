@@ -39,6 +39,7 @@ function timeGreeting(): string {
 
 function AppHome() {
   const { session, loading, user } = useAuth();
+  useOnboardingGate();
   const navigate = useNavigate();
   const profileFn = useServerFn(getMyProfile);
   const tracksFn = useServerFn(tracksForArtists);
