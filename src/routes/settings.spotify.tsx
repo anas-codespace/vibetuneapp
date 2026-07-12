@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { setSyncStatus } from "@/hooks/use-sync-status";
+import { useSpotifyAvailability } from "@/hooks/use-spotify-availability";
 
 export const Route = createFileRoute("/settings/spotify")({
   head: () => ({ meta: [{ title: "Spotify · Vibetune" }] }),
