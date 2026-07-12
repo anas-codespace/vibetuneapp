@@ -284,17 +284,17 @@ function SearchPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-6"
             >
-              <h2 className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-white/50">
-                Top result
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[#1DB954]">
+              <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/50">
+                Top Result
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[#1DB954] normal-case tracking-normal">
                   <Music2 className="h-2.5 w-2.5" /> Spotify
                 </span>
               </h2>
               <button
                 onClick={() => play(toVibe(top), vibeTracks)}
-                className="group relative flex w-full items-center gap-4 overflow-hidden rounded-2xl bg-white/[0.04] p-4 text-left transition hover:bg-white/[0.07] active:scale-[0.99]"
+                className="group relative flex w-full items-center gap-5 overflow-hidden rounded-xl border border-white/10 bg-white/5 p-5 text-left transition hover:bg-white/[0.08] active:scale-[0.99]"
               >
-                <div className="h-24 w-24 shrink-0 overflow-hidden rounded-md shadow-[0_10px_30px_-10px_rgba(0,0,0,0.8)]">
+                <div className="h-32 w-32 shrink-0 overflow-hidden rounded-lg shadow-[0_16px_40px_-12px_rgba(0,0,0,0.9)]">
                   {top.albumArt ? (
                     <img src={top.albumArt} alt="" className="h-full w-full object-cover" />
                   ) : (
@@ -302,10 +302,10 @@ function SearchPage() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-lg font-bold leading-tight text-white">{top.title}</p>
-                  <p className="mt-1.5 text-sm text-white/60">Song · {top.artist}</p>
+                  <p className="line-clamp-2 text-2xl font-bold leading-tight text-white">{top.title}</p>
+                  <p className="mt-2 text-sm text-white/60">Song · {top.artist}</p>
                 </div>
-                <div className="vibe-gradient grid h-11 w-11 shrink-0 place-items-center rounded-full text-white opacity-0 shadow-[0_0_20px_-4px_rgba(236,0,140,0.7)] transition-opacity group-hover:opacity-100">
+                <div className="vibe-gradient grid h-12 w-12 shrink-0 place-items-center rounded-full text-white opacity-0 shadow-[0_0_20px_-4px_rgba(236,0,140,0.7)] transition-opacity group-hover:opacity-100">
                   <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />
                 </div>
               </button>
@@ -318,7 +318,7 @@ function SearchPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-8"
             >
-              <h2 className="mb-4 text-[10px] font-bold uppercase tracking-[0.28em] text-white/50">
+              <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-white/50">
                 Artists
               </h2>
               <HorizontalCarousel
