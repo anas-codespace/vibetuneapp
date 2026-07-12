@@ -106,13 +106,13 @@ function SearchPage() {
           const yt = (await ytFn({ data: { query: fallbackQ, max: 20 } })) ?? [];
           console.log("[search] API Response (fallback YT):", { query: fallbackQ, count: yt.length });
           results = yt.map((t): SpotifyPlayableResult => ({
+            spotifyId: `yt:${t.youtubeId}`,
             youtubeId: t.youtubeId,
             title: t.title,
             artist: t.artist,
+            album: "",
             albumArt: t.thumbnailUrl ?? null,
             durationSeconds: t.durationSeconds,
-            spotifyId: null,
-            isrc: null,
           }));
         } catch (err) {
           console.error("[search] YT fallback failed:", err);
