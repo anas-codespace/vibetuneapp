@@ -83,28 +83,25 @@ function SearchPage() {
   const { data, isFetching, error } = useQuery({
     queryKey: ["search", debounced],
     queryFn: async () => {
-      // Task 1: Sanitize + enhance the query to guarantee music results.
+      // Task 1: Strict-match query — send the user's term as-is (no " songs"
+      // suffix, which was matching irrelevant compilations). The backend now
+      // appends "official" and category=Music.
       const raw = debounced;
-      const enhanced = /\b(song|songs|music|track|album)\b/i.test(raw)
-        ? raw
-        : `${raw} songs`;
 
       let results: SpotifyPlayableResult[] = [];
       try {
-        results = (await fn({ data: { query: enhanced, max: 24 } })) ?? [];
+        results = (await fn({ data: { query: raw, max: 24 } })) ?? [];
       } catch (err) {
         console.error("[search] Spotify search failed:", err);
       }
-      console.log("[search] API Response (primary):", { query: enhanced, count: results.length });
+      console.log("[search] API Response (primary):", { query: raw, count: results.length });
 
-      // Task 3: Fallback — if primary returns 0, try a broad YouTube-only search
-      // with special chars stripped and just the primary keyword.
+      // Fallback — if primary returns 0, try YouTube-only with the same raw term.
       if (results.length === 0) {
         const broad = raw.replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
-        const fallbackQ = broad ? `${broad} song` : enhanced;
         try {
-          const yt = (await ytFn({ data: { query: fallbackQ, max: 20 } })) ?? [];
-          console.log("[search] API Response (fallback YT):", { query: fallbackQ, count: yt.length });
+          const yt = (await ytFn({ data: { query: broad || raw, max: 20 } })) ?? [];
+          console.log("[search] API Response (fallback YT):", { query: broad, count: yt.length });
           results = yt.map((t): SpotifyPlayableResult => ({
             spotifyId: `yt:${t.youtubeId}`,
             youtubeId: t.youtubeId,
@@ -117,6 +114,16 @@ function SearchPage() {
         } catch (err) {
           console.error("[search] YT fallback failed:", err);
         }
+      }
+
+      // Task 2: Client-side relevance sort — titles containing the search term win.
+      const term = raw.toLowerCase();
+      if (term) {
+        results = [...results].sort((a, b) => {
+          const aHit = a.title.toLowerCase().includes(term) ? 1 : 0;
+          const bHit = b.title.toLowerCase().includes(term) ? 1 : 0;
+          return bHit - aHit;
+        });
       }
       return results;
     },
