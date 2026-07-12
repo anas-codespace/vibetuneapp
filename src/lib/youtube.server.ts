@@ -42,24 +42,38 @@ export function isoDurationToSeconds(iso: string): number {
   return Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0);
 }
 
-/** Regex of well-known official music labels / distributors. */
+/** Regex of well-known official music labels / distributors + political party channels. */
 const OFFICIAL_LABEL_RE =
-  /vevo|sony music|think music|t-series|aditya music|saregama|zee music|lahari music|divo|wynk|yrf|speed records|mass appeal|def jam|universal music|warner music|columbia records|republic records|atlantic records/i;
+  /vevo|sony music|think music|t-series|aditya music|saregama|zee music|lahari music|divo|wynk|yrf|speed records|mass appeal|def jam|universal music|warner music|columbia records|republic records|atlantic records|dmk\s*official|tvk\s*official|tamilaga\s*vettri\s*kazhagam|dravida\s*munnetra\s*kazhagam|aiadmk\s*official|bjp\s*tamil\s*nadu|makkal\s*needhi\s*maiam|mnm\s*official/i;
 
-/** Titles/keywords we down-rank (status/8d/etc.). */
+/** Titles/keywords we down-rank. */
 const DOWNRANK_RE = /whatsapp\s*status|status\s*video|8d\s*audio|slowed|reverb|nightcore/i;
 
 /** Hard-block: non-song promo + fan-made lyric/status videos. */
 const FORBIDDEN_KEYWORDS_RE =
   /trailer|teaser|promo|glimpse|making\s*of|sneak\s*peek|interview|announcement|first\s*look|behind\s*the\s*scenes|bts\s*video|fan\s*made|fanmade|whatsapp\s*status|\bstatus\b|lyrical\s*(video|whatsapp)?|lyric\s*video/i;
 
-/** Positive song identifiers → +15. "lyrics/lyrical" excluded to avoid boosting fan-made lyric uploads. */
+/** Positive song identifiers → +15. */
 const SONG_KEYWORDS_RE =
-  /\bofficial\s*audio\b|\bofficial\s*video\b|\baudio\b|full\s*video\s*song|video\s*song|full\s*song|official\s*song/i;
+  /\bofficial\s*(audio|video|song|anthem)\b|\banthem\b|\bcampaign\s*song\b|\baudio\b|full\s*video\s*song|video\s*song|full\s*song/i;
 
-/** Extra negatives appended to the user query to natively exclude junk. */
+/** Extra negatives appended to the user query. */
 const QUERY_NEGATIVES =
   "-trailer -teaser -promo -glimpse -making -shorts -jukebox -mashup -8d -cover -status -reaction -interview -announcement -lyrical -\"fan made\" -\"lyric video\"";
+
+/** Task 1: Keyword expansion for known political/campaign queries. */
+const KEYWORD_EXPANSIONS: Record<string, string> = {
+  "mk stalin": "MK Stalin DMK official campaign song anthem",
+  "stalin": "MK Stalin DMK official campaign song anthem",
+  "tvk": "TVK Vijay Tamilaga Vettri Kazhagam official campaign song anthem",
+  "vijay tvk": "TVK Vijay official campaign song anthem",
+  "dmk": "DMK official campaign song anthem",
+  "aiadmk": "AIADMK official campaign song anthem",
+  "mnm": "Makkal Needhi Maiam MNM Kamal Haasan official campaign song",
+};
+
+/** Detect political/campaign queries → widen category filter (anthems aren't always Music/10). */
+const POLITICAL_RE = /\b(stalin|dmk|tvk|vijay|aiadmk|edappadi|mnm|makkal|kamal\s*haasan|bjp|annamalai|campaign|anthem|party\s*song)\b/i;
 
 interface RawVideoItem {
   id: string;
