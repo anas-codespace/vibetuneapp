@@ -94,6 +94,96 @@ function getAvatarColor(name: string) {
   return AVATAR_COLORS[index % AVATAR_COLORS.length];
 }
 
+// Simple in-memory cache to avoid refetching across tab switches
+const imageCache = new Map<string, string | null>();
+
+function ArtistCard({
+  name,
+  isSelected,
+  onToggle,
+}: {
+  name: string;
+  isSelected: boolean;
+  onToggle: () => void;
+}) {
+  const [imgUrl, setImgUrl] = useState<string | null>(() => imageCache.get(name) ?? null);
+  const [loading, setLoading] = useState(() => !imageCache.has(name));
+
+  useEffect(() => {
+    if (imageCache.has(name)) {
+      setImgUrl(imageCache.get(name) ?? null);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/public/artist-image?name=${encodeURIComponent(name)}`)
+      .then((r) => r.json())
+      .then((data: { image: string | null }) => {
+        if (cancelled) return;
+        imageCache.set(name, data.image ?? null);
+        setImgUrl(data.image ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) imageCache.set(name, null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [name]);
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="group flex cursor-pointer flex-col items-center gap-2"
+    >
+      <div
+        className={cn(
+          "relative rounded-full p-1 transition-all",
+          isSelected
+            ? "scale-105 bg-gradient-to-tr from-pink-500 to-purple-500"
+            : "bg-transparent group-hover:bg-white/10",
+        )}
+      >
+        {loading ? (
+          <div className="h-20 w-20 animate-pulse rounded-full bg-neutral-800" />
+        ) : imgUrl ? (
+          <img
+            src={imgUrl}
+            alt={name}
+            loading="lazy"
+            className="h-20 w-20 rounded-full object-cover shadow-lg"
+            onError={() => {
+              imageCache.set(name, null);
+              setImgUrl(null);
+            }}
+          />
+        ) : (
+          <div
+            className={cn(
+              "flex h-20 w-20 items-center justify-center rounded-full text-3xl font-bold text-white shadow-inner",
+              getAvatarColor(name),
+            )}
+          >
+            {getInitials(name)}
+          </div>
+        )}
+
+        {isSelected && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+            <Check className="h-8 w-8 text-white" strokeWidth={3} />
+          </div>
+        )}
+      </div>
+      <p className="line-clamp-2 text-center text-xs font-medium text-white/90">{name}</p>
+    </button>
+  );
+}
+
 
 export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, saving }: Props) {
   const availableLanguages = useMemo(() => {
