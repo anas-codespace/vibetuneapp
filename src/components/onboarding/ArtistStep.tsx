@@ -51,7 +51,7 @@ export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, sa
   const seedFn = useServerFn(getSeedArtists);
   const expandFn = useServerFn(expandSimilarArtists);
   const [artists, setArtists] = useState<SpotifyArtistInfo[]>(STATIC_ARTISTS);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [expanding, setExpanding] = useState<string | null>(null);
   const expandedSeedsRef = useRef<Set<string>>(new Set());
 
