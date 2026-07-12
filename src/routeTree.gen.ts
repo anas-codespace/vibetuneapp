@@ -33,7 +33,6 @@ import { Route as LibraryDownloadedRouteImport } from './routes/library.download
 import { Route as LibraryIdRouteImport } from './routes/library.$id'
 import { Route as ApiAnalyzeMoodRouteImport } from './routes/api/analyze-mood'
 import { Route as ApiPublicHealthYoutubeRouteImport } from './routes/api/public/health.youtube'
-import { Route as ApiPublicDebugSpotifyRouteImport } from './routes/api/public/debug.spotify'
 
 const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
@@ -155,11 +154,6 @@ const ApiPublicHealthYoutubeRoute = ApiPublicHealthYoutubeRouteImport.update({
   path: '/api/public/health/youtube',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicDebugSpotifyRoute = ApiPublicDebugSpotifyRouteImport.update({
-  id: '/api/public/debug/spotify',
-  path: '/api/public/debug/spotify',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -185,7 +179,6 @@ export interface FileRoutesByFullPath {
   '/settings/youtube': typeof SettingsYoutubeRoute
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
-  '/api/public/debug/spotify': typeof ApiPublicDebugSpotifyRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRoutesByTo {
@@ -212,7 +205,6 @@ export interface FileRoutesByTo {
   '/settings/youtube': typeof SettingsYoutubeRoute
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
-  '/api/public/debug/spotify': typeof ApiPublicDebugSpotifyRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRoutesById {
@@ -240,7 +232,6 @@ export interface FileRoutesById {
   '/settings/youtube': typeof SettingsYoutubeRoute
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
-  '/api/public/debug/spotify': typeof ApiPublicDebugSpotifyRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRouteTypes {
@@ -269,7 +260,6 @@ export interface FileRouteTypes {
     | '/settings/youtube'
     | '/songs/$id'
     | '/spotify/callback'
-    | '/api/public/debug/spotify'
     | '/api/public/health/youtube'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -296,7 +286,6 @@ export interface FileRouteTypes {
     | '/settings/youtube'
     | '/songs/$id'
     | '/spotify/callback'
-    | '/api/public/debug/spotify'
     | '/api/public/health/youtube'
   id:
     | '__root__'
@@ -323,7 +312,6 @@ export interface FileRouteTypes {
     | '/settings/youtube'
     | '/songs/$id'
     | '/spotify/callback'
-    | '/api/public/debug/spotify'
     | '/api/public/health/youtube'
   fileRoutesById: FileRoutesById
 }
@@ -349,7 +337,6 @@ export interface RootRouteChildren {
   SettingsYoutubeRoute: typeof SettingsYoutubeRoute
   SongsIdRoute: typeof SongsIdRoute
   SpotifyCallbackRoute: typeof SpotifyCallbackRoute
-  ApiPublicDebugSpotifyRoute: typeof ApiPublicDebugSpotifyRoute
   ApiPublicHealthYoutubeRoute: typeof ApiPublicHealthYoutubeRoute
 }
 
@@ -523,13 +510,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHealthYoutubeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/debug/spotify': {
-      id: '/api/public/debug/spotify'
-      path: '/api/public/debug/spotify'
-      fullPath: '/api/public/debug/spotify'
-      preLoaderRoute: typeof ApiPublicDebugSpotifyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -568,7 +548,6 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsYoutubeRoute: SettingsYoutubeRoute,
   SongsIdRoute: SongsIdRoute,
   SpotifyCallbackRoute: SpotifyCallbackRoute,
-  ApiPublicDebugSpotifyRoute: ApiPublicDebugSpotifyRoute,
   ApiPublicHealthYoutubeRoute: ApiPublicHealthYoutubeRoute,
 }
 export const routeTree = rootRouteImport
