@@ -58,6 +58,7 @@ export const Route = createFileRoute("/library")({
 
 function LibraryPage() {
   const { session, loading } = useAuth();
+  useOnboardingGate();
   const navigate = useNavigate();
   const likedFn = useServerFn(getLikedSongs);
   const plFn = useServerFn(getMyPlaylists);
