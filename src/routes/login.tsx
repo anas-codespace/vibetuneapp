@@ -118,12 +118,13 @@ function LoginPage() {
   }
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-4">
+    <main className="flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-black p-4">
       <motion.form
         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
         onSubmit={handleSubmit}
-        className="glass-strong w-full max-w-md rounded-3xl p-6 sm:p-8"
+        className="glass-strong w-full max-w-md rounded-3xl p-5 sm:p-7 max-h-[95vh] overflow-y-auto"
       >
+
         <div className="flex flex-col items-center mb-5 sm:mb-6">
           <Link to="/" aria-label="Vibtune home" className="mb-3 sm:mb-4">
             <VibtuneLogo className="h-12 w-12 sm:h-14 sm:w-14" />
