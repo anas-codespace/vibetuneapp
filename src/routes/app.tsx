@@ -41,6 +41,7 @@ function AppHome() {
   const navigate = useNavigate();
   const profileFn = useServerFn(getMyProfile);
   const tracksFn = useServerFn(tracksForArtists);
+  const trendingFn = useServerFn(searchYouTubeOnly);
   const { play, startMix } = usePlayer();
   
   const [moodOpen, setMoodOpen] = useState(false);
