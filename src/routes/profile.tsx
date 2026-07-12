@@ -105,6 +105,15 @@ function ProfilePage() {
   };
 
   const handleDelete = async () => {
+    const typed = deleteConfirmText.trim();
+    const expected = user?.email ?? "";
+    const matches =
+      typed === "DELETE" ||
+      (expected && typed.toLowerCase() === expected.toLowerCase());
+    if (!matches) {
+      toast.error("Please type DELETE or your email to confirm");
+      return;
+    }
     setDeleting(true);
     try {
       await deleteFn();
