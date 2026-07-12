@@ -393,10 +393,12 @@ function SearchPage() {
                         <div className="flex min-w-0 flex-col truncate">
                           <span className="truncate font-medium text-white">{t.title}</span>
                           <span className="truncate text-xs text-white/50">
-                            {t.artist || "Official Channel"}
-                            {t.durationSeconds ? ` · ${formatDuration(t.durationSeconds)}` : ""}
+                            {[t.artist || "Official Channel", t.album].filter(Boolean).join(" · ")}
                           </span>
                         </div>
+                        <span className="ml-auto shrink-0 pl-3 text-xs tabular-nums text-white/40">
+                          {formatDuration(t.durationSeconds)}
+                        </span>
                       </button>
                       <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                         <button
