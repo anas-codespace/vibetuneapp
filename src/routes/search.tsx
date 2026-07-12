@@ -15,6 +15,7 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 import { useAuth } from "@/hooks/use-auth";
+import { useOnboardingGate } from "@/hooks/use-onboarding-gate";
 import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
 import { searchYouTubeWithCorrection } from "@/lib/music.functions";
 
