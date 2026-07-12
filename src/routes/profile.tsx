@@ -371,37 +371,75 @@ function ProfilePage() {
       </div>
 
       {/* Confirmation Dialog */}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-red-500/30 bg-neutral-950 p-6 shadow-2xl">
-            <div className="mb-3 flex items-center gap-2 text-red-500">
-              <Trash2 className="h-5 w-5" />
-              <h2 className="text-lg font-bold">Delete Account?</h2>
-            </div>
-            <p className="mb-5 text-sm text-white/70">
-              This will permanently delete your profile, playlists, liked songs,
-              listening history, and all other data. This{" "}
-              <span className="font-semibold text-white">cannot be undone</span>.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setConfirmDelete(false)}
-                disabled={deleting}
-                className="flex-1 rounded-xl border border-white/10 py-3 text-sm font-semibold text-white/80 hover:bg-white/5 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="flex-1 rounded-xl bg-red-500 py-3 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-50"
-              >
-                {deleting ? "Deleting…" : "Delete Forever"}
-              </button>
+      {confirmDelete && (() => {
+        const expected = user?.email ?? "DELETE";
+        const typed = deleteConfirmText.trim();
+        const matches = typed === "DELETE" || typed.toLowerCase() === expected.toLowerCase();
+        return (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+            onClick={() => {
+              if (!deleting) {
+                setConfirmDelete(false);
+                setDeleteConfirmText("");
+              }
+            }}
+          >
+            <div
+              className="w-full max-w-sm rounded-2xl border border-red-500/30 bg-neutral-950 p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-3 flex items-center gap-2 text-red-500">
+                <Trash2 className="h-5 w-5" />
+                <h2 className="text-lg font-bold">Delete Account?</h2>
+              </div>
+              <p className="mb-4 text-sm text-white/70">
+                This will permanently delete your profile, playlists, liked songs,
+                listening history, and all other data. This{" "}
+                <span className="font-semibold text-white">cannot be undone</span>.
+              </p>
+              <label className="mb-4 block">
+                <span className="mb-1.5 block text-xs text-white/60">
+                  Type <span className="font-mono font-bold text-red-400">DELETE</span>
+                  {user?.email ? (
+                    <> or your email <span className="font-mono text-white/80">{user.email}</span></>
+                  ) : null}{" "}
+                  to confirm
+                </span>
+                <input
+                  autoFocus
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  disabled={deleting}
+                  placeholder="DELETE"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 font-mono text-sm text-white outline-none focus:border-red-500/50"
+                />
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setConfirmDelete(false);
+                    setDeleteConfirmText("");
+                  }}
+                  disabled={deleting}
+                  className="flex-1 rounded-xl border border-white/10 py-3 text-sm font-semibold text-white/80 hover:bg-white/5 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting || !matches}
+                  className="flex-1 rounded-xl bg-red-500 py-3 text-sm font-bold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {deleting ? "Deleting…" : "Delete Forever"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </main>
   );
 }
