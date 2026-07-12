@@ -106,26 +106,33 @@ function AppHome() {
     setMixLoading(false);
   };
 
-  const list: VibeTrack[] = (tracks ?? []).map((t) => ({
+  const mapTrack = (t: YTTrack): VibeTrack => ({
     youtubeId: t.youtubeId,
     title: t.title,
     artist: t.artist,
     thumbnailUrl: t.thumbnailUrl,
     durationSeconds: t.durationSeconds,
-  }));
+  });
+
+  const list: VibeTrack[] = (tracks ?? []).map(mapTrack);
+  const trendingList: VibeTrack[] = (trending ?? []).map(mapTrack);
+
+  // Fallback: if personalized list is empty, use trending for cards & carousels.
+  const primary: VibeTrack[] = list.length > 0 ? list : trendingList;
 
   const quickPicks = [
-    { title: "Liked Songs", art: list[0]?.thumbnailUrl, icon: Heart, gradient: "from-pink-500 to-violet-500" },
-    { title: "Tamil Top 50", art: list[1]?.thumbnailUrl, icon: Disc3, gradient: "from-orange-500 to-pink-500" },
-    { title: "Anirudh Essentials", art: list[2]?.thumbnailUrl, icon: Sparkles, gradient: "from-violet-500 to-fuchsia-500" },
-    { title: "Late Night Lo-Fi", art: list[3]?.thumbnailUrl, icon: Radio, gradient: "from-indigo-500 to-purple-500" },
-    { title: "Daily Mix 1", art: list[4]?.thumbnailUrl, icon: Sparkles, gradient: "from-emerald-500 to-cyan-500" },
-    { title: "Recently Played", art: list[5]?.thumbnailUrl, icon: Play, gradient: "from-rose-500 to-orange-500" },
+    { title: "Liked Songs", art: primary[0]?.thumbnailUrl, icon: Heart, gradient: "from-pink-500 to-violet-500" },
+    { title: "Tamil Top 50", art: primary[1]?.thumbnailUrl, icon: Disc3, gradient: "from-orange-500 to-pink-500" },
+    { title: "Anirudh Essentials", art: primary[2]?.thumbnailUrl, icon: Sparkles, gradient: "from-violet-500 to-fuchsia-500" },
+    { title: "Late Night Lo-Fi", art: primary[3]?.thumbnailUrl, icon: Radio, gradient: "from-indigo-500 to-purple-500" },
+    { title: "Daily Mix 1", art: primary[4]?.thumbnailUrl, icon: Sparkles, gradient: "from-emerald-500 to-cyan-500" },
+    { title: "Recently Played", art: primary[5]?.thumbnailUrl, icon: Play, gradient: "from-rose-500 to-orange-500" },
   ];
 
-  const suggestedForYou = list.slice(0, 20);
-  const popularRadios = list.slice(15, 35);
-  const newReleases = list.slice(25, 50);
+  const suggestedForYou = primary.slice(0, 20);
+  const trendingNow = trendingList.length > 0 ? trendingList.slice(0, 20) : primary.slice(0, 20);
+  const popularRadios = primary.slice(15, 35);
+  const newReleases = primary.slice(25, 50);
 
   const renderCarousel = (
     title: string,
