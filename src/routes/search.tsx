@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { History, ListPlus, Play, Search as SearchIcon, X, Music2 } from "lucide-react";
+import { Heart, History, MoreHorizontal, Play, Search as SearchIcon, X, Music2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 const HISTORY_KEY = "vibetune_search_history";
@@ -177,10 +177,28 @@ function SearchPage() {
           )
         )}
         {debounced && isFetching && results.length === 0 && (
-          <div className="mt-6 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="glass h-16 animate-pulse rounded-2xl" />
-            ))}
+          <div className="mt-6 space-y-5">
+            {/* Top result skeleton */}
+            <div className="flex items-center gap-4 rounded-2xl bg-white/[0.03] p-4">
+              <div className="h-24 w-24 shrink-0 animate-pulse rounded-md bg-white/10" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-16 animate-pulse rounded bg-white/10" />
+                <div className="h-5 w-3/4 animate-pulse rounded bg-white/10" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-white/10" />
+              </div>
+            </div>
+            {/* Song rows skeleton */}
+            <div className="space-y-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 py-3">
+                  <div className="h-12 w-12 shrink-0 animate-pulse rounded-md bg-white/10" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3.5 w-2/3 animate-pulse rounded bg-white/10" />
+                    <div className="h-3 w-1/3 animate-pulse rounded bg-white/10" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
         {debounced && !isFetching && results.length === 0 && (
@@ -194,9 +212,9 @@ function SearchPage() {
             <motion.section
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-4"
+              className="mt-6"
             >
-              <h2 className="vibe-text mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em]">
+              <h2 className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-white/50">
                 Top result
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[#1DB954]">
                   <Music2 className="h-2.5 w-2.5" /> Spotify
@@ -204,21 +222,20 @@ function SearchPage() {
               </h2>
               <button
                 onClick={() => play(toVibe(top), vibeTracks)}
-                className="glass-strong gradient-border relative flex w-full items-center gap-3 overflow-hidden rounded-2xl p-3 text-left active:scale-[0.99]"
+                className="group relative flex w-full items-center gap-4 overflow-hidden rounded-2xl bg-white/[0.04] p-4 text-left transition hover:bg-white/[0.07] active:scale-[0.99]"
               >
-                <div className="vibe-gradient h-20 w-20 shrink-0 overflow-hidden rounded-xl">
-                  {top.albumArt && (
+                <div className="h-24 w-24 shrink-0 overflow-hidden rounded-md shadow-[0_10px_30px_-10px_rgba(0,0,0,0.8)]">
+                  {top.albumArt ? (
                     <img src={top.albumArt} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="vibe-gradient h-full w-full" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-base font-bold text-white">{top.title}</p>
-                  <p className="mt-1 text-xs text-white/60">{top.artist}</p>
-                  {top.album && (
-                    <p className="mt-0.5 truncate text-[11px] text-white/40">{top.album}</p>
-                  )}
+                  <p className="line-clamp-2 text-lg font-bold leading-tight text-white">{top.title}</p>
+                  <p className="mt-1.5 text-sm text-white/60">Song · {top.artist}</p>
                 </div>
-                <div className="vibe-gradient grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-[0_0_18px_-4px_rgba(236,0,140,0.7)]">
+                <div className="vibe-gradient grid h-11 w-11 shrink-0 place-items-center rounded-full text-white opacity-0 shadow-[0_0_20px_-4px_rgba(236,0,140,0.7)] transition-opacity group-hover:opacity-100">
                   <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />
                 </div>
               </button>
@@ -229,24 +246,27 @@ function SearchPage() {
             <motion.section
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-6"
+              className="mt-8"
             >
-              <h2 className="vibe-text mb-3 text-[10px] font-bold uppercase tracking-[0.25em]">
+              <h2 className="mb-4 text-[10px] font-bold uppercase tracking-[0.28em] text-white/50">
                 Artists
               </h2>
-              <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-2" style={{ scrollbarWidth: "none" }}>
+              <div className="-mx-5 flex gap-5 overflow-x-auto px-5 pb-2" style={{ scrollbarWidth: "none" }}>
                 {artists.map((a) => (
                   <button
                     key={a.artist}
                     onClick={() => play(toVibe(a), vibeTracks)}
-                    className="group flex w-20 shrink-0 flex-col items-center gap-2"
+                    className="group flex w-24 shrink-0 flex-col items-center gap-2.5"
                   >
-                    <div className="vibe-gradient h-20 w-20 overflow-hidden rounded-full ring-2 ring-white/10">
-                      {a.albumArt && (
+                    <div className="h-24 w-24 overflow-hidden rounded-full ring-1 ring-white/10 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] transition-transform group-hover:scale-[1.03]">
+                      {a.albumArt ? (
                         <img src={a.albumArt} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="vibe-gradient h-full w-full" />
                       )}
                     </div>
-                    <p className="line-clamp-2 text-center text-[11px] text-white/70">{a.artist}</p>
+                    <p className="line-clamp-2 text-center text-xs font-medium text-white/80">{a.artist}</p>
+                    <p className="-mt-1 text-[10px] uppercase tracking-widest text-white/40">Artist</p>
                   </button>
                 ))}
               </div>
@@ -257,20 +277,20 @@ function SearchPage() {
             <motion.section
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-6"
+              className="mt-8"
             >
-              <h2 className="vibe-text mb-2 text-[10px] font-bold uppercase tracking-[0.25em]">
+              <h2 className="mb-2 text-[10px] font-bold uppercase tracking-[0.28em] text-white/50">
                 Songs
               </h2>
-              <ul className="space-y-2">
+              <ul>
                 {rest.map((t) => (
                   <li key={t.youtubeId}>
-                    <div className="flex w-full items-center gap-2 rounded-2xl p-2 transition hover:bg-white/5">
+                    <div className="group flex w-full items-center gap-4 rounded-xl px-2 py-3 transition-colors hover:bg-white/[0.04]">
                       <button
                         onClick={() => play(toVibe(t), vibeTracks)}
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left active:scale-[0.98]"
+                        className="flex min-w-0 flex-1 items-center gap-4 text-left"
                       >
-                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg">
+                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md shadow-[0_6px_16px_-8px_rgba(0,0,0,0.7)]">
                           {t.albumArt ? (
                             <img src={t.albumArt} alt="" className="h-full w-full object-cover" />
                           ) : (
@@ -278,23 +298,29 @@ function SearchPage() {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-white">{t.title}</p>
-                          <p className="truncate text-xs text-white/50">
-                            {t.artist}
-                            {t.album ? ` · ${t.album}` : ""}
-                          </p>
+                          <p className="truncate text-base font-medium text-white">{t.title}</p>
+                          <p className="truncate text-sm text-white/60">{t.artist}</p>
                         </div>
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToQueue(toVibe(t));
-                        }}
-                        aria-label="Add to queue"
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
-                      >
-                        <ListPlus className="h-4 w-4" />
-                      </button>
+                      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToQueue(toVibe(t));
+                          }}
+                          aria-label="Save"
+                          className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                        >
+                          <Heart className="h-[18px] w-[18px]" />
+                        </button>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label="More"
+                          className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                        >
+                          <MoreHorizontal className="h-[18px] w-[18px]" />
+                        </button>
+                      </div>
                     </div>
                   </li>
                 ))}
@@ -302,6 +328,7 @@ function SearchPage() {
             </motion.section>
           )}
         </AnimatePresence>
+
       </div>
     </main>
   );
