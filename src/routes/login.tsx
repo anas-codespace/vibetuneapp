@@ -85,6 +85,18 @@ function LoginPage() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const htmlPrev = document.documentElement.style.overflow;
+    const bodyPrev = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = htmlPrev;
+      document.body.style.overflow = bodyPrev;
+    };
+  }, []);
+
+
   async function handleGoogle() {
     setGoogleLoading(true);
     const redirectUri = window.location.origin;
