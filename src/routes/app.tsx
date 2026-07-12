@@ -7,7 +7,7 @@ import { Play, Sparkles, Heart, Radio, Disc3 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { getMyProfile } from "@/lib/profile.functions";
-import { tracksForArtists } from "@/lib/music.functions";
+import { tracksForArtists, searchYouTubeOnly } from "@/lib/music.functions";
 import { getSmartMix } from "@/lib/mix.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
