@@ -179,12 +179,15 @@ export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, sa
                       : "bg-transparent group-hover:bg-white/10",
                   )}
                 >
-                  <img
-                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=150&bold=true`}
-                    alt={name}
-                    loading="lazy"
-                    className="h-20 w-20 rounded-full object-cover"
-                  />
+                  <div
+                    className={cn(
+                      "flex h-20 w-20 items-center justify-center rounded-full text-3xl font-bold text-white shadow-inner",
+                      getAvatarColor(name),
+                    )}
+                  >
+                    {getInitials(name)}
+                  </div>
+
                   {isSelected && (
                     <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
                       <Check className="h-8 w-8 text-white" strokeWidth={3} />
