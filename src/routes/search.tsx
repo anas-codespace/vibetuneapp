@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { History, ListPlus, Play, Search as SearchIcon, X, Music2 } from "lucide-react";
+import { Heart, History, MoreHorizontal, Play, Search as SearchIcon, X, Music2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 const HISTORY_KEY = "vibetune_search_history";
