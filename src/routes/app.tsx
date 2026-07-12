@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Play, Sparkles, Heart, Radio, Disc3 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useOnboardingGate } from "@/hooks/use-onboarding-gate";
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { getMyProfile } from "@/lib/profile.functions";
 import { tracksForArtists, searchYouTubeOnly } from "@/lib/music.functions";
