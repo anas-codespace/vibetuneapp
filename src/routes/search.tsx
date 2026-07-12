@@ -51,7 +51,7 @@ function SearchPage() {
   const [q, setQ] = useState("");
   const debounced = useDebounced(q.trim(), 320);
   const fn = useServerFn(spotifySearchPlayable);
-  const ytFn = useServerFn(searchYouTubeOnly);
+  const ytFn = useServerFn(searchYouTubeWithCorrection);
   const { play, addToQueue } = usePlayer();
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
