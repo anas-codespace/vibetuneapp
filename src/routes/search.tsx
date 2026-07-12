@@ -77,10 +77,11 @@ function SearchPage() {
 
   const clearHistory = () => setSearchHistory([]);
 
+  const availability = useSpotifyAvailability();
   const { data, isFetching } = useQuery({
     queryKey: ["search", debounced],
     queryFn: () => fn({ data: { query: debounced, max: 24 } }),
-    enabled: !!session && debounced.length > 1,
+    enabled: !!session && debounced.length > 1 && !availability.isBlocked,
     staleTime: 1000 * 60 * 5,
   });
 
