@@ -319,6 +319,58 @@ function SpotifySettings() {
           <h1 className="text-lg font-semibold">Spotify</h1>
         </div>
 
+        {/* API availability card */}
+        <section
+          className={
+            "mt-6 rounded-3xl border p-4 " +
+            (availability.isLoading
+              ? "border-white/10 bg-white/[0.03]"
+              : availability.isAvailable
+                ? "border-[#1DB954]/25 bg-[#1DB954]/10"
+                : "border-amber-400/25 bg-amber-400/10")
+          }
+        >
+          <div className="flex items-start gap-3">
+            {availability.isLoading ? (
+              <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-white/60" />
+            ) : availability.isAvailable ? (
+              <Check className="mt-0.5 h-4 w-4 text-[#1DB954]" />
+            ) : (
+              <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-300" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">
+                {availability.isLoading
+                  ? "Checking Spotify API…"
+                  : availability.isAvailable
+                    ? "Spotify Web API reachable"
+                    : availability.data?.status === "premium_required"
+                      ? "Spotify Premium required"
+                      : availability.data?.status === "not_configured"
+                        ? "Spotify not configured"
+                        : "Spotify API unavailable"}
+              </p>
+              {!availability.isLoading && !availability.isAvailable && (
+                <p className="mt-1 text-xs text-white/70">
+                  {availabilityMsg ?? "Unable to reach Spotify. Search is temporarily disabled."}
+                </p>
+              )}
+              {!availability.isLoading && availability.isAvailable && availability.data && (
+                <p className="mt-1 text-xs text-white/60">
+                  Last checked {new Date(availability.data.checkedAt).toLocaleTimeString()}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => availability.refetch()}
+              disabled={availability.isFetching}
+              className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/15 disabled:opacity-50"
+            >
+              {availability.isFetching ? "Checking…" : "Recheck"}
+            </button>
+          </div>
+        </section>
+
         {/* Connection card */}
         <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
           <div className="flex items-center gap-3">
