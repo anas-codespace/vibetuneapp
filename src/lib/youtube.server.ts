@@ -30,10 +30,33 @@ export interface YTTrack {
   youtubeId: string;
   title: string;
   artist: string;
+  album: string;
   thumbnailUrl: string;
   durationSeconds: number;
   isEmbeddable: boolean;
 }
+
+/**
+ * Extract an album/movie name from a raw YouTube title.
+ * Handles common patterns:
+ *   - Song (From "Movie")   /  Song [From 'Album']
+ *   - Song | Movie Name | Extra
+ *   - Song - Movie Name Songs
+ * Returns "" if nothing confident is found.
+ */
+export function parseAlbum(raw: string): string {
+  const from = /[\(\[\{]\s*from\s*["'“”‘’]?([^"'“”‘’\)\]\}]+?)["'“”‘’]?\s*[\)\]\}]/i.exec(raw);
+  if (from?.[1]) return from[1].trim();
+  const pipes = raw.split("|").map((s) => s.trim()).filter(Boolean);
+  if (pipes.length >= 3) {
+    const mid = pipes[1];
+    if (mid && mid.length <= 40 && !/official|audio|video|lyric|hd|4k/i.test(mid)) return mid;
+  }
+  const dash = /-\s*([^-|()\[\]]{2,40}?)\s*(songs?|movie|album)\b/i.exec(raw);
+  if (dash?.[1]) return dash[1].trim();
+  return "";
+}
+
 
 /** Convert an ISO 8601 duration (e.g. "PT3M30S", "PT1H2M") to total seconds. */
 export function isoDurationToSeconds(iso: string): number {
@@ -279,6 +302,7 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
       youtubeId: v.id,
       title: cleanTitle(v.snippet.title),
       artist: looksLikeRealArtistChannel(rawChannel) ? cleanChannel : "",
+      album: parseAlbum(v.snippet.title),
       thumbnailUrl:
         v.snippet.thumbnails.high?.url ?? v.snippet.thumbnails.default?.url ?? "",
       durationSeconds: seconds,

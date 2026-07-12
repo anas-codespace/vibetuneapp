@@ -100,6 +100,7 @@ export const searchTracks = createServerFn({ method: "POST" })
             youtubeId: best.youtubeId,
             title: sp.name,
             artist: sp.artists.join(", "),
+            album: sp.album ?? best.album ?? "",
             thumbnailUrl: sp.albumArt ?? best.thumbnailUrl,
             durationSeconds: best.durationSeconds || targetSec,
             isEmbeddable: best.isEmbeddable,

@@ -114,7 +114,7 @@ function SearchPage() {
             youtubeId: t.youtubeId,
             title: t.title,
             artist: t.artist,
-            album: "",
+            album: t.album ?? "",
             albumArt: t.thumbnailUrl ?? null,
             durationSeconds: t.durationSeconds,
           }));
@@ -317,7 +317,12 @@ function SearchPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 text-2xl font-bold leading-tight text-white">{top.title}</p>
-                  <p className="mt-2 text-sm text-white/60">{top.artist ? `Song · ${top.artist}` : "Song"}</p>
+                  <p className="mt-2 text-sm text-white/60">
+                    {[top.artist || "Official Channel", top.album].filter(Boolean).join(" · ")}
+                  </p>
+                  {top.durationSeconds > 0 && (
+                    <p className="mt-1 text-xs text-white/40">{formatDuration(top.durationSeconds)}</p>
+                  )}
                 </div>
                 <div className="vibe-gradient grid h-12 w-12 shrink-0 place-items-center rounded-full text-white opacity-0 shadow-[0_0_20px_-4px_rgba(236,0,140,0.7)] transition-opacity group-hover:opacity-100">
                   <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />
@@ -388,10 +393,12 @@ function SearchPage() {
                         <div className="flex min-w-0 flex-col truncate">
                           <span className="truncate font-medium text-white">{t.title}</span>
                           <span className="truncate text-xs text-white/50">
-                            {t.artist || "Official Channel"}
-                            {t.durationSeconds ? ` · ${formatDuration(t.durationSeconds)}` : ""}
+                            {[t.artist || "Official Channel", t.album].filter(Boolean).join(" · ")}
                           </span>
                         </div>
+                        <span className="ml-auto shrink-0 pl-3 text-xs tabular-nums text-white/40">
+                          {formatDuration(t.durationSeconds)}
+                        </span>
                       </button>
                       <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                         <button
