@@ -208,16 +208,23 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
     ({ v }) => !FORBIDDEN_KEYWORDS_RE.test(v.snippet.title),
   );
 
-  // Verified-channel priority: official label / VEVO / -Topic first, then the rest.
+  // Verified-channel priority: whitelist by channel ID OR by label-name regex.
+  const officialIds = officialChannelIds();
+  const isOfficialChannel = (v: RawVideoItem) =>
+    officialIds.has(v.snippet.channelId) ||
+    OFFICIAL_LABEL_RE.test(v.snippet.channelTitle) ||
+    /vevo$/i.test(v.snippet.channelTitle) ||
+    /-\s*topic$/i.test(v.snippet.channelTitle);
+
   filtered.sort((a, b) => scoreVideo(b.v) - scoreVideo(a.v));
-  const isOfficialChannel = (channel: string) =>
-    OFFICIAL_LABEL_RE.test(channel) || /vevo$/i.test(channel) || /-\s*topic$/i.test(channel);
-  const officialFirst = [
-    ...filtered.filter(({ v }) => isOfficialChannel(v.snippet.channelTitle)),
-    ...filtered.filter(({ v }) => !isOfficialChannel(v.snippet.channelTitle)),
-  ];
+
+  // Task 2 (strict): if any official-channel results exist, discard the rest.
+  // For political queries we already broadened; keep everything so anthems
+  // uploaded to party channels still appear even if not in the ID whitelist.
+  const officialOnly = filtered.filter(({ v }) => isOfficialChannel(v));
+  const finalPool = !isPolitical && officialOnly.length > 0 ? officialOnly : filtered;
   filtered.length = 0;
-  filtered.push(...officialFirst);
+  filtered.push(...finalPool);
 
   // Task 3: Only expose the channel as "artist" when it's a verified/official-looking
   // channel (label, VEVO, or auto-generated "- Topic"). Generic uploader channels
