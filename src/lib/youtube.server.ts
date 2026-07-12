@@ -302,6 +302,7 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
       youtubeId: v.id,
       title: cleanTitle(v.snippet.title),
       artist: looksLikeRealArtistChannel(rawChannel) ? cleanChannel : "",
+      album: parseAlbum(v.snippet.title),
       thumbnailUrl:
         v.snippet.thumbnails.high?.url ?? v.snippet.thumbnails.default?.url ?? "",
       durationSeconds: seconds,
