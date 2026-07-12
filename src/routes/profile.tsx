@@ -59,6 +59,7 @@ function ProfilePage() {
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
