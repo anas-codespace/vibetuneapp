@@ -380,7 +380,9 @@ function SearchPage() {
                         </div>
                         <div className="flex min-w-0 flex-col truncate">
                           <span className="truncate font-medium text-white">{t.title}</span>
-                          <span className="truncate text-xs text-white/50">{t.artist}</span>
+                          {t.artist && (
+                            <span className="truncate text-xs text-white/50">{t.artist}</span>
+                          )}
                         </div>
                       </button>
                       <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
