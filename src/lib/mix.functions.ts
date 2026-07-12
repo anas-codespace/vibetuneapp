@@ -220,12 +220,13 @@ export const getContextualQueue = createServerFn({ method: "POST" })
       .object({
         youtubeId: z.string().min(1).max(32),
         title: z.string().min(1).max(240),
-        artist: z.string().min(1).max(240),
+        artist: z.string().max(240).optional().default(""),
       })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const { youtubeId, title, artist } = data;
+    const { youtubeId, title } = data;
+    const artist = data.artist?.trim() || title;
     const lang = inferLanguage(title, artist);
     // Highly contextual query: hero/artist + language hint + audio bias
     const query = `${artist} ${lang} hit songs audio`.replace(/\s+/g, " ").trim();
