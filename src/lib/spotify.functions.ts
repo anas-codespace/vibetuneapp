@@ -17,12 +17,20 @@ import {
   searchTracks,
   getFreshUserToken,
   resolveToYoutube,
+  checkSpotifyAvailability,
   type FailureEntry,
   type SpotifyPlayableResult,
+  type SpotifyAvailability,
 } from "./spotify.server";
 import { searchMusic } from "./youtube.server";
 
-export type { SpotifyPlayableResult };
+export type { SpotifyPlayableResult, SpotifyAvailability };
+
+export const spotifyAvailability = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ force: z.boolean().optional() }).parse(d ?? {}))
+  .handler(async ({ data }) => {
+    return await checkSpotifyAvailability(!!data.force);
+  });
 
 // ---------- Auth flow ----------
 

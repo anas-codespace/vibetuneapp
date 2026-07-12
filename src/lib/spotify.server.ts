@@ -326,3 +326,87 @@ export async function resolveToYoutube(track: SpotifyTrackMeta) {
     thumbnailUrl: track.albumArt ?? yt.thumbnailUrl ?? null,
   };
 }
+
+// ---------- Availability probe ----------
+// Lightweight check that classifies whether the Spotify Web API is usable for
+// this app's client credentials. Cached briefly to avoid hammering Spotify.
+
+export type SpotifyAvailability =
+  | { status: "ok"; checkedAt: number }
+  | { status: "not_configured"; checkedAt: number; message: string }
+  | { status: "premium_required"; checkedAt: number; message: string }
+  | { status: "auth_error"; checkedAt: number; message: string }
+  | { status: "unknown_error"; checkedAt: number; message: string };
+
+let availabilityCache: { value: SpotifyAvailability; expiresAt: number } | null = null;
+const AVAILABILITY_TTL_MS = 5 * 60_000; // 5 minutes
+
+export async function checkSpotifyAvailability(force = false): Promise<SpotifyAvailability> {
+  if (!force && availabilityCache && availabilityCache.expiresAt > Date.now()) {
+    return availabilityCache.value;
+  }
+
+  const id = process.env.SPOTIFY_CLIENT_ID;
+  const secret = process.env.SPOTIFY_CLIENT_SECRET;
+  const now = Date.now();
+
+  const finalize = (value: SpotifyAvailability, ttl = AVAILABILITY_TTL_MS): SpotifyAvailability => {
+    availabilityCache = { value, expiresAt: Date.now() + ttl };
+    return value;
+  };
+
+  if (!id || !secret) {
+    return finalize({
+      status: "not_configured",
+      checkedAt: now,
+      message: "Spotify credentials are not configured.",
+    });
+  }
+
+  let token: string;
+  try {
+    token = await getSpotifyToken();
+  } catch (e) {
+    return finalize({
+      status: "auth_error",
+      checkedAt: now,
+      message: e instanceof Error ? e.message : "Spotify token exchange failed.",
+    }, 60_000);
+  }
+
+  // Cheapest search possible: type=track, limit=1, minimal query.
+  const res = await fetch(
+    "https://api.spotify.com/v1/search?type=track&limit=1&q=test",
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+
+  if (res.ok) {
+    return finalize({ status: "ok", checkedAt: now });
+  }
+
+  const bodyText = await res.text().catch(() => "");
+  const lower = bodyText.toLowerCase();
+
+  if (res.status === 403 && lower.includes("premium")) {
+    return finalize({
+      status: "premium_required",
+      checkedAt: now,
+      message:
+        "Spotify now requires an active Premium subscription on the developer account that owns this app before Web API search will return results.",
+    });
+  }
+
+  if (res.status === 401 || res.status === 403) {
+    return finalize({
+      status: "auth_error",
+      checkedAt: now,
+      message: `Spotify rejected the request (${res.status}). ${bodyText.slice(0, 200)}`.trim(),
+    }, 60_000);
+  }
+
+  return finalize({
+    status: "unknown_error",
+    checkedAt: now,
+    message: `Spotify returned ${res.status}. ${bodyText.slice(0, 200)}`.trim(),
+  }, 60_000);
+}
