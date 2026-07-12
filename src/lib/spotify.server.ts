@@ -216,6 +216,7 @@ export async function refreshUserToken(refreshToken: string): Promise<TokenResp>
       grant_type: "refresh_token",
       refresh_token: refreshToken,
     }),
+    "refresh_token",
   );
 }
 
