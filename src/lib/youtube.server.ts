@@ -125,13 +125,29 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return cached;
 
-  // Task 1: Force "official audio" bias in the query so YouTube returns
-  // label uploads first and de-prioritises fan-made lyric/status videos.
-  const q = `${query} official audio ${QUERY_NEGATIVES}`.trim();
+  // Task 1: Keyword expansion — map political/campaign queries to a richer query.
+  const lowered = query.trim().toLowerCase();
+  const expansion = KEYWORD_EXPANSIONS[lowered];
+  const isPolitical = !!expansion || POLITICAL_RE.test(query);
+
+  // Task 3: For political/campaign queries prefer "official song OR anthem"
+  // (broader than "official audio", which was hiding campaign uploads).
+  const base = expansion
+    ? expansion
+    : isPolitical
+      ? `${query} official song anthem`
+      : `${query} official audio`;
+  const q = `${base} ${QUERY_NEGATIVES}`.trim();
+
+  // Political anthems are often uploaded under People/Politics (25) or News (25),
+  // not Music (10). Drop the category restriction for those queries.
+  const categoryParam = isPolitical ? "" : "&videoCategoryId=10";
+
+  // Task 4: over-fetch 50 so nothing important gets clipped by strict filters.
   const searchUrl =
     `${YT_BASE}/search?part=snippet&type=video` +
-    `&videoCategoryId=10&videoEmbeddable=true` +
-    `&maxResults=20&q=${encodeURIComponent(q)}&key=${key()}`;
+    `${categoryParam}&videoEmbeddable=true` +
+    `&maxResults=50&q=${encodeURIComponent(q)}&key=${key()}`;
 
   let searchRes: Response;
   try {
