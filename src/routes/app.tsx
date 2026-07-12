@@ -78,6 +78,13 @@ function AppHome() {
     staleTime: 1000 * 60 * 10,
   });
 
+  const { data: trending, isLoading: trendingLoading } = useQuery({
+    queryKey: ["trending-default"],
+    queryFn: () => trendingFn({ data: { query: "trending tamil songs official", max: 20 } }),
+    enabled: !!session,
+    staleTime: 1000 * 60 * 30,
+  });
+
   const mixFn = useServerFn(getSmartMix);
 
   const handleSmartMix = async () => {
