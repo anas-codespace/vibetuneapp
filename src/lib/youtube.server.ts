@@ -111,11 +111,9 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return cached;
 
-  // Task 1: Strict-match query — prioritise the artist/topic name with "official"
-  // and let YouTube's Music category (10) do the topical filtering. Drop the
-  // aggressive language bias and the "songs" auto-suffix that was pulling in
-  // unrelated compilations.
-  const q = `${query} official ${QUERY_NEGATIVES}`.trim();
+  // Task 1: Force "official audio" bias in the query so YouTube returns
+  // label uploads first and de-prioritises fan-made lyric/status videos.
+  const q = `${query} official audio ${QUERY_NEGATIVES}`.trim();
   const searchUrl =
     `${YT_BASE}/search?part=snippet&type=video` +
     `&videoCategoryId=10&videoEmbeddable=true` +
