@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { spotifyExchangeCode, spotifyAutoSync } from "@/lib/spotify.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { setSyncStatus } from "@/hooks/use-sync-status";
 
@@ -51,9 +52,27 @@ function SpotifyCallback() {
         const code = params.get("code");
         const state = params.get("state");
         const err = params.get("error");
+        const errDesc = params.get("error_description");
         const savedState = sessionStorage.getItem("spotify_state");
         const savedRedirect = sessionStorage.getItem("spotify_redirect_uri");
-        if (err) throw new Error(err);
+        const { data: sessionData } = await supabase.auth.getSession();
+        console.log("[oauth-debug][spotify-callback] received", {
+          href: window.location.href,
+          origin: window.location.origin,
+          pathname: window.location.pathname,
+          hasCode: !!code,
+          codeLen: code?.length ?? 0,
+          hasState: !!state,
+          statePrefix: state?.slice(0, 12) ?? null,
+          savedStatePrefix: savedState?.slice(0, 12) ?? null,
+          stateMatches: !!state && !!savedState && state === savedState,
+          savedRedirect,
+          providerError: err,
+          providerErrorDesc: errDesc,
+          hasSupabaseSession: !!sessionData.session,
+          supabaseUserIdPrefix: sessionData.session?.user.id.slice(0, 8) ?? null,
+        });
+        if (err) throw new Error(errDesc ? `${err}: ${errDesc}` : err);
         if (!code || !state || !savedState || !savedRedirect) throw new Error("Missing callback parameters");
         if (state !== savedState) throw new Error("State mismatch");
 

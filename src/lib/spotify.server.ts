@@ -139,6 +139,13 @@ export function buildAuthUrl(redirectUri: string, state: string): string {
     state,
     show_dialog: "true",
   });
+  console.log("[oauth-debug][spotify] buildAuthUrl", {
+    redirectUri,
+    clientIdPrefix: id ? `${id.slice(0, 6)}…(len=${id.length})` : "MISSING",
+    statePrefix: state.slice(0, 8),
+    stateLen: state.length,
+    scopes: SPOTIFY_SCOPES,
+  });
   return `https://accounts.spotify.com/authorize?${params.toString()}`;
 }
 
@@ -150,10 +157,11 @@ interface TokenResp {
   token_type: string;
 }
 
-async function tokenExchange(body: URLSearchParams): Promise<TokenResp> {
+async function tokenExchange(body: URLSearchParams, label: string): Promise<TokenResp> {
   const id = process.env.SPOTIFY_CLIENT_ID!;
   const secret = process.env.SPOTIFY_CLIENT_SECRET!;
   const basic = btoa(`${id}:${secret}`);
+  const started = Date.now();
   const res = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
     headers: {
@@ -162,17 +170,43 @@ async function tokenExchange(body: URLSearchParams): Promise<TokenResp> {
     },
     body,
   });
-  if (!res.ok) throw new Error(`Spotify token exchange failed: ${res.status} ${await res.text()}`);
-  return (await res.json()) as TokenResp;
+  const ms = Date.now() - started;
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("[oauth-debug][spotify] tokenExchange failed", {
+      label,
+      status: res.status,
+      ms,
+      body: text.slice(0, 500),
+      clientIdPrefix: id ? `${id.slice(0, 6)}…` : "MISSING",
+      hasSecret: !!secret,
+    });
+    throw new Error(`Spotify token exchange failed: ${res.status} ${text}`);
+  }
+  const json = (await res.json()) as TokenResp;
+  console.log("[oauth-debug][spotify] tokenExchange ok", {
+    label,
+    ms,
+    scope: json.scope,
+    expiresIn: json.expires_in,
+    hasRefresh: !!json.refresh_token,
+  });
+  return json;
 }
 
 export async function exchangeAuthCode(code: string, redirectUri: string): Promise<TokenResp> {
+  console.log("[oauth-debug][spotify] exchangeAuthCode start", {
+    redirectUri,
+    codePrefix: code.slice(0, 6),
+    codeLen: code.length,
+  });
   return tokenExchange(
     new URLSearchParams({
       grant_type: "authorization_code",
       code,
       redirect_uri: redirectUri,
     }),
+    "authorization_code",
   );
 }
 
@@ -182,6 +216,7 @@ export async function refreshUserToken(refreshToken: string): Promise<TokenResp>
       grant_type: "refresh_token",
       refresh_token: refreshToken,
     }),
+    "refresh_token",
   );
 }
 
