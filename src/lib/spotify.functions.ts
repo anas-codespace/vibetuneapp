@@ -14,7 +14,6 @@ import {
   getMyLikedTracks,
   getMyPlaylistsList,
   getPlaylistTracks,
-  getPlaylistTracks,
   searchTracks,
   getFreshUserToken,
   resolveToYoutube,
