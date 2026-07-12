@@ -139,6 +139,13 @@ export function buildAuthUrl(redirectUri: string, state: string): string {
     state,
     show_dialog: "true",
   });
+  console.log("[oauth-debug][spotify] buildAuthUrl", {
+    redirectUri,
+    clientIdPrefix: id ? `${id.slice(0, 6)}…(len=${id.length})` : "MISSING",
+    statePrefix: state.slice(0, 8),
+    stateLen: state.length,
+    scopes: SPOTIFY_SCOPES,
+  });
   return `https://accounts.spotify.com/authorize?${params.toString()}`;
 }
 
