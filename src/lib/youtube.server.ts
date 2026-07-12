@@ -166,14 +166,77 @@ async function fetchVideoDetails(ids: string[]): Promise<RawVideoItem[]> {
 }
 
 /**
- * Strict 2-step music search:
- *  Step 1: search endpoint (over-fetch 30) with type=video, videoCategoryId=10,
+ * Tamil-to-English transliteration variants. Same phoneme, different Roman spellings.
+ * We expand the user's query into all variants and try each until we get hits.
+ */
+const TRANSLIT_PAIRS: Array<[RegExp, string[]]> = [
+  [/aa/gi, ["aa", "a"]],
+  [/ee/gi, ["ee", "i"]],
+  [/oo/gi, ["oo", "u"]],
+  [/th/gi, ["th", "t"]],
+  [/dh/gi, ["dh", "d"]],
+  [/zh/gi, ["zh", "l"]],
+  [/w/gi, ["w", "v"]],
+  [/ph/gi, ["ph", "f"]],
+  [/ck/gi, ["ck", "k"]],
+  [/y$/i, ["y", "i"]],
+  [/u$/i, ["u", "a"]],
+];
+
+/** Produce up to N normalized transliteration variants of a query. */
+function transliterationVariants(query: string, cap = 6): string[] {
+  const seen = new Set<string>([query]);
+  const out: string[] = [query];
+  for (const [re, subs] of TRANSLIT_PAIRS) {
+    if (out.length >= cap) break;
+    for (const s of subs) {
+      const v = query.replace(re, s);
+      if (!seen.has(v)) {
+        seen.add(v);
+        out.push(v);
+        if (out.length >= cap) break;
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Typo-tolerant wrapper around the strict search.
+ * Tries: raw → transliteration variants → trim-last-char retry.
+ * Returns first non-empty result set. Also caches by original query.
+ */
+export async function searchMusic(query: string, maxResults = 30): Promise<YTTrack[]> {
+  const original = query.trim();
+  if (!original) return [];
+  const cacheKey = `${CACHE_VERSION}::tolerant::${original.toLowerCase()}::${maxResults}`;
+  const cached = SEARCH_CACHE.get(cacheKey);
+  if (cached) return cached;
+
+  const attempts: string[] = [];
+  attempts.push(...transliterationVariants(original));
+  // Trim-last-char fallback for likely single-typo tails.
+  if (original.length > 3) attempts.push(original.slice(0, -1));
+
+  for (const attempt of attempts) {
+    const tracks = await searchMusicOnce(attempt, maxResults);
+    if (tracks.length > 0) {
+      SEARCH_CACHE.set(cacheKey, tracks);
+      return tracks;
+    }
+  }
+  return [];
+}
+
+/**
+ * Strict 2-step music search (single attempt):
+ *  Step 1: search endpoint (over-fetch 50) with type=video, videoCategoryId=10,
  *          and native negative-keyword filtering on the query.
  *  Step 2: videos endpoint for real contentDetails.duration + embeddability.
  * Filters: 60s <= duration <= 600s and embeddable.
  * Sort:    Official channels/titles first via scoreVideo().
  */
-export async function searchMusic(query: string, maxResults = 30): Promise<YTTrack[]> {
+async function searchMusicOnce(query: string, maxResults = 30): Promise<YTTrack[]> {
   const cacheKey = `${CACHE_VERSION}::${query.trim().toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return cached;
