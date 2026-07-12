@@ -122,17 +122,18 @@ function LoginPage() {
       <motion.form
         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
         onSubmit={handleSubmit}
-        className="glass-strong w-full max-w-md rounded-3xl p-8"
+        className="glass-strong w-full max-w-md rounded-3xl p-6 sm:p-8"
       >
-        <div className="flex flex-col items-center mb-6">
-          <Link to="/" aria-label="Vibtune home" className="mb-5">
-            <VibtuneLogo className="h-14 w-14" />
+        <div className="flex flex-col items-center mb-5 sm:mb-6">
+          <Link to="/" aria-label="Vibtune home" className="mb-3 sm:mb-4">
+            <VibtuneLogo className="h-12 w-12 sm:h-14 sm:w-14" />
           </Link>
-          <h1 className="text-3xl font-bold text-center">Welcome <span className="vibe-text">back</span></h1>
-          <p className="mt-2 text-sm text-white/60 text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-center">Welcome <span className="vibe-text">back</span></h1>
+          <p className="mt-1.5 text-sm text-white/60 text-center">
             Sign in with Google, or use your email and password.
           </p>
         </div>
+
 
 
         <button
