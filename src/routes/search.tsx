@@ -16,7 +16,7 @@ function formatDuration(seconds: number): string {
 }
 import { useAuth } from "@/hooks/use-auth";
 import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
-import { searchYouTubeOnly } from "@/lib/music.functions";
+import { searchYouTubeWithCorrection } from "@/lib/music.functions";
 
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { HorizontalCarousel } from "@/components/HorizontalCarousel";
