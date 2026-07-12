@@ -79,11 +79,33 @@ interface RawVideoItem {
   id: string;
   snippet: {
     title: string;
+    channelId: string;
     channelTitle: string;
     thumbnails: Record<string, { url: string }>;
   };
   contentDetails: { duration: string };
   status: { embeddable: boolean };
+}
+
+/**
+ * Whitelist of verified official Indian music label channel IDs.
+ * Populated from env var YOUTUBE_OFFICIAL_CHANNEL_IDS (comma-separated) plus
+ * a small set of high-confidence defaults. Channel-title regex
+ * (OFFICIAL_LABEL_RE) remains the fallback so a channel is treated as
+ * "official" if EITHER its ID is whitelisted OR its name matches a known label.
+ */
+const DEFAULT_OFFICIAL_IDS = [
+  "UCn4rEMqKtwBQ6-oEwbd4PcA", // Sony Music South
+  "UCq-Fj5jknLsUf-MWSy4_brA", // T-Series
+  "UCvS8DnkYnGw7GcQ4WgnFN4g", // Saregama Music
+  "UCn372MiubHTkPFwxKVv45LQ", // Lahari Music
+  "UCf-PcSHzYAtfroVPGT_UYag", // Aditya Music
+  "UCLXo7UDZvByw2ixzpQCufnA", // Vevo
+];
+function officialChannelIds(): Set<string> {
+  const extra = (process.env.YOUTUBE_OFFICIAL_CHANNEL_IDS ?? "")
+    .split(",").map((s) => s.trim()).filter(Boolean);
+  return new Set([...DEFAULT_OFFICIAL_IDS, ...extra]);
 }
 
 /** Score a video: higher = better. Official labels & "Official" keyword win. */
