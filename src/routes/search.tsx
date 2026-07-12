@@ -144,8 +144,26 @@ function SearchPage() {
   const top = results[0];
   const rest = results.slice(1);
 
-  // Group artists from results (unique by artist name)
-  const artists = Array.from(new Map(results.map((t) => [t.artist, t])).values()).slice(0, 8);
+  // Group artists — only keep names whose tokens overlap with the query.
+  // Filters out random YouTube channel names ("DesiWave", "Song Tracks", "T-Series", etc).
+  const queryTokens = debounced
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter((t) => t.length >= 3);
+  const isLikelyRealArtist = (name: string) => {
+    if (!name) return false;
+    const n = name.toLowerCase();
+    // Reject obvious channel/label patterns
+    if (/\b(vevo|records?|music|official|tv|tracks?|wave|tunes?|audio|hits|nation|world|network|channel|entertainment|productions?)\b/i.test(name)) {
+      return false;
+    }
+    if (queryTokens.length === 0) return true;
+    return queryTokens.some((tok) => n.includes(tok));
+  };
+  const artists = Array.from(new Map(results.map((t) => [t.artist, t])).values())
+    .filter((a) => isLikelyRealArtist(a.artist))
+    .slice(0, 8);
 
   return (
     <main className="relative min-h-screen pb-44 pt-[calc(env(safe-area-inset-top)+1rem)]">
