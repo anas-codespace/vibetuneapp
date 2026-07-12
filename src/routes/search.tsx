@@ -78,11 +78,21 @@ function SearchPage() {
 
   const clearHistory = () => setSearchHistory([]);
 
-  const { data, isFetching } = useQuery({
+  const { data, isFetching, error } = useQuery({
     queryKey: ["search", debounced],
-    queryFn: () => fn({ data: { query: debounced, max: 24 } }),
+    queryFn: async () => {
+      try {
+        const res = await fn({ data: { query: debounced, max: 24 } });
+        return res ?? [];
+      } catch (err) {
+        console.error("[search] request failed:", err);
+        throw err;
+      }
+    },
     enabled: !!session && debounced.length > 1,
     staleTime: 1000 * 60 * 5,
+    placeholderData: undefined, // force clear results on new query
+    retry: 1,
   });
 
 
@@ -178,34 +188,44 @@ function SearchPage() {
           )
         )}
         {debounced && isFetching && results.length === 0 && (
-          <div className="mt-6 space-y-5">
-            {/* Top result skeleton */}
-            <div className="flex items-center gap-4 rounded-2xl bg-white/[0.03] p-4">
-              <div className="h-24 w-24 shrink-0 animate-pulse rounded-md bg-white/10" />
-              <div className="flex-1 space-y-2">
-                <div className="h-3 w-16 animate-pulse rounded bg-white/10" />
-                <div className="h-5 w-3/4 animate-pulse rounded bg-white/10" />
-                <div className="h-3 w-1/2 animate-pulse rounded bg-white/10" />
+          <>
+            <div className="mt-8 text-center text-sm text-white/50 py-4" role="status" aria-live="polite">
+              Searching Vibetune…
+            </div>
+            <div className="mt-2 space-y-5">
+              {/* Top result skeleton */}
+              <div className="flex items-center gap-4 rounded-2xl bg-white/[0.03] p-4">
+                <div className="h-24 w-24 shrink-0 animate-pulse rounded-md bg-white/10" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-16 animate-pulse rounded bg-white/10" />
+                  <div className="h-5 w-3/4 animate-pulse rounded bg-white/10" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-white/10" />
+                </div>
+              </div>
+              {/* Song rows skeleton */}
+              <div className="space-y-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 py-3">
+                    <div className="h-12 w-12 shrink-0 animate-pulse rounded-md bg-white/10" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3.5 w-2/3 animate-pulse rounded bg-white/10" />
+                      <div className="h-3 w-1/3 animate-pulse rounded bg-white/10" />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-            {/* Song rows skeleton */}
-            <div className="space-y-1">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-4 py-3">
-                  <div className="h-12 w-12 shrink-0 animate-pulse rounded-md bg-white/10" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3.5 w-2/3 animate-pulse rounded bg-white/10" />
-                    <div className="h-3 w-1/3 animate-pulse rounded bg-white/10" />
-                  </div>
-                </div>
-              ))}
-            </div>
+          </>
+        )}
+        {debounced && !isFetching && error && (
+          <div className="mt-12 text-center text-sm text-red-400/80 py-10" role="alert">
+            Search failed. Please check your connection and try again.
           </div>
         )}
-        {debounced && !isFetching && results.length === 0 && (
-          <p className="mt-12 text-center text-sm text-white/40">
-            No results for "{debounced}".
-          </p>
+        {debounced && !isFetching && !error && results.length === 0 && (
+          <div className="text-white/50 text-center py-20">
+            No songs found. Try a different artist or movie.
+          </div>
         )}
 
         <AnimatePresence>
