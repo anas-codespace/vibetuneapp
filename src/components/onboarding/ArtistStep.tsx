@@ -71,12 +71,28 @@ function toArtistInfo(name: string): SpotifyArtistInfo {
   return {
     id: slugId(name),
     name,
-    hdPhotoUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=150&bold=true`,
+    hdPhotoUrl: null,
     isVerified: false,
     followers: 0,
     genres: [],
   };
 }
+
+const AVATAR_COLORS = [
+  "bg-pink-500", "bg-purple-500", "bg-indigo-500",
+  "bg-blue-500", "bg-teal-500", "bg-emerald-500",
+  "bg-orange-500", "bg-rose-500",
+];
+
+function getInitials(name: string) {
+  return name ? name.charAt(0).toUpperCase() : "?";
+}
+
+function getAvatarColor(name: string) {
+  const index = name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return AVATAR_COLORS[index % AVATAR_COLORS.length];
+}
+
 
 export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, saving }: Props) {
   const availableLanguages = useMemo(() => {
@@ -163,12 +179,15 @@ export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, sa
                       : "bg-transparent group-hover:bg-white/10",
                   )}
                 >
-                  <img
-                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=150&bold=true`}
-                    alt={name}
-                    loading="lazy"
-                    className="h-20 w-20 rounded-full object-cover"
-                  />
+                  <div
+                    className={cn(
+                      "flex h-20 w-20 items-center justify-center rounded-full text-3xl font-bold text-white shadow-inner",
+                      getAvatarColor(name),
+                    )}
+                  >
+                    {getInitials(name)}
+                  </div>
+
                   {isSelected && (
                     <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
                       <Check className="h-8 w-8 text-white" strokeWidth={3} />
