@@ -144,8 +144,26 @@ function SearchPage() {
   const top = results[0];
   const rest = results.slice(1);
 
-  // Group artists from results (unique by artist name)
-  const artists = Array.from(new Map(results.map((t) => [t.artist, t])).values()).slice(0, 8);
+  // Group artists — only keep names whose tokens overlap with the query.
+  // Filters out random YouTube channel names ("DesiWave", "Song Tracks", "T-Series", etc).
+  const queryTokens = debounced
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter((t) => t.length >= 3);
+  const isLikelyRealArtist = (name: string) => {
+    if (!name) return false;
+    const n = name.toLowerCase();
+    // Reject obvious channel/label patterns
+    if (/\b(vevo|records?|music|official|tv|tracks?|wave|tunes?|audio|hits|nation|world|network|channel|entertainment|productions?)\b/i.test(name)) {
+      return false;
+    }
+    if (queryTokens.length === 0) return true;
+    return queryTokens.some((tok) => n.includes(tok));
+  };
+  const artists = Array.from(new Map(results.map((t) => [t.artist, t])).values())
+    .filter((a) => isLikelyRealArtist(a.artist))
+    .slice(0, 8);
 
   return (
     <main className="relative min-h-screen pb-44 pt-[calc(env(safe-area-inset-top)+1rem)]">
@@ -266,17 +284,17 @@ function SearchPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-6"
             >
-              <h2 className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-white/50">
-                Top result
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[#1DB954]">
+              <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/50">
+                Top Result
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[#1DB954] normal-case tracking-normal">
                   <Music2 className="h-2.5 w-2.5" /> Spotify
                 </span>
               </h2>
               <button
                 onClick={() => play(toVibe(top), vibeTracks)}
-                className="group relative flex w-full items-center gap-4 overflow-hidden rounded-2xl bg-white/[0.04] p-4 text-left transition hover:bg-white/[0.07] active:scale-[0.99]"
+                className="group relative flex w-full items-center gap-5 overflow-hidden rounded-xl border border-white/10 bg-white/5 p-5 text-left transition hover:bg-white/[0.08] active:scale-[0.99]"
               >
-                <div className="h-24 w-24 shrink-0 overflow-hidden rounded-md shadow-[0_10px_30px_-10px_rgba(0,0,0,0.8)]">
+                <div className="h-32 w-32 shrink-0 overflow-hidden rounded-lg shadow-[0_16px_40px_-12px_rgba(0,0,0,0.9)]">
                   {top.albumArt ? (
                     <img src={top.albumArt} alt="" className="h-full w-full object-cover" />
                   ) : (
@@ -284,10 +302,10 @@ function SearchPage() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-lg font-bold leading-tight text-white">{top.title}</p>
-                  <p className="mt-1.5 text-sm text-white/60">Song · {top.artist}</p>
+                  <p className="line-clamp-2 text-2xl font-bold leading-tight text-white">{top.title}</p>
+                  <p className="mt-2 text-sm text-white/60">Song · {top.artist}</p>
                 </div>
-                <div className="vibe-gradient grid h-11 w-11 shrink-0 place-items-center rounded-full text-white opacity-0 shadow-[0_0_20px_-4px_rgba(236,0,140,0.7)] transition-opacity group-hover:opacity-100">
+                <div className="vibe-gradient grid h-12 w-12 shrink-0 place-items-center rounded-full text-white opacity-0 shadow-[0_0_20px_-4px_rgba(236,0,140,0.7)] transition-opacity group-hover:opacity-100">
                   <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />
                 </div>
               </button>
@@ -300,7 +318,7 @@ function SearchPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-8"
             >
-              <h2 className="mb-4 text-[10px] font-bold uppercase tracking-[0.28em] text-white/50">
+              <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-white/50">
                 Artists
               </h2>
               <HorizontalCarousel
@@ -314,7 +332,7 @@ function SearchPage() {
                     onClick={() => play(toVibe(a), vibeTracks)}
                     className="group flex w-24 shrink-0 snap-start flex-col items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-md"
                   >
-                    <div className="h-24 w-24 overflow-hidden rounded-full ring-1 ring-white/10 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] transition-transform group-hover:scale-[1.03] group-focus-visible:scale-[1.03]">
+                    <div className="aspect-square w-24 overflow-hidden rounded-full ring-1 ring-white/10 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] transition-transform group-hover:scale-[1.03] group-focus-visible:scale-[1.03]">
                       {a.albumArt ? (
                         <img src={a.albumArt} alt="" draggable={false} className="h-full w-full object-cover" />
                       ) : (
@@ -322,7 +340,7 @@ function SearchPage() {
                       )}
                     </div>
                     <p className="line-clamp-2 text-center text-xs font-medium text-white/80">{a.artist}</p>
-                    <p className="-mt-1 text-[10px] uppercase tracking-widest text-white/40">Artist</p>
+                    <p className="-mt-1 text-[10px] uppercase tracking-wider text-white/40">Artist</p>
                   </button>
                 ))}
               </HorizontalCarousel>
@@ -335,27 +353,27 @@ function SearchPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-8"
             >
-              <h2 className="mb-2 text-[10px] font-bold uppercase tracking-[0.28em] text-white/50">
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/50">
                 Songs
               </h2>
-              <ul>
+              <ul className="space-y-0.5">
                 {rest.map((t) => (
                   <li key={t.youtubeId}>
-                    <div className="group flex w-full items-center gap-4 rounded-xl px-2 py-3 transition-colors hover:bg-white/[0.04]">
+                    <div className="group flex w-full items-center gap-4 rounded-lg p-2 transition-colors hover:bg-white/5">
                       <button
                         onClick={() => play(toVibe(t), vibeTracks)}
                         className="flex min-w-0 flex-1 items-center gap-4 text-left"
                       >
-                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md shadow-[0_6px_16px_-8px_rgba(0,0,0,0.7)]">
+                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md">
                           {t.albumArt ? (
                             <img src={t.albumArt} alt="" className="h-full w-full object-cover" />
                           ) : (
                             <div className="vibe-gradient h-full w-full" />
                           )}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-base font-medium text-white">{t.title}</p>
-                          <p className="truncate text-sm text-white/60">{t.artist}</p>
+                        <div className="flex min-w-0 flex-col truncate">
+                          <span className="truncate font-medium text-white">{t.title}</span>
+                          <span className="truncate text-xs text-white/50">{t.artist}</span>
                         </div>
                       </button>
                       <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
