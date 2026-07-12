@@ -12,6 +12,7 @@ import {
   Pencil,
   Shield,
   Sliders,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,6 +23,7 @@ import {
   updateProfileDetails,
   updateProfilePic,
 } from "@/lib/library.functions";
+import { deleteMyAccount } from "@/lib/account.functions";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
