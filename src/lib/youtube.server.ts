@@ -154,7 +154,16 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
     ({ v }) => !FORBIDDEN_KEYWORDS_RE.test(v.snippet.title),
   );
 
+  // Verified-channel priority: official label / VEVO / -Topic first, then the rest.
   filtered.sort((a, b) => scoreVideo(b.v) - scoreVideo(a.v));
+  const isOfficialChannel = (channel: string) =>
+    OFFICIAL_LABEL_RE.test(channel) || /vevo$/i.test(channel) || /-\s*topic$/i.test(channel);
+  const officialFirst = [
+    ...filtered.filter(({ v }) => isOfficialChannel(v.snippet.channelTitle)),
+    ...filtered.filter(({ v }) => !isOfficialChannel(v.snippet.channelTitle)),
+  ];
+  filtered.length = 0;
+  filtered.push(...officialFirst);
 
   // Task 3: Only expose the channel as "artist" when it's a verified/official-looking
   // channel (label, VEVO, or auto-generated "- Topic"). Generic uploader channels
