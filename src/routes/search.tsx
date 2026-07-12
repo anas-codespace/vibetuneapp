@@ -114,7 +114,7 @@ function SearchPage() {
             youtubeId: t.youtubeId,
             title: t.title,
             artist: t.artist,
-            album: "",
+            album: t.album ?? "",
             albumArt: t.thumbnailUrl ?? null,
             durationSeconds: t.durationSeconds,
           }));
