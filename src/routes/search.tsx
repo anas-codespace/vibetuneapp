@@ -310,7 +310,7 @@ function SearchPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 text-2xl font-bold leading-tight text-white">{top.title}</p>
-                  <p className="mt-2 text-sm text-white/60">Song · {top.artist}</p>
+                  <p className="mt-2 text-sm text-white/60">{top.artist ? `Song · ${top.artist}` : "Song"}</p>
                 </div>
                 <div className="vibe-gradient grid h-12 w-12 shrink-0 place-items-center rounded-full text-white opacity-0 shadow-[0_0_20px_-4px_rgba(236,0,140,0.7)] transition-opacity group-hover:opacity-100">
                   <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />
