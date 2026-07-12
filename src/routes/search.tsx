@@ -48,6 +48,7 @@ function useDebounced<T>(value: T, ms: number): T {
 
 function SearchPage() {
   const { session, loading } = useAuth();
+  useOnboardingGate();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const debounced = useDebounced(q.trim(), 320);
