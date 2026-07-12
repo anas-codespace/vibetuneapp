@@ -149,6 +149,18 @@ export const searchYouTubeOnly = createServerFn({ method: "POST" })
     return searchMusic(data.query, data.max ?? 12);
   });
 
+/**
+ * Typo-tolerant YouTube search that also reports the corrected query
+ * (when the raw query didn't yield results). Powers "Did you mean …?" UI.
+ */
+export const searchYouTubeWithCorrection = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z.object({ query: z.string().min(1).max(200), max: z.number().int().min(1).max(25).optional() }).parse(d),
+  )
+  .handler(async ({ data }): Promise<{ tracks: YTTrack[]; correctedQuery: string | null }> => {
+    return searchMusicWithCorrection(data.query, data.max ?? 20);
+  });
+
 const TrackInput = z.object({
   youtubeId: z.string().min(1),
   title: z.string().min(1),
