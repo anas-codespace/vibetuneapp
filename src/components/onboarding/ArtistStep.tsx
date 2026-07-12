@@ -138,6 +138,8 @@ export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, sa
         <div className="mt-16 flex items-center justify-center text-white/60">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading your starter set…
         </div>
+      ) : filteredArtists.length === 0 ? (
+        <p className="mt-16 text-center text-white/60">No artists found in state</p>
       ) : (
         <LayoutGroup>
           <motion.div
@@ -145,7 +147,7 @@ export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, sa
             className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
           >
             <AnimatePresence initial={false} mode="popLayout">
-              {artists.map((a) => {
+              {filteredArtists.map((a) => {
                 const isSelected = selected.some((s) => s.id === a.id);
                 const isExpanding = expanding === a.id;
                 return (
