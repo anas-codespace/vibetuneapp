@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { History, ListPlus, Play, Search as SearchIcon, X, Music2, AlertTriangle } from "lucide-react";
+import { History, ListPlus, Play, Search as SearchIcon, X, Music2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 const HISTORY_KEY = "vibetune_search_history";
 import { useAuth } from "@/hooks/use-auth";
 import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
-import { useSpotifyAvailability } from "@/hooks/use-spotify-availability";
+
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 
 export const Route = createFileRoute("/search")({
@@ -77,13 +77,13 @@ function SearchPage() {
 
   const clearHistory = () => setSearchHistory([]);
 
-  const availability = useSpotifyAvailability();
   const { data, isFetching } = useQuery({
     queryKey: ["search", debounced],
     queryFn: () => fn({ data: { query: debounced, max: 24 } }),
-    enabled: !!session && debounced.length > 1 && !availability.isBlocked,
+    enabled: !!session && debounced.length > 1,
     staleTime: 1000 * 60 * 5,
   });
+
 
   useEffect(() => {
     if (data && data.length > 0 && debounced.length > 1) addToHistory(debounced);
@@ -129,24 +129,7 @@ function SearchPage() {
       </div>
 
       <div className="mx-auto mt-2 max-w-md px-5">
-        {availability.isBlocked && (
-          <div className="mt-3 flex items-start gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-100">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold">Spotify search unavailable</p>
-              <p className="mt-0.5 text-amber-100/80">
-                {availability.data?.status === "premium_required"
-                  ? "Spotify now requires an active Premium subscription on the developer account that owns this app."
-                  : availability.data?.status === "not_configured"
-                    ? "Spotify credentials are not configured."
-                    : (availability.data && "message" in availability.data ? availability.data.message : null) ?? "Spotify is temporarily unreachable."}
-              </p>
-              <Link to="/settings/spotify" className="mt-1 inline-block font-medium text-amber-200 underline">
-                Open Spotify settings
-              </Link>
-            </div>
-          </div>
-        )}
+
 
         {!q.trim() && (
           searchHistory.length > 0 ? (
