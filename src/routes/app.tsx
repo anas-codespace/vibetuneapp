@@ -80,9 +80,13 @@ function AppHome() {
     staleTime: 1000 * 60 * 10,
   });
 
+  const favLanguages = (profile?.fav_languages as string[] | null) ?? [];
+  const primaryLang = favLanguages[0] ?? "tamil";
+  const trendingQuery = `trending ${primaryLang.toLowerCase()} songs official`;
+
   const { data: trending, isLoading: trendingLoading } = useQuery({
-    queryKey: ["trending-default"],
-    queryFn: () => trendingFn({ data: { query: "trending tamil songs official", max: 20 } }),
+    queryKey: ["trending-default", trendingQuery],
+    queryFn: () => trendingFn({ data: { query: trendingQuery, max: 20 } }),
     enabled: !!session,
     staleTime: 1000 * 60 * 30,
   });
