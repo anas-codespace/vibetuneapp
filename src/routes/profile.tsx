@@ -48,6 +48,7 @@ function ProfilePage() {
   const statsFn = useServerFn(getListeningStats);
   const saveFn = useServerFn(updateProfileDetails);
   const picFn = useServerFn(updateProfilePic);
+  const deleteFn = useServerFn(deleteMyAccount);
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
@@ -56,6 +57,8 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
