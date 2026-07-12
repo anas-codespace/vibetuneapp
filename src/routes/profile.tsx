@@ -103,6 +103,24 @@ function ProfilePage() {
     navigate({ to: "/" });
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteFn();
+      await supabase.auth.signOut();
+      toast.success("Account deleted");
+      navigate({ to: "/" });
+    } catch (e) {
+      toast.error("Couldn't delete account", {
+        description: e instanceof Error ? e.message : "",
+      });
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
+
+
+
   const handlePic = async (file: File) => {
     if (!user) return;
     if (file.size > 5 * 1024 * 1024) {
