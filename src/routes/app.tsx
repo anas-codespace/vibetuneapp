@@ -106,7 +106,7 @@ function AppHome() {
     setMixLoading(false);
   };
 
-  const mapTrack = (t: YTTrack): VibeTrack => ({
+  const mapTrack = (t: { youtubeId: string; title: string; artist: string; thumbnailUrl: string | null; durationSeconds: number }): VibeTrack => ({
     youtubeId: t.youtubeId,
     title: t.title,
     artist: t.artist,
