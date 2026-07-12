@@ -129,24 +129,7 @@ function SearchPage() {
       </div>
 
       <div className="mx-auto mt-2 max-w-md px-5">
-        {availability.isBlocked && (
-          <div className="mt-3 flex items-start gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-100">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold">Spotify search unavailable</p>
-              <p className="mt-0.5 text-amber-100/80">
-                {availability.data?.status === "premium_required"
-                  ? "Spotify now requires an active Premium subscription on the developer account that owns this app."
-                  : availability.data?.status === "not_configured"
-                    ? "Spotify credentials are not configured."
-                    : (availability.data && "message" in availability.data ? availability.data.message : null) ?? "Spotify is temporarily unreachable."}
-              </p>
-              <Link to="/settings/spotify" className="mt-1 inline-block font-medium text-amber-200 underline">
-                Open Spotify settings
-              </Link>
-            </div>
-          </div>
-        )}
+
 
         {!q.trim() && (
           searchHistory.length > 0 ? (
