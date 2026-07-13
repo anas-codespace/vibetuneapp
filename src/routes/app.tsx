@@ -313,10 +313,11 @@ function AppHome() {
                   )}
                 >
                   {qp.art ? (
-                    <img
+                    <SafeArt
                       src={qp.art}
                       alt=""
-                      className="absolute inset-0 h-full w-full object-cover opacity-90"
+                      className="absolute inset-0 opacity-90"
+                      fallbackClassName="absolute inset-0 grid place-items-center"
                     />
                   ) : (
                     <Icon className="h-5 w-5 text-white" strokeWidth={2} />
