@@ -198,7 +198,7 @@ export const getTasteProfile = createServerFn({ method: "GET" })
       started_at: r.started_at,
       listened_ms: r.listened_ms ?? 0,
       track_ms: r.track_ms ?? 0,
-      end_reason: r.end_reason,
+      end_reason: r.end_reason as ListeningEventInput["end_reason"],
       context_lang: r.context_lang ?? null,
       hour_local: r.hour_local ?? 0,
     }));
