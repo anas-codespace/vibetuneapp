@@ -44,6 +44,54 @@ export type Database = {
         }
         Relationships: []
       }
+      listening_events: {
+        Row: {
+          artist: string
+          context_lang: string | null
+          end_reason: string
+          ended_at: string | null
+          hour_local: number
+          id: string
+          listened_ms: number
+          source: string
+          started_at: string
+          title: string
+          track_ms: number
+          user_id: string
+          youtube_id: string
+        }
+        Insert: {
+          artist?: string
+          context_lang?: string | null
+          end_reason?: string
+          ended_at?: string | null
+          hour_local?: number
+          id?: string
+          listened_ms?: number
+          source?: string
+          started_at?: string
+          title: string
+          track_ms?: number
+          user_id: string
+          youtube_id: string
+        }
+        Update: {
+          artist?: string
+          context_lang?: string | null
+          end_reason?: string
+          ended_at?: string | null
+          hour_local?: number
+          id?: string
+          listened_ms?: number
+          source?: string
+          started_at?: string
+          title?: string
+          track_ms?: number
+          user_id?: string
+          youtube_id?: string
+        }
+        Relationships: []
+      }
       listening_history: {
         Row: {
           artist: string
@@ -181,6 +229,39 @@ export type Database = {
         }
         Relationships: []
       }
+      search_events: {
+        Row: {
+          created_at: string
+          id: string
+          language: string | null
+          normalized_query: string
+          raw_query: string
+          resulted_in_play: boolean
+          top_result_youtube_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          language?: string | null
+          normalized_query: string
+          raw_query: string
+          resulted_in_play?: boolean
+          top_result_youtube_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          language?: string | null
+          normalized_query?: string
+          raw_query?: string
+          resulted_in_play?: boolean
+          top_result_youtube_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       songs: {
         Row: {
           artist: string
@@ -254,6 +335,27 @@ export type Database = {
           scope?: string | null
           spotify_display_name?: string | null
           spotify_user_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_taste_cache: {
+        Row: {
+          computed_at: string
+          profile: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          computed_at?: string
+          profile?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          computed_at?: string
+          profile?: Json
           updated_at?: string
           user_id?: string
         }
