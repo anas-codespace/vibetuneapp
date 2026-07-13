@@ -105,65 +105,46 @@ function SearchPage() {
   const clearHistory = () => setSearchHistory([]);
 
   const { data, isFetching, error } = useQuery({
-    queryKey: ["search", debounced, preferredLanguage],
-    queryFn: async (): Promise<{ results: SpotifyPlayableResult[]; correction: string | null }> => {
-      // Tasks 1 & 2 (System Directive): send the user's term as-is. The backend
-      // now wraps it in double quotes for exact match and appends the user's
-      // language context (defaults to Tamil) before hitting Spotify/YouTube.
+    queryKey: ["search-cascade", debounced, preferredLanguage],
+    queryFn: async (): Promise<{
+      results: SpotifyPlayableResult[];
+      correction: string | null;
+      broadResults: boolean;
+      acceptedStage: string | null;
+    }> => {
       const raw = debounced;
-
-      let results: SpotifyPlayableResult[] = [];
-      let correction: string | null = null;
       try {
-        results = (await fn({ data: { query: raw, max: 24, language: preferredLanguage } })) ?? [];
-      } catch (err) {
-        console.error("[search] Spotify search failed:", err);
-      }
-      console.log("[search] API Response (primary):", { query: raw, count: results.length, language: preferredLanguage });
+        const resp = await cascadeFn({
+          data: { query: raw, max: 24, language: preferredLanguage },
+        });
+        console.log("[search] cascade:", {
+          query: raw,
+          stage: resp.acceptedStage,
+          broad: resp.broadResults,
+          count: resp.results.length,
+        });
 
-      // Fallback — if the exact-match primary returns 0, try the YouTube path.
-      // Task 3 (System Directive): DO NOT auto-swap in results from a corrected
-      // ("did you mean") term. Only surface the suggestion as text so the user
-      // can opt-in explicitly.
-      if (results.length === 0) {
-        const broad = raw.replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
-        try {
-          const yt = await ytFn({ data: { query: broad || raw, max: 20, language: preferredLanguage } });
-          const tracks = yt?.tracks ?? [];
-          correction = yt?.correctedQuery ?? null;
-          console.log("[search] API Response (fallback YT):", { query: broad, count: tracks.length, correction });
-          if (!correction) {
-            // Exact match on YT succeeded — safe to render.
-            results = tracks.map((t): SpotifyPlayableResult => ({
-              spotifyId: `yt:${t.youtubeId}`,
-              youtubeId: t.youtubeId,
-              title: t.title,
-              artist: t.artist,
-              album: t.album ?? "",
-              albumArt: t.thumbnailUrl ?? null,
-              durationSeconds: t.durationSeconds,
-            }));
-          }
-          // If a correction was returned, keep results empty and let the UI
-          // render a "Did you mean …?" hint the user can tap manually.
-        } catch (err) {
-          console.error("[search] YT fallback failed:", err);
+        // Client-side relevance sort — favor title/album hits.
+        const term = raw.toLowerCase();
+        let results = resp.results;
+        if (term) {
+          const score = (r: SpotifyPlayableResult) => {
+            const titleHit = r.title.toLowerCase().includes(term) ? 2 : 0;
+            const albumHit = (r.album ?? "").toLowerCase().includes(term) ? 1 : 0;
+            return titleHit + albumHit;
+          };
+          results = [...results].sort((a, b) => score(b) - score(a));
         }
-      }
-
-      // Task 3: Client-side relevance sort — tracks whose title or album contain
-      // the query win, pushing unrelated semantic matches down.
-      const term = raw.toLowerCase();
-      if (term) {
-        const score = (r: SpotifyPlayableResult) => {
-          const titleHit = r.title.toLowerCase().includes(term) ? 2 : 0;
-          const albumHit = (r.album ?? "").toLowerCase().includes(term) ? 1 : 0;
-          return titleHit + albumHit;
+        return {
+          results,
+          correction: resp.correction,
+          broadResults: resp.broadResults,
+          acceptedStage: resp.acceptedStage,
         };
-        results = [...results].sort((a, b) => score(b) - score(a));
+      } catch (err) {
+        console.error("[search] cascade failed:", err);
+        return { results: [], correction: null, broadResults: false, acceptedStage: null };
       }
-
-      return { results, correction };
     },
     enabled: !!session && debounced.length > 1,
     staleTime: 1000 * 60 * 5,
