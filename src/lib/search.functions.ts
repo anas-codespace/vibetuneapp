@@ -14,7 +14,7 @@ import {
   type SearchStage,
   type SearchResultLite,
 } from "./search";
-import { searchTracks as spotifySearchTracks, type SpotifyPlayableResult, resolveToYoutube } from "./spotify.server";
+import { searchTracks as spotifySearchTracks, type SpotifyPlayableResult } from "./spotify.server";
 import { searchMusic } from "./youtube.server";
 
 async function runStage(stage: SearchStage, max: number): Promise<SpotifyPlayableResult[]> {
