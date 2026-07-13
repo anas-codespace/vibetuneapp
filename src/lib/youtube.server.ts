@@ -72,13 +72,13 @@ const OFFICIAL_LABEL_RE =
 /** Titles/keywords we down-rank. */
 const DOWNRANK_RE = /whatsapp\s*status|status\s*video|8d\s*audio|slowed|reverb|nightcore/i;
 
-/** Hard-block: non-song promo + fan-made lyric/status/mashup uploads. */
+/** Hard-block: only truly non-song content. Applied in every mode. */
 const FORBIDDEN_KEYWORDS_RE =
-  /trailer|teaser|promo|glimpse|making\s*of|sneak\s*peek|interview|announcement|first\s*look|behind\s*the\s*scenes|bts\s*video|fan\s*made|fanmade|whatsapp\s*status|\bstatus\b|lyrical\s*(video|whatsapp)?|lyric\s*video|\bmashup\b|\bremix\b|\bcover\b/i;
+  /\btrailer\b|\bteaser\b|\bpromo\b|\bglimpse\b|making\s*of|sneak\s*peek|\binterview\b|\bannouncement\b|first\s*look|behind\s*the\s*scenes|bts\s*video|\breaction\b/i;
 
-/** Quality Gate — low-quality keywords blocked regardless of channel. */
+/** Down-rank keywords blocked only in strict mode. Search UI falls back to relaxed. */
 const LOW_QUALITY_RE =
-  /\bstatus\b|whatsapp|\bedit\b|\bcover\b|\bmashup\b|\bremix\b|slowed|reverb|nightcore|8d\s*audio|ringtone|fan\s*made|fanmade/i;
+  /whatsapp\s*status|\bstatus\s*video\b|\bedit\b|\bmashup\b|slowed|reverb|nightcore|8d\s*audio|ringtone|fan\s*made|fanmade|lyric\s*video|lyrical\s*video/i;
 
 /** Quality Gate — high-quality keywords that signal a legitimate release. */
 const HIGH_QUALITY_RE =
