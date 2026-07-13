@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      feed_cache: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          payload: Json
+          section: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          payload: Json
+          section: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          payload?: Json
+          section?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      feed_errors: {
+        Row: {
+          context: Json | null
+          created_at: string
+          id: string
+          message: string
+          section: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          id?: string
+          message: string
+          section?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          id?: string
+          message?: string
+          section?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       liked_songs: {
         Row: {
           artist: string
@@ -361,12 +418,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_taste_profile: {
+        Row: {
+          artists: Json
+          created_at: string
+          discovery_openness: number
+          genres: Json
+          id: string
+          languages: Json
+          recomputed_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          artists?: Json
+          created_at?: string
+          discovery_openness?: number
+          genres?: Json
+          id?: string
+          languages?: Json
+          recomputed_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          artists?: Json
+          created_at?: string
+          discovery_openness?: number
+          genres?: Json
+          id?: string
+          languages?: Json
+          recomputed_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      recalculate_taste_profile: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
