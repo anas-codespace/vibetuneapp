@@ -448,20 +448,21 @@ async function searchMusicOnce(
   const filtered = durationFiltered.filter(({ v }) => {
     const t = v.snippet.title;
     if (FORBIDDEN_KEYWORDS_RE.test(t)) return false;
-    if (LOW_QUALITY_RE.test(t)) return false;
-    // Quality Gate: keep only titles that either signal a real release OR
+    if (!opts.relaxed && LOW_QUALITY_RE.test(t)) return false;
+    if (opts.relaxed) return true;
+    // Quality Gate (strict only): keep titles that signal a real release OR
     // originate from a verified channel.
     return HIGH_QUALITY_RE.test(t) || isOfficialChannel(v);
   });
 
   filtered.sort((a, b) => scoreVideo(b.v) - scoreVideo(a.v));
 
-  // Tiered whitelist strategy:
-  //   Layer 1 (priority): results from OFFICIAL_CHANNEL_IDS whitelist only.
-  //   Layer 2 (fallback): if Layer 1 < 3 results, append verified-quality
-  //                       channels (VEVO, "- Topic", label-name regex).
-  //   Layer 3 (safety):   if still empty, allow the general quality-gated pool.
-  // Political queries keep everything so anthems on party channels aren't lost.
+  // Tiered whitelist strategy (strict, non-political only):
+  //   Layer 1 (priority): OFFICIAL_CHANNEL_IDS whitelist.
+  //   Layer 2 (fallback): VEVO, "- Topic", label-name regex.
+  //   Layer 3 (safety):   general quality-gated pool.
+  // Relaxed mode and political queries skip tiering — every quality-filtered
+  // result is eligible, so common queries never collapse to zero.
   const tier1 = filtered.filter(({ v }) => officialIds.has(v.snippet.channelId));
   const tier2 = filtered.filter(
     ({ v }) =>
@@ -472,7 +473,7 @@ async function searchMusicOnce(
   );
 
   let finalPool: typeof filtered;
-  if (isPolitical) {
+  if (isPolitical || opts.relaxed) {
     finalPool = filtered;
   } else if (tier1.length >= 3) {
     finalPool = tier1;
