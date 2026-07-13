@@ -525,3 +525,69 @@ export async function relatedArtistNames(seedArtist: string, limit = 8): Promise
   }
   return out;
 }
+
+/**
+ * YouTube "mostPopular" chart, scoped to Music (categoryId=10) in a region.
+ * Returns embeddable tracks with duration between 60s and 900s (1–15 min)
+ * so we don't surface hour-long jukeboxes on the home feed.
+ *
+ * Retries with exponential backoff on 5xx / network errors (max 3 attempts).
+ * Throws on 4xx (misconfigured key / quota) so callers can serve cached data.
+ */
+export async function fetchTrendingNearYou(
+  regionCode: string = "IN",
+  maxResults: number = 25,
+): Promise<YTTrack[]> {
+  const url =
+    `${YT_BASE}/videos?part=snippet,contentDetails,status` +
+    `&chart=mostPopular&videoCategoryId=10` +
+    `&regionCode=${encodeURIComponent(regionCode)}` +
+    `&maxResults=${Math.min(Math.max(maxResults, 1), 50)}` +
+    `&key=${key()}`;
+
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        if (res.status >= 500) {
+          lastErr = new Error(`YT mostPopular ${res.status}`);
+        } else {
+          throw new Error(`YT mostPopular ${res.status}: ${await res.text().catch(() => "")}`);
+        }
+      } else {
+        const data = (await res.json()) as {
+          items: Array<{
+            id: string;
+            snippet: { title: string; channelTitle: string; thumbnails: { high?: { url: string }; medium?: { url: string } } };
+            contentDetails: { duration: string };
+            status: { embeddable: boolean };
+          }>;
+        };
+        const out: YTTrack[] = [];
+        for (const v of data.items ?? []) {
+          const seconds = isoDurationToSeconds(v.contentDetails.duration);
+          if (seconds < 60 || seconds > 900) continue;
+          if (!v.status.embeddable) continue;
+          out.push({
+            youtubeId: v.id,
+            title: cleanTitle(v.snippet.title),
+            artist: v.snippet.channelTitle.replace(/ *-? *Topic$/i, "").trim(),
+            album: parseAlbum(v.snippet.title),
+            thumbnailUrl: v.snippet.thumbnails.high?.url ?? v.snippet.thumbnails.medium?.url ?? "",
+            durationSeconds: seconds,
+            isEmbeddable: true,
+          });
+        }
+        return out;
+      }
+    } catch (err) {
+      lastErr = err;
+      // 4xx re-throws below; only retry transient failures.
+      if (err instanceof Error && /\b4\d\d\b/.test(err.message)) throw err;
+    }
+    await new Promise((r) => setTimeout(r, 250 * Math.pow(2, attempt)));
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("YT mostPopular failed");
+}
+
