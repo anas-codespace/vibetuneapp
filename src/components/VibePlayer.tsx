@@ -210,12 +210,20 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
             else if (e.data === 2) setIsPlaying(false);
             else if (e.data === 0) {
               setIsPlaying(false);
+              // Track ended naturally → flush as "completed" before switching.
+              nextEndReasonRef.current = "completed";
+              flushListenEvent("completed");
+              currentTrackRef.current = null;
+              startedAtRef.current = null;
               nextRef.current?.();
             }
           },
           onError: (e: any) => {
             // 2=invalid id, 5=HTML5, 100=removed, 101/150=embedding disabled
             console.warn("[VibePlayer] YouTube error", e?.data);
+            flushListenEvent("error");
+            currentTrackRef.current = null;
+            startedAtRef.current = null;
             nextRef.current?.();
           },
         },
