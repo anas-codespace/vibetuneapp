@@ -432,25 +432,30 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
 
   const next = useCallback(() => {
     if (!queue.length) return;
+    // If flush hasn't already fired (e.g. natural end), record why the transition happened.
+    flushListenEvent();
     const ni = (index + 1) % queue.length;
     const t = queue[ni];
     setIndex(ni);
     setCurrent(t);
     loadAndPlay(t.youtubeId);
+    beginTrack(t);
     logListenFn({ data: { youtubeId: t.youtubeId, title: t.title, artist: t.artist } }).catch(() => {});
     const remaining = queue.length - ni - 1;
     replenishQueue(remaining);
-  }, [index, queue, loadAndPlay, logListenFn, replenishQueue]);
+  }, [index, queue, loadAndPlay, logListenFn, replenishQueue, flushListenEvent, beginTrack]);
 
   const prev = useCallback(() => {
     if (!queue.length) return;
+    flushListenEvent("prev_pressed");
     const pi = (index - 1 + queue.length) % queue.length;
     const t = queue[pi];
     setIndex(pi);
     setCurrent(t);
     loadAndPlay(t.youtubeId);
+    beginTrack(t);
     logListenFn({ data: { youtubeId: t.youtubeId, title: t.title, artist: t.artist } }).catch(() => {});
-  }, [index, queue, loadAndPlay, logListenFn]);
+  }, [index, queue, loadAndPlay, logListenFn, flushListenEvent, beginTrack]);
 
   const nextRef = useRef(next);
   useEffect(() => { nextRef.current = next; }, [next]);
