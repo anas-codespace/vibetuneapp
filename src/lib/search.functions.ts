@@ -30,16 +30,21 @@ async function runStage(stage: SearchStage, max: number): Promise<SpotifyPlayabl
     const resolved = await Promise.all(
       spot.map(async (t) => {
         try {
-          const r = await resolveToYoutube(t);
-          if (!r) return null;
+          const primary = t.artists[0] ?? "";
+          const targetSec = Math.round(t.durationMs / 1000);
+          const yt = await searchMusic(`${primary} ${t.name} official audio`, 3);
+          if (yt.length === 0) return null;
+          const best = [...yt].sort(
+            (a, b) => Math.abs(a.durationSeconds - targetSec) - Math.abs(b.durationSeconds - targetSec),
+          )[0];
           return {
             spotifyId: t.id,
-            youtubeId: r.youtubeId,
+            youtubeId: best.youtubeId,
             title: t.name,
             artist: t.artists.join(", "),
             album: t.album,
             albumArt: t.albumArt,
-            durationSeconds: r.durationSeconds,
+            durationSeconds: best.durationSeconds || targetSec,
           } satisfies SpotifyPlayableResult;
         } catch {
           return null;
