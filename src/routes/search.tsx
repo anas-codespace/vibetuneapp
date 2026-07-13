@@ -55,7 +55,18 @@ function SearchPage() {
   const debounced = useDebounced(q.trim(), 320);
   const fn = useServerFn(spotifySearchPlayable);
   const ytFn = useServerFn(searchYouTubeWithCorrection);
+  const profileFn = useServerFn(getMyProfile);
   const { play, addToQueue } = usePlayer();
+
+  // Preferred language (from onboarding). Falls back to Tamil per directive.
+  const { data: profile } = useQuery({
+    queryKey: ["me", "profile", "search-language"],
+    queryFn: () => profileFn(),
+    enabled: !!session,
+    staleTime: 1000 * 60 * 10,
+  });
+  const preferredLanguage =
+    ((profile as { fav_languages?: string[] | null } | null)?.fav_languages?.[0] as string | undefined) ?? "Tamil";
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
 
