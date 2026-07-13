@@ -16,8 +16,8 @@ function formatDuration(seconds: number): string {
 }
 import { useAuth } from "@/hooks/use-auth";
 import { useOnboardingGate } from "@/hooks/use-onboarding-gate";
-import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
-import { searchYouTubeWithCorrection } from "@/lib/music.functions";
+import { type SpotifyPlayableResult } from "@/lib/spotify.functions";
+import { searchCascade } from "@/lib/search.functions";
 import { getMyProfile } from "@/lib/profile.functions";
 import { logSearchEvent, markSearchPlayed } from "@/lib/taste.functions";
 
