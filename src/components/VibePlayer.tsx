@@ -25,6 +25,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Slider } from "@/components/ui/slider";
 import { logListen } from "@/lib/profile.functions";
+import { logListenEvent } from "@/lib/taste.functions";
 import { getLikedIds, toggleLike } from "@/lib/library.functions";
 import { getSmartMix, getContextualQueue } from "@/lib/mix.functions";
 import { startAudioForeground, stopAudioForeground } from "@/lib/capacitor-audio";
@@ -113,8 +114,68 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   const readyRef = useRef<boolean>(false);
   const pendingRef = useRef<string | null>(null);
   const logListenFn = useServerFn(logListen);
+  const logListenEventFn = useServerFn(logListenEvent);
   const mixFn = useServerFn(getSmartMix);
   const contextFn = useServerFn(getContextualQueue);
+
+  /**
+   * Track-in-progress state used to emit a rich `listening_events` row when
+   * a track ends or is replaced. Kept as refs so it never triggers renders.
+   */
+  const currentTrackRef = useRef<VibeTrack | null>(null);
+  const startedAtRef = useRef<string | null>(null);
+  const lastProgressMsRef = useRef<number>(0);
+  const lastDurationMsRef = useRef<number>(0);
+  const nextEndReasonRef = useRef<
+    "completed" | "next_pressed" | "prev_pressed" | "error" | "abandoned"
+  >("abandoned");
+
+  /**
+   * Emit a listening_events row for the *previous* track before replacing it.
+   * Called from every transition (next/prev/jump/play/error/completed).
+   */
+  const flushListenEvent = useCallback(
+    (reasonHint?: "completed" | "next_pressed" | "prev_pressed" | "error") => {
+      const prev = currentTrackRef.current;
+      const startedAt = startedAtRef.current;
+      if (!prev || !startedAt) return;
+      const listenedMs = Math.max(0, Math.floor(lastProgressMsRef.current));
+      const trackMs = Math.max(0, Math.floor(lastDurationMsRef.current));
+      const ratio = trackMs > 0 ? listenedMs / trackMs : 0;
+      let endReason: "completed" | "skipped_early" | "skipped_late" | "next_pressed" | "prev_pressed" | "error" | "abandoned";
+      const hint = reasonHint ?? nextEndReasonRef.current;
+      if (hint === "completed") endReason = "completed";
+      else if (hint === "error") endReason = "error";
+      else if (ratio >= 0.8) endReason = "skipped_late";
+      else if (listenedMs < 5000 || ratio < 0.15) endReason = "skipped_early";
+      else endReason = hint;
+      const hourLocal = new Date().getHours();
+      logListenEventFn({
+        data: {
+          youtubeId: prev.youtubeId,
+          title: prev.title,
+          artist: prev.artist,
+          startedAt,
+          listenedMs,
+          trackMs,
+          endReason,
+          source: "queue",
+          contextLang: null,
+          hourLocal,
+        },
+      }).catch(() => {});
+    },
+    [logListenEventFn],
+  );
+
+  /** Reset the per-track counters when a new track starts playing. */
+  const beginTrack = useCallback((track: VibeTrack) => {
+    currentTrackRef.current = track;
+    startedAtRef.current = new Date().toISOString();
+    lastProgressMsRef.current = 0;
+    lastDurationMsRef.current = (track.durationSeconds ?? 0) * 1000;
+    nextEndReasonRef.current = "abandoned";
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,12 +210,20 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
             else if (e.data === 2) setIsPlaying(false);
             else if (e.data === 0) {
               setIsPlaying(false);
+              // Track ended naturally → flush as "completed" before switching.
+              nextEndReasonRef.current = "completed";
+              flushListenEvent("completed");
+              currentTrackRef.current = null;
+              startedAtRef.current = null;
               nextRef.current?.();
             }
           },
           onError: (e: any) => {
             // 2=invalid id, 5=HTML5, 100=removed, 101/150=embedding disabled
             console.warn("[VibePlayer] YouTube error", e?.data);
+            flushListenEvent("error");
+            currentTrackRef.current = null;
+            startedAtRef.current = null;
             nextRef.current?.();
           },
         },
@@ -173,8 +242,14 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
       const p = playerRef.current;
       if (!p || typeof p.getCurrentTime !== "function") return;
       try {
-        setProgress(p.getCurrentTime() ?? 0);
-        setDuration(p.getDuration() ?? 0);
+        const cur = p.getCurrentTime() ?? 0;
+        const dur = p.getDuration() ?? 0;
+        setProgress(cur);
+        setDuration(dur);
+        // Also mirror into refs so flushListenEvent has the latest values
+        // without depending on React state batching.
+        lastProgressMsRef.current = cur * 1000;
+        if (dur > 0) lastDurationMsRef.current = dur * 1000;
       } catch { /* noop */ }
     }, 250);
     return () => {
@@ -218,6 +293,8 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   }, [contextFn]);
 
   const play = useCallback((track: VibeTrack, q?: VibeTrack[]) => {
+    // Emit the previous track's outcome (user swapped songs mid-play).
+    flushListenEvent("next_pressed");
     const newQueue = q ?? [track];
     const idx = newQueue.findIndex((t) => t.youtubeId === track.youtubeId);
     setQueue(newQueue);
@@ -225,27 +302,30 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     setCurrent(track);
     setMixMode(false);
     loadAndPlay(track.youtubeId);
+    beginTrack(track);
     logListenFn({
       data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
     }).catch(() => {});
     startAudioForeground();
     // Context-aware auto-queue: append related tracks in the background
     autoPopulateQueue(track);
-  }, [loadAndPlay, logListenFn, autoPopulateQueue]);
+  }, [loadAndPlay, logListenFn, autoPopulateQueue, flushListenEvent, beginTrack]);
 
 
   const startMix = useCallback((tracks: VibeTrack[]) => {
     if (tracks.length === 0) return;
+    flushListenEvent("next_pressed");
     setMixMode(true);
     setQueue(tracks);
     setIndex(0);
     setCurrent(tracks[0]);
     loadAndPlay(tracks[0].youtubeId);
+    beginTrack(tracks[0]);
     logListenFn({
       data: { youtubeId: tracks[0].youtubeId, title: tracks[0].title, artist: tracks[0].artist },
     }).catch(() => {});
     startAudioForeground();
-  }, [loadAndPlay, logListenFn]);
+  }, [loadAndPlay, logListenFn, flushListenEvent, beginTrack]);
 
   const addToQueue = useCallback((track: VibeTrack) => {
     setCurrent((cur) => {
@@ -255,6 +335,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
         setIndex(0);
         setMixMode(false);
         loadAndPlay(track.youtubeId);
+        beginTrack(track);
         logListenFn({
           data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
         }).catch(() => {});
@@ -266,7 +347,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
       toast.success("Added to queue");
       return cur;
     });
-  }, [loadAndPlay, logListenFn]);
+  }, [loadAndPlay, logListenFn, beginTrack]);
 
   const removeFromQueue = useCallback((removeIdx: number) => {
     setQueue((q) => {
@@ -300,16 +381,18 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
       const insertAt = index + 1;
       next.splice(insertAt, 0, chosen);
       const newIdx = insertAt;
+      flushListenEvent("next_pressed");
       setIndex(newIdx);
       setCurrent(chosen);
       loadAndPlay(chosen.youtubeId);
+      beginTrack(chosen);
       logListenFn({
         data: { youtubeId: chosen.youtubeId, title: chosen.title, artist: chosen.artist },
       }).catch(() => {});
       startAudioForeground();
       return next;
     });
-  }, [index, loadAndPlay, logListenFn]);
+  }, [index, loadAndPlay, logListenFn, flushListenEvent, beginTrack]);
 
 
   // Auto-replenish: when mix mode is on and queue is running low, fetch more tracks
@@ -349,25 +432,30 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
 
   const next = useCallback(() => {
     if (!queue.length) return;
+    // If flush hasn't already fired (e.g. natural end), record why the transition happened.
+    flushListenEvent();
     const ni = (index + 1) % queue.length;
     const t = queue[ni];
     setIndex(ni);
     setCurrent(t);
     loadAndPlay(t.youtubeId);
+    beginTrack(t);
     logListenFn({ data: { youtubeId: t.youtubeId, title: t.title, artist: t.artist } }).catch(() => {});
     const remaining = queue.length - ni - 1;
     replenishQueue(remaining);
-  }, [index, queue, loadAndPlay, logListenFn, replenishQueue]);
+  }, [index, queue, loadAndPlay, logListenFn, replenishQueue, flushListenEvent, beginTrack]);
 
   const prev = useCallback(() => {
     if (!queue.length) return;
+    flushListenEvent("prev_pressed");
     const pi = (index - 1 + queue.length) % queue.length;
     const t = queue[pi];
     setIndex(pi);
     setCurrent(t);
     loadAndPlay(t.youtubeId);
+    beginTrack(t);
     logListenFn({ data: { youtubeId: t.youtubeId, title: t.title, artist: t.artist } }).catch(() => {});
-  }, [index, queue, loadAndPlay, logListenFn]);
+  }, [index, queue, loadAndPlay, logListenFn, flushListenEvent, beginTrack]);
 
   const nextRef = useRef(next);
   useEffect(() => { nextRef.current = next; }, [next]);
