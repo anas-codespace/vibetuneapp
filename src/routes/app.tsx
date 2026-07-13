@@ -47,6 +47,7 @@ function AppHome() {
   const profileFn = useServerFn(getMyProfile);
   const tracksFn = useServerFn(tracksForArtists);
   const trendingFn = useServerFn(searchYouTubeOnly);
+  const trendingNearFn = useServerFn(getTrendingNearYou);
   const { play, startMix } = usePlayer();
   
   const [moodOpen, setMoodOpen] = useState(false);
