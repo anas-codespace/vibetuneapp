@@ -10,6 +10,7 @@ import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { getMyProfile } from "@/lib/profile.functions";
 import { tracksForArtists, searchYouTubeOnly } from "@/lib/music.functions";
 import { getSmartMix } from "@/lib/mix.functions";
+import { getTrendingNearYou } from "@/lib/trending.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 import { FALLBACK_TRACKS } from "@/data/fallbackTracks";
@@ -46,6 +47,7 @@ function AppHome() {
   const profileFn = useServerFn(getMyProfile);
   const tracksFn = useServerFn(tracksForArtists);
   const trendingFn = useServerFn(searchYouTubeOnly);
+  const trendingNearFn = useServerFn(getTrendingNearYou);
   const { play, startMix } = usePlayer();
   
   const [moodOpen, setMoodOpen] = useState(false);
@@ -117,6 +119,30 @@ function AppHome() {
     staleTime: 1000 * 60 * 30,
   });
 
+  const { data: trendingNear, isLoading: trendingNearLoading } = useQuery({
+    queryKey: ["trending-near-you", "IN"],
+    queryFn: async () => {
+      try {
+        const res = await trendingNearFn({ data: { regionCode: "IN", max: 25 } });
+        if (res.stale) {
+          console.warn("[trending-near-you] serving stale cache", {
+            source: res.source,
+            ageMs: Date.now() - res.fetchedAt,
+          });
+        }
+        return res.tracks;
+      } catch (err) {
+        console.error("[trending-near-you] failed:", err);
+        return [];
+      }
+    },
+    enabled: !!session,
+    staleTime: 1000 * 60 * 30,
+    retry: 2,
+  });
+
+
+
 
   const mixFn = useServerFn(getSmartMix);
 
@@ -149,6 +175,7 @@ function AppHome() {
 
   const list: VibeTrack[] = (tracks ?? []).map(mapTrack);
   const trendingList: VibeTrack[] = (trending ?? []).map(mapTrack);
+  const trendingNearList: VibeTrack[] = (trendingNear ?? []).map(mapTrack);
 
   // Bulletproof: if both live sources are empty (post-load), use static fallback.
   const primary: VibeTrack[] =
@@ -290,6 +317,12 @@ function AppHome() {
         {/* Horizontal sections */}
         {renderCarousel("Suggested For You", suggestedForYou, (t) => `Mix • ${t.artist}`)}
         {renderCarousel("Trending Now", trendingNow, (t) => t.artist || "Trending", trendingLoading)}
+        {renderCarousel(
+          "Trending near you",
+          trendingNearList.length > 0 ? trendingNearList.slice(0, 20) : trendingNow,
+          (t) => t.artist || "Trending in IN",
+          trendingNearLoading,
+        )}
         {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`)}
         {renderCarousel("New Releases", newReleases, (t) => t.artist)}
 
