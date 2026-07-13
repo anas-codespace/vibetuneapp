@@ -19,6 +19,7 @@ import { useOnboardingGate } from "@/hooks/use-onboarding-gate";
 import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
 import { searchYouTubeWithCorrection } from "@/lib/music.functions";
 import { getMyProfile } from "@/lib/profile.functions";
+import { logSearchEvent, markSearchPlayed } from "@/lib/taste.functions";
 
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { HorizontalCarousel } from "@/components/HorizontalCarousel";
