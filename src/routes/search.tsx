@@ -358,6 +358,17 @@ function SearchPage() {
           </div>
         )}
 
+        {debounced && !isFetching && broadResults && results.length > 0 && (
+          <div
+            role="status"
+            className="mt-4 rounded-lg border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100/90"
+          >
+            Showing broader results for &ldquo;{debounced}&rdquo; — we couldn&rsquo;t find an exact match.
+          </div>
+        )}
+
+
+
 
 
         <AnimatePresence>
