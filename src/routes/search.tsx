@@ -148,15 +148,18 @@ function SearchPage() {
         }
       }
 
-      // Task 2: Client-side relevance sort — titles containing the search term win.
+      // Task 3: Client-side relevance sort — tracks whose title or album contain
+      // the query win, pushing unrelated semantic matches down.
       const term = raw.toLowerCase();
       if (term) {
-        results = [...results].sort((a, b) => {
-          const aHit = a.title.toLowerCase().includes(term) ? 1 : 0;
-          const bHit = b.title.toLowerCase().includes(term) ? 1 : 0;
-          return bHit - aHit;
-        });
+        const score = (r: SpotifyPlayableResult) => {
+          const titleHit = r.title.toLowerCase().includes(term) ? 2 : 0;
+          const albumHit = (r.album ?? "").toLowerCase().includes(term) ? 1 : 0;
+          return titleHit + albumHit;
+        };
+        results = [...results].sort((a, b) => score(b) - score(a));
       }
+
       return { results, correction };
     },
     enabled: !!session && debounced.length > 1,

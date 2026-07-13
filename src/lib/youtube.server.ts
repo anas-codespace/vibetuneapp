@@ -271,7 +271,7 @@ function bestCorrection(original: string, candidates: string[], minSim = 0.55): 
  *   4. Levenshtein-scored YouTube autocomplete suggestion.
  */
 export interface SearchOptions {
-  /** Wrap the user query in double quotes to force exact phrase match on the provider. */
+  /** @deprecated Kept for API compatibility; strict phrase quoting was too aggressive. */
   exactMatch?: boolean;
   /** Preferred language/industry to append (e.g. "Tamil"). Prevents cross-language drift. */
   language?: string;
@@ -285,19 +285,29 @@ export async function searchMusicWithCorrection(
   const original = query.trim();
   if (!original) return { tracks: [], correctedQuery: null };
 
-  const optKey = `${opts.exactMatch ? "x" : "_"}::${(opts.language ?? "").toLowerCase()}`;
+  const optKey = `${(opts.language ?? "").toLowerCase()}`;
   const cacheKey = `${CACHE_VERSION}::tolerant::${optKey}::${original.toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return { tracks: cached, correctedQuery: null };
 
-  // Attempt 1: raw query.
-  const rawHit = await searchMusicOnce(original, maxResults, opts);
-  if (rawHit.length > 0) {
-    SEARCH_CACHE.set(cacheKey, rawHit);
-    return { tracks: rawHit, correctedQuery: null };
+  // ── Hybrid cascade ──
+  // Attempt 1: contextual (language suffix appended). Broad, not strict-quoted.
+  // Attempt 2: raw query with no language suffix — recovers global/single-word hits ("hukum").
+  const attempt1 = await searchMusicOnce(original, maxResults, opts);
+  if (attempt1.length > 0) {
+    SEARCH_CACHE.set(cacheKey, attempt1);
+    return { tracks: attempt1, correctedQuery: null };
   }
 
-  // Attempts 2–3: transliteration + trim-last-char.
+  if (opts.language) {
+    const attempt2 = await searchMusicOnce(original, maxResults, { ...opts, language: undefined });
+    if (attempt2.length > 0) {
+      SEARCH_CACHE.set(cacheKey, attempt2);
+      return { tracks: attempt2, correctedQuery: null };
+    }
+  }
+
+  // Attempts 3–4: transliteration + trim-last-char (surface as "did you mean").
   const secondary: string[] = [];
   for (const v of transliterationVariants(original)) if (v !== original) secondary.push(v);
   if (original.length > 3) secondary.push(original.slice(0, -1));
@@ -310,7 +320,7 @@ export async function searchMusicWithCorrection(
     }
   }
 
-  // Attempt 4: YouTube autocomplete + Levenshtein scoring.
+  // Attempt 5: YouTube autocomplete + Levenshtein scoring.
   const suggestions = await ytSuggestions(original);
   const corrected = bestCorrection(original, suggestions);
   if (corrected) {
@@ -323,6 +333,7 @@ export async function searchMusicWithCorrection(
 
   return { tracks: [], correctedQuery: null };
 }
+
 
 /** Back-compat wrapper — tracks only. */
 export async function searchMusic(
@@ -347,7 +358,7 @@ async function searchMusicOnce(
   maxResults = 30,
   opts: SearchOptions = {},
 ): Promise<YTTrack[]> {
-  const optKey = `${opts.exactMatch ? "x" : "_"}::${(opts.language ?? "").toLowerCase()}`;
+  const optKey = `${(opts.language ?? "").toLowerCase()}`;
   const cacheKey = `${CACHE_VERSION}::${optKey}::${query.trim().toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return cached;
@@ -357,13 +368,11 @@ async function searchMusicOnce(
   const expansion = KEYWORD_EXPANSIONS[lowered];
   const isPolitical = !!expansion || POLITICAL_RE.test(query);
 
-  // Tasks 1 & 2 (System Directive): force EXACT match by wrapping the raw user
-  // term in double quotes, and inject a regional/language context so global
-  // APIs stop drifting to the wrong industry (e.g. Hindi results for a Tamil
-  // transliterated query). Skip when the caller already supplies a fully
-  // composed query (Spotify per-track resolves via `${artist} ${name} ...`).
-  const rawUserTerm = opts.exactMatch ? `"${query.trim()}"` : query;
-  const langSuffix = opts.language ? ` ${opts.language} song` : "";
+  // Hybrid cascade: drop the strict double-quote wrapping (was breaking single-word
+  // queries like "hukum"). Append a light language context — the outer cascade
+  // retries without it if this attempt returns 0.
+  const rawUserTerm = query.trim();
+  const langSuffix = opts.language ? ` ${opts.language}` : "";
 
   // Task 3: For political/campaign queries prefer "official song OR anthem"
   // (broader than "official audio", which was hiding campaign uploads).
@@ -373,6 +382,7 @@ async function searchMusicOnce(
       ? `${rawUserTerm} official song anthem${langSuffix}`
       : `${rawUserTerm} official audio${langSuffix}`;
   const q = `${base} ${QUERY_NEGATIVES}`.trim();
+
 
   // Political anthems are often uploaded under People/Politics (25) or News (25),
   // not Music (10). Drop the category restriction for those queries.
