@@ -57,6 +57,9 @@ function SearchPage() {
   const fn = useServerFn(spotifySearchPlayable);
   const ytFn = useServerFn(searchYouTubeWithCorrection);
   const profileFn = useServerFn(getMyProfile);
+  const logSearchFn = useServerFn(logSearchEvent);
+  const markSearchPlayedFn = useServerFn(markSearchPlayed);
+  const [lastSearchEventId, setLastSearchEventId] = useState<string | null>(null);
   const { play, addToQueue } = usePlayer();
 
   // Preferred language (from onboarding). Falls back to Tamil per directive.
