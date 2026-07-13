@@ -275,6 +275,13 @@ export interface SearchOptions {
   exactMatch?: boolean;
   /** Preferred language/industry to append (e.g. "Tamil"). Prevents cross-language drift. */
   language?: string;
+  /**
+   * Relaxed mode: keep FORBIDDEN block (trailer/teaser/promo/etc), but skip the
+   * LOW_QUALITY block, the HIGH_QUALITY gate, and the tiered whitelist. Used as
+   * an automatic fallback when strict mode returns 0 results, so common queries
+   * ("tum hi ho") and long-tail artists never collapse to an empty carousel.
+   */
+  relaxed?: boolean;
 }
 
 export async function searchMusicWithCorrection(
