@@ -381,16 +381,18 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
       const insertAt = index + 1;
       next.splice(insertAt, 0, chosen);
       const newIdx = insertAt;
+      flushListenEvent("next_pressed");
       setIndex(newIdx);
       setCurrent(chosen);
       loadAndPlay(chosen.youtubeId);
+      beginTrack(chosen);
       logListenFn({
         data: { youtubeId: chosen.youtubeId, title: chosen.title, artist: chosen.artist },
       }).catch(() => {});
       startAudioForeground();
       return next;
     });
-  }, [index, loadAndPlay, logListenFn]);
+  }, [index, loadAndPlay, logListenFn, flushListenEvent, beginTrack]);
 
 
   // Auto-replenish: when mix mode is on and queue is running low, fetch more tracks
