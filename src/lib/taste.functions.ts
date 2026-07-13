@@ -159,7 +159,7 @@ export const getTasteProfile = createServerFn({ method: "GET" })
     if (cached && cached.profile && cached.computed_at) {
       const ageMs = Date.now() - new Date(cached.computed_at).getTime();
       if (ageMs < CACHE_TTL_MS) {
-        return cached.profile as TasteProfile;
+        return cached.profile as unknown as TasteProfile;
       }
     }
 
