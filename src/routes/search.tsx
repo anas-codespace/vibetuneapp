@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useOnboardingGate } from "@/hooks/use-onboarding-gate";
 import { spotifySearchPlayable, type SpotifyPlayableResult } from "@/lib/spotify.functions";
 import { searchYouTubeWithCorrection } from "@/lib/music.functions";
+import { getMyProfile } from "@/lib/profile.functions";
 
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { HorizontalCarousel } from "@/components/HorizontalCarousel";
@@ -54,7 +55,18 @@ function SearchPage() {
   const debounced = useDebounced(q.trim(), 320);
   const fn = useServerFn(spotifySearchPlayable);
   const ytFn = useServerFn(searchYouTubeWithCorrection);
+  const profileFn = useServerFn(getMyProfile);
   const { play, addToQueue } = usePlayer();
+
+  // Preferred language (from onboarding). Falls back to Tamil per directive.
+  const { data: profile } = useQuery({
+    queryKey: ["me", "profile", "search-language"],
+    queryFn: () => profileFn(),
+    enabled: !!session,
+    staleTime: 1000 * 60 * 10,
+  });
+  const preferredLanguage =
+    ((profile as { fav_languages?: string[] | null } | null)?.fav_languages?.[0] as string | undefined) ?? "Tamil";
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
 
@@ -90,40 +102,47 @@ function SearchPage() {
   const clearHistory = () => setSearchHistory([]);
 
   const { data, isFetching, error } = useQuery({
-    queryKey: ["search", debounced],
+    queryKey: ["search", debounced, preferredLanguage],
     queryFn: async (): Promise<{ results: SpotifyPlayableResult[]; correction: string | null }> => {
-      // Task 1: Strict-match query — send the user's term as-is (no " songs"
-      // suffix, which was matching irrelevant compilations). The backend now
-      // appends "official" and category=Music.
+      // Tasks 1 & 2 (System Directive): send the user's term as-is. The backend
+      // now wraps it in double quotes for exact match and appends the user's
+      // language context (defaults to Tamil) before hitting Spotify/YouTube.
       const raw = debounced;
 
       let results: SpotifyPlayableResult[] = [];
       let correction: string | null = null;
       try {
-        results = (await fn({ data: { query: raw, max: 24 } })) ?? [];
+        results = (await fn({ data: { query: raw, max: 24, language: preferredLanguage } })) ?? [];
       } catch (err) {
         console.error("[search] Spotify search failed:", err);
       }
-      console.log("[search] API Response (primary):", { query: raw, count: results.length });
+      console.log("[search] API Response (primary):", { query: raw, count: results.length, language: preferredLanguage });
 
-      // Fallback — if primary returns 0, try YouTube-only with typo-tolerant
-      // correction (transliteration → trim → Levenshtein autocomplete).
+      // Fallback — if the exact-match primary returns 0, try the YouTube path.
+      // Task 3 (System Directive): DO NOT auto-swap in results from a corrected
+      // ("did you mean") term. Only surface the suggestion as text so the user
+      // can opt-in explicitly.
       if (results.length === 0) {
         const broad = raw.replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
         try {
-          const yt = await ytFn({ data: { query: broad || raw, max: 20 } });
+          const yt = await ytFn({ data: { query: broad || raw, max: 20, language: preferredLanguage } });
           const tracks = yt?.tracks ?? [];
           correction = yt?.correctedQuery ?? null;
           console.log("[search] API Response (fallback YT):", { query: broad, count: tracks.length, correction });
-          results = tracks.map((t): SpotifyPlayableResult => ({
-            spotifyId: `yt:${t.youtubeId}`,
-            youtubeId: t.youtubeId,
-            title: t.title,
-            artist: t.artist,
-            album: t.album ?? "",
-            albumArt: t.thumbnailUrl ?? null,
-            durationSeconds: t.durationSeconds,
-          }));
+          if (!correction) {
+            // Exact match on YT succeeded — safe to render.
+            results = tracks.map((t): SpotifyPlayableResult => ({
+              spotifyId: `yt:${t.youtubeId}`,
+              youtubeId: t.youtubeId,
+              title: t.title,
+              artist: t.artist,
+              album: t.album ?? "",
+              albumArt: t.thumbnailUrl ?? null,
+              durationSeconds: t.durationSeconds,
+            }));
+          }
+          // If a correction was returned, keep results empty and let the UI
+          // render a "Did you mean …?" hint the user can tap manually.
         } catch (err) {
           console.error("[search] YT fallback failed:", err);
         }
@@ -293,8 +312,21 @@ function SearchPage() {
           </div>
         )}
         {debounced && !isFetching && !error && results.length === 0 && (
-          <div className="text-white/50 text-center py-20">
-            No songs found. Try a different artist or movie.
+          <div className="text-white/60 text-center py-20 space-y-3">
+            <div>No exact matches for &ldquo;{debounced}&rdquo;.</div>
+            {correction && (
+              <div className="text-sm text-white/70">
+                Did you mean{" "}
+                <button
+                  type="button"
+                  onClick={() => setQ(correction)}
+                  className="font-semibold text-white underline decoration-white/40 underline-offset-2 hover:decoration-white"
+                >
+                  {correction}
+                </button>
+                ?
+              </div>
+            )}
           </div>
         )}
 

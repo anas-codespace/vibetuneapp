@@ -270,19 +270,28 @@ function bestCorrection(original: string, candidates: string[], minSim = 0.55): 
  *   3. Trim-last-char (single-typo tail).
  *   4. Levenshtein-scored YouTube autocomplete suggestion.
  */
+export interface SearchOptions {
+  /** Wrap the user query in double quotes to force exact phrase match on the provider. */
+  exactMatch?: boolean;
+  /** Preferred language/industry to append (e.g. "Tamil"). Prevents cross-language drift. */
+  language?: string;
+}
+
 export async function searchMusicWithCorrection(
   query: string,
   maxResults = 30,
+  opts: SearchOptions = {},
 ): Promise<{ tracks: YTTrack[]; correctedQuery: string | null }> {
   const original = query.trim();
   if (!original) return { tracks: [], correctedQuery: null };
 
-  const cacheKey = `${CACHE_VERSION}::tolerant::${original.toLowerCase()}::${maxResults}`;
+  const optKey = `${opts.exactMatch ? "x" : "_"}::${(opts.language ?? "").toLowerCase()}`;
+  const cacheKey = `${CACHE_VERSION}::tolerant::${optKey}::${original.toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return { tracks: cached, correctedQuery: null };
 
   // Attempt 1: raw query.
-  const rawHit = await searchMusicOnce(original, maxResults);
+  const rawHit = await searchMusicOnce(original, maxResults, opts);
   if (rawHit.length > 0) {
     SEARCH_CACHE.set(cacheKey, rawHit);
     return { tracks: rawHit, correctedQuery: null };
@@ -294,7 +303,7 @@ export async function searchMusicWithCorrection(
   if (original.length > 3) secondary.push(original.slice(0, -1));
 
   for (const attempt of secondary) {
-    const tracks = await searchMusicOnce(attempt, maxResults);
+    const tracks = await searchMusicOnce(attempt, maxResults, opts);
     if (tracks.length > 0) {
       SEARCH_CACHE.set(cacheKey, tracks);
       return { tracks, correctedQuery: attempt };
@@ -305,7 +314,7 @@ export async function searchMusicWithCorrection(
   const suggestions = await ytSuggestions(original);
   const corrected = bestCorrection(original, suggestions);
   if (corrected) {
-    const tracks = await searchMusicOnce(corrected, maxResults);
+    const tracks = await searchMusicOnce(corrected, maxResults, opts);
     if (tracks.length > 0) {
       SEARCH_CACHE.set(cacheKey, tracks);
       return { tracks, correctedQuery: corrected };
@@ -316,8 +325,12 @@ export async function searchMusicWithCorrection(
 }
 
 /** Back-compat wrapper — tracks only. */
-export async function searchMusic(query: string, maxResults = 30): Promise<YTTrack[]> {
-  const { tracks } = await searchMusicWithCorrection(query, maxResults);
+export async function searchMusic(
+  query: string,
+  maxResults = 30,
+  opts: SearchOptions = {},
+): Promise<YTTrack[]> {
+  const { tracks } = await searchMusicWithCorrection(query, maxResults, opts);
   return tracks;
 }
 
@@ -329,8 +342,13 @@ export async function searchMusic(query: string, maxResults = 30): Promise<YTTra
  * Filters: 60s <= duration <= 600s and embeddable.
  * Sort:    Official channels/titles first via scoreVideo().
  */
-async function searchMusicOnce(query: string, maxResults = 30): Promise<YTTrack[]> {
-  const cacheKey = `${CACHE_VERSION}::${query.trim().toLowerCase()}::${maxResults}`;
+async function searchMusicOnce(
+  query: string,
+  maxResults = 30,
+  opts: SearchOptions = {},
+): Promise<YTTrack[]> {
+  const optKey = `${opts.exactMatch ? "x" : "_"}::${(opts.language ?? "").toLowerCase()}`;
+  const cacheKey = `${CACHE_VERSION}::${optKey}::${query.trim().toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return cached;
 
@@ -339,13 +357,21 @@ async function searchMusicOnce(query: string, maxResults = 30): Promise<YTTrack[
   const expansion = KEYWORD_EXPANSIONS[lowered];
   const isPolitical = !!expansion || POLITICAL_RE.test(query);
 
+  // Tasks 1 & 2 (System Directive): force EXACT match by wrapping the raw user
+  // term in double quotes, and inject a regional/language context so global
+  // APIs stop drifting to the wrong industry (e.g. Hindi results for a Tamil
+  // transliterated query). Skip when the caller already supplies a fully
+  // composed query (Spotify per-track resolves via `${artist} ${name} ...`).
+  const rawUserTerm = opts.exactMatch ? `"${query.trim()}"` : query;
+  const langSuffix = opts.language ? ` ${opts.language} song` : "";
+
   // Task 3: For political/campaign queries prefer "official song OR anthem"
   // (broader than "official audio", which was hiding campaign uploads).
   const base = expansion
     ? expansion
     : isPolitical
-      ? `${query} official song anthem`
-      : `${query} official audio`;
+      ? `${rawUserTerm} official song anthem${langSuffix}`
+      : `${rawUserTerm} official audio${langSuffix}`;
   const q = `${base} ${QUERY_NEGATIVES}`.trim();
 
   // Political anthems are often uploaded under People/Politics (25) or News (25),
