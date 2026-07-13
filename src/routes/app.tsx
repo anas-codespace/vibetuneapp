@@ -175,6 +175,7 @@ function AppHome() {
 
   const list: VibeTrack[] = (tracks ?? []).map(mapTrack);
   const trendingList: VibeTrack[] = (trending ?? []).map(mapTrack);
+  const trendingNearList: VibeTrack[] = (trendingNear ?? []).map(mapTrack);
 
   // Bulletproof: if both live sources are empty (post-load), use static fallback.
   const primary: VibeTrack[] =
