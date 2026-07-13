@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { setSyncStatus } from "@/hooks/use-sync-status";
+import { getSpotifyRedirectUri } from "@/lib/spotifyRedirect";
+
 
 
 export const Route = createFileRoute("/settings/spotify")({
@@ -181,10 +183,16 @@ function SpotifySettings() {
 
   const connectMut = useMutation({
     mutationFn: async () => {
-      const redirectUri = `${window.location.origin}/spotify/callback`;
+      const redirectUri = getSpotifyRedirectUri();
+      // TEMP DEBUG: verify this EXACTLY matches your Spotify Dashboard entry.
+      // Compare character-by-character (trailing slash, http vs https, subdomain).
+      console.log("[spotify-oauth] redirect_uri being sent to Spotify:", JSON.stringify(redirectUri));
+      console.log("[spotify-oauth] window.location.origin:", window.location.origin);
+      console.log("[spotify-oauth] VITE_SPOTIFY_REDIRECT_URI env:", import.meta.env.VITE_SPOTIFY_REDIRECT_URI ?? "(not set — using origin fallback)");
       const { url, state } = await getAuthUrl({ data: { redirectUri } });
       persistState(state, redirectUri);
       setPendingAuthUrl(url);
+
 
       // Spotify's auth page sends X-Frame-Options: DENY, so it cannot render inside
       // any iframe (including the Lovable preview). Try to escape to the top-level
