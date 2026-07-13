@@ -317,6 +317,12 @@ function AppHome() {
         {/* Horizontal sections */}
         {renderCarousel("Suggested For You", suggestedForYou, (t) => `Mix • ${t.artist}`)}
         {renderCarousel("Trending Now", trendingNow, (t) => t.artist || "Trending", trendingLoading)}
+        {renderCarousel(
+          "Trending near you",
+          trendingNearList.length > 0 ? trendingNearList.slice(0, 20) : trendingNow,
+          (t) => t.artist || "Trending in IN",
+          trendingNearLoading,
+        )}
         {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`)}
         {renderCarousel("New Releases", newReleases, (t) => t.artist)}
 
