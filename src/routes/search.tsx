@@ -312,8 +312,21 @@ function SearchPage() {
           </div>
         )}
         {debounced && !isFetching && !error && results.length === 0 && (
-          <div className="text-white/50 text-center py-20">
-            No songs found. Try a different artist or movie.
+          <div className="text-white/60 text-center py-20 space-y-3">
+            <div>No exact matches for &ldquo;{debounced}&rdquo;.</div>
+            {correction && (
+              <div className="text-sm text-white/70">
+                Did you mean{" "}
+                <button
+                  type="button"
+                  onClick={() => setQ(correction)}
+                  className="font-semibold text-white underline decoration-white/40 underline-offset-2 hover:decoration-white"
+                >
+                  {correction}
+                </button>
+                ?
+              </div>
+            )}
           </div>
         )}
 
