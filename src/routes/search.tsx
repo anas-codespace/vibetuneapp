@@ -393,7 +393,7 @@ function SearchPage() {
                 </span>
               </h2>
               <button
-                onClick={() => play(toVibe(top), vibeTracks)}
+                onClick={() => playFromSearch(toVibe(top), vibeTracks)}
                 className="group relative flex w-full items-center gap-5 overflow-hidden rounded-xl border border-white/10 bg-white/5 p-5 text-left transition hover:bg-white/[0.08] active:scale-[0.99]"
               >
                 <div className="h-32 w-32 shrink-0 overflow-hidden rounded-lg shadow-[0_16px_40px_-12px_rgba(0,0,0,0.9)]">
@@ -436,7 +436,7 @@ function SearchPage() {
                   <button
                     key={a.artist}
                     data-carousel-item
-                    onClick={() => play(toVibe(a), vibeTracks)}
+                    onClick={() => playFromSearch(toVibe(a), vibeTracks)}
                     className="group flex w-24 shrink-0 snap-start flex-col items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-md"
                   >
                     <div className="aspect-square w-24 overflow-hidden rounded-full ring-1 ring-white/10 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] transition-transform group-hover:scale-[1.03] group-focus-visible:scale-[1.03]">
@@ -468,7 +468,7 @@ function SearchPage() {
                   <li key={t.youtubeId}>
                     <div className="group flex w-full items-center gap-4 rounded-lg p-2 transition-colors hover:bg-white/5">
                       <button
-                        onClick={() => play(toVibe(t), vibeTracks)}
+                        onClick={() => playFromSearch(toVibe(t), vibeTracks)}
                         className="flex min-w-0 flex-1 items-center gap-4 text-left"
                       >
                         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md">
