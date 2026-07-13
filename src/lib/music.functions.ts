@@ -155,10 +155,17 @@ export const searchYouTubeOnly = createServerFn({ method: "POST" })
  */
 export const searchYouTubeWithCorrection = createServerFn({ method: "POST" })
   .inputValidator((d) =>
-    z.object({ query: z.string().min(1).max(200), max: z.number().int().min(1).max(25).optional() }).parse(d),
+    z.object({
+      query: z.string().min(1).max(200),
+      max: z.number().int().min(1).max(25).optional(),
+      language: z.string().min(1).max(40).optional(),
+    }).parse(d),
   )
   .handler(async ({ data }): Promise<{ tracks: YTTrack[]; correctedQuery: string | null }> => {
-    return searchMusicWithCorrection(data.query, data.max ?? 20);
+    return searchMusicWithCorrection(data.query, data.max ?? 20, {
+      exactMatch: true,
+      language: data.language ?? "Tamil",
+    });
   });
 
 const TrackInput = z.object({
