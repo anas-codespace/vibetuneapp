@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { setSyncStatus } from "@/hooks/use-sync-status";
+import { getSpotifyRedirectUri } from "@/lib/spotifyRedirect";
+
 
 
 export const Route = createFileRoute("/settings/spotify")({
