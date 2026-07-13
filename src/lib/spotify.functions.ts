@@ -136,10 +136,19 @@ export const spotifySearch = createServerFn({ method: "POST" })
 /** Spotify-first search that also resolves each track to a playable YouTube id. */
 export const spotifySearchPlayable = createServerFn({ method: "POST" })
   .inputValidator((d) =>
-    z.object({ query: z.string().min(1).max(120), max: z.number().int().min(1).max(24).optional() }).parse(d),
+    z.object({
+      query: z.string().min(1).max(120),
+      max: z.number().int().min(1).max(24).optional(),
+      language: z.string().min(1).max(40).optional(),
+    }).parse(d),
   )
   .handler(async ({ data }): Promise<SpotifyPlayableResult[]> => {
-    const spot = await searchTracks(data.query, Math.min(data.max ?? 16, 20));
+    // Tasks 1 & 2 (System Directive): wrap the user's query in double quotes
+    // to force Spotify's exact-match mode, and inject a language context so
+    // transliterated regional terms don't drift to another industry.
+    const lang = data.language ?? "Tamil";
+    const spotifyQuery = `"${data.query.trim()}" ${lang} song`;
+    const spot = await searchTracks(spotifyQuery, Math.min(data.max ?? 16, 20));
     const resolved = await Promise.all(
       spot.map(async (t): Promise<SpotifyPlayableResult | null> => {
         try {
