@@ -14,6 +14,7 @@ import { getTrendingNearYou } from "@/lib/trending.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 import { FALLBACK_TRACKS } from "@/data/fallbackTracks";
+import { SafeArt } from "@/components/SafeArt";
 import {
   TRENDING_REGIONS,
   DEFAULT_TRENDING_REGION,
