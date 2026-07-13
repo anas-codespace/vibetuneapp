@@ -178,6 +178,31 @@ function SearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, debounced]);
 
+  // Log every executed search into the signal layer (fire-and-forget).
+  useEffect(() => {
+    if (!session || debounced.length < 2) return;
+    const topId = data?.results?.[0]?.youtubeId ?? null;
+    logSearchFn({
+      data: {
+        rawQuery: debounced,
+        language: preferredLanguage ?? null,
+        topResultYoutubeId: topId,
+      },
+    })
+      .then((r) => setLastSearchEventId(r?.id ?? null))
+      .catch(() => setLastSearchEventId(null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debounced, data]);
+
+  const playFromSearch = (track: VibeTrack, queue: VibeTrack[]) => {
+    play(track, queue);
+    if (lastSearchEventId) {
+      markSearchPlayedFn({
+        data: { searchEventId: lastSearchEventId, youtubeId: track.youtubeId },
+      }).catch(() => {});
+    }
+  };
+
   const results: SpotifyPlayableResult[] = data?.results ?? [];
   const correction = data?.correction ?? null;
   const toVibe = (t: SpotifyPlayableResult): VibeTrack => ({
