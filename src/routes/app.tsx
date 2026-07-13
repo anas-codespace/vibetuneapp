@@ -257,16 +257,7 @@ function AppHome() {
               className="flex w-40 shrink-0 snap-start flex-col text-left sm:w-44"
             >
               <div className="aspect-square overflow-hidden rounded-md bg-white/5 shadow-lg shadow-black/50">
-                {t.thumbnailUrl ? (
-                  <img
-                    src={t.thumbnailUrl}
-                    alt={t.title}
-                    loading="lazy"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="vibe-gradient h-full w-full" />
-                )}
+                <SafeArt src={t.thumbnailUrl} alt={t.title} />
               </div>
               <p className="mt-2 truncate text-sm font-bold text-white">
                 {t.title}
