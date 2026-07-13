@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.recalculate_taste_profile(uuid) FROM authenticated;
