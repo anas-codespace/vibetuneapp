@@ -14,6 +14,14 @@ import { getTrendingNearYou } from "@/lib/trending.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 import { FALLBACK_TRACKS } from "@/data/fallbackTracks";
+import {
+  TRENDING_REGIONS,
+  DEFAULT_TRENDING_REGION,
+  getStoredTrendingRegion,
+  setStoredTrendingRegion,
+  labelForRegion,
+} from "@/lib/trendingRegion";
+
 
 
 export const Route = createFileRoute("/app")({
@@ -54,6 +62,15 @@ function AppHome() {
   const [mixLoading, setMixLoading] = useState(false);
   const [greeting, setGreeting] = useState<string>("");
   useEffect(() => { setGreeting(timeGreeting()); }, []);
+
+  // Persisted region preference for "Trending near you".
+  const [trendingRegion, setTrendingRegion] = useState<string>(DEFAULT_TRENDING_REGION);
+  useEffect(() => { setTrendingRegion(getStoredTrendingRegion()); }, []);
+  const changeTrendingRegion = (code: string) => {
+    setTrendingRegion(code);
+    setStoredTrendingRegion(code);
+  };
+
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
