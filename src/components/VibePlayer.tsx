@@ -293,6 +293,8 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   }, [contextFn]);
 
   const play = useCallback((track: VibeTrack, q?: VibeTrack[]) => {
+    // Emit the previous track's outcome (user swapped songs mid-play).
+    flushListenEvent("next_pressed");
     const newQueue = q ?? [track];
     const idx = newQueue.findIndex((t) => t.youtubeId === track.youtubeId);
     setQueue(newQueue);
@@ -300,27 +302,30 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     setCurrent(track);
     setMixMode(false);
     loadAndPlay(track.youtubeId);
+    beginTrack(track);
     logListenFn({
       data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
     }).catch(() => {});
     startAudioForeground();
     // Context-aware auto-queue: append related tracks in the background
     autoPopulateQueue(track);
-  }, [loadAndPlay, logListenFn, autoPopulateQueue]);
+  }, [loadAndPlay, logListenFn, autoPopulateQueue, flushListenEvent, beginTrack]);
 
 
   const startMix = useCallback((tracks: VibeTrack[]) => {
     if (tracks.length === 0) return;
+    flushListenEvent("next_pressed");
     setMixMode(true);
     setQueue(tracks);
     setIndex(0);
     setCurrent(tracks[0]);
     loadAndPlay(tracks[0].youtubeId);
+    beginTrack(tracks[0]);
     logListenFn({
       data: { youtubeId: tracks[0].youtubeId, title: tracks[0].title, artist: tracks[0].artist },
     }).catch(() => {});
     startAudioForeground();
-  }, [loadAndPlay, logListenFn]);
+  }, [loadAndPlay, logListenFn, flushListenEvent, beginTrack]);
 
   const addToQueue = useCallback((track: VibeTrack) => {
     setCurrent((cur) => {
@@ -330,6 +335,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
         setIndex(0);
         setMixMode(false);
         loadAndPlay(track.youtubeId);
+        beginTrack(track);
         logListenFn({
           data: { youtubeId: track.youtubeId, title: track.title, artist: track.artist },
         }).catch(() => {});
@@ -341,7 +347,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
       toast.success("Added to queue");
       return cur;
     });
-  }, [loadAndPlay, logListenFn]);
+  }, [loadAndPlay, logListenFn, beginTrack]);
 
   const removeFromQueue = useCallback((removeIdx: number) => {
     setQueue((q) => {
