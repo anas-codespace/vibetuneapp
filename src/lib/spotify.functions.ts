@@ -143,12 +143,17 @@ export const spotifySearchPlayable = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data }): Promise<SpotifyPlayableResult[]> => {
-    // Tasks 1 & 2 (System Directive): wrap the user's query in double quotes
-    // to force Spotify's exact-match mode, and inject a language context so
-    // transliterated regional terms don't drift to another industry.
+    // Hybrid cascade: try a contextual query (language appended, no strict quotes)
+    // first, then fall back to the raw query if the contextual pass finds nothing.
+    const cleanQuery = data.query.trim();
     const lang = data.language ?? "Tamil";
-    const spotifyQuery = `"${data.query.trim()}" ${lang} song`;
-    const spot = await searchTracks(spotifyQuery, Math.min(data.max ?? 16, 20));
+    const contextQuery = `${cleanQuery} ${lang}`;
+    const max = Math.min(data.max ?? 16, 20);
+    let spot = await searchTracks(contextQuery, max);
+    if (!spot || spot.length === 0) {
+      spot = await searchTracks(cleanQuery, max);
+    }
+
     const resolved = await Promise.all(
       spot.map(async (t): Promise<SpotifyPlayableResult | null> => {
         try {
