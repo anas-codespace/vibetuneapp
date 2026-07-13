@@ -14,6 +14,14 @@ import { getTrendingNearYou } from "@/lib/trending.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 import { FALLBACK_TRACKS } from "@/data/fallbackTracks";
+import {
+  TRENDING_REGIONS,
+  DEFAULT_TRENDING_REGION,
+  getStoredTrendingRegion,
+  setStoredTrendingRegion,
+  labelForRegion,
+} from "@/lib/trendingRegion";
+
 
 
 export const Route = createFileRoute("/app")({
@@ -54,6 +62,15 @@ function AppHome() {
   const [mixLoading, setMixLoading] = useState(false);
   const [greeting, setGreeting] = useState<string>("");
   useEffect(() => { setGreeting(timeGreeting()); }, []);
+
+  // Persisted region preference for "Trending near you".
+  const [trendingRegion, setTrendingRegion] = useState<string>(DEFAULT_TRENDING_REGION);
+  useEffect(() => { setTrendingRegion(getStoredTrendingRegion()); }, []);
+  const changeTrendingRegion = (code: string) => {
+    setTrendingRegion(code);
+    setStoredTrendingRegion(code);
+  };
+
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/login" });
@@ -120,10 +137,10 @@ function AppHome() {
   });
 
   const { data: trendingNear, isLoading: trendingNearLoading } = useQuery({
-    queryKey: ["trending-near-you", "IN"],
+    queryKey: ["trending-near-you", trendingRegion],
     queryFn: async () => {
       try {
-        const res = await trendingNearFn({ data: { regionCode: "IN", max: 25 } });
+        const res = await trendingNearFn({ data: { regionCode: trendingRegion, max: 25 } });
         if (res.stale) {
           console.warn("[trending-near-you] serving stale cache", {
             source: res.source,
@@ -140,6 +157,7 @@ function AppHome() {
     staleTime: 1000 * 60 * 30,
     retry: 2,
   });
+
 
 
 
@@ -206,15 +224,21 @@ function AppHome() {
     items: VibeTrack[],
     subtitleFor: (t: VibeTrack) => string,
     sectionLoading = false,
+    trailing?: React.ReactNode,
   ) => (
 
     <div className="mt-8">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-base font-bold text-white">{title}</h3>
-        <button className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40 hover:text-white">
-          See all
-        </button>
+        {trailing ? (
+          trailing
+        ) : (
+          <button className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40 hover:text-white">
+            See all
+          </button>
+        )}
       </div>
+
       <div className="-mx-5 mt-3 flex snap-x snap-mandatory scroll-px-5 gap-x-5 overflow-x-auto px-5 pb-6 hide-scrollbar [&>*]:snap-always">
         {(isLoading || sectionLoading) &&
           Array.from({ length: 5 }).map((_, i) => (
@@ -318,11 +342,27 @@ function AppHome() {
         {renderCarousel("Suggested For You", suggestedForYou, (t) => `Mix • ${t.artist}`)}
         {renderCarousel("Trending Now", trendingNow, (t) => t.artist || "Trending", trendingLoading)}
         {renderCarousel(
-          "Trending near you",
+          `Trending in ${labelForRegion(trendingRegion)}`,
           trendingNearList.length > 0 ? trendingNearList.slice(0, 20) : trendingNow,
-          (t) => t.artist || "Trending in IN",
+          (t) => t.artist || `Trending in ${trendingRegion}`,
           trendingNearLoading,
+          <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+            <span className="sr-only">Region</span>
+            <select
+              aria-label="Trending region"
+              value={trendingRegion}
+              onChange={(e) => changeTrendingRegion(e.target.value)}
+              className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-white/80 hover:bg-white/10 focus:border-white/30 focus:outline-none"
+            >
+              {TRENDING_REGIONS.map((r) => (
+                <option key={r.code} value={r.code} className="bg-neutral-900 text-white">
+                  {r.label} ({r.code}) — {r.language}
+                </option>
+              ))}
+            </select>
+          </label>,
         )}
+
         {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`)}
         {renderCarousel("New Releases", newReleases, (t) => t.artist)}
 
