@@ -32,7 +32,9 @@ function videoItem(overrides: {
     id: overrides.id,
     snippet: {
       title: overrides.title,
-      channelId: overrides.channelId ?? "UCq-Fj5jknLsUf-MWSy4_brA", // T-Series (whitelisted)
+      // Default channel is T-Series (in the whitelist), keeping results on the
+      // "tier1 >= 3" happy path so results survive the tiered filter.
+      channelId: overrides.channelId ?? "UCq-Fj5jknLsUf-MWSy4_brA",
       channelTitle: overrides.channelTitle ?? "T-Series",
       thumbnails: { high: { url: `https://i.ytimg.com/vi/${overrides.id}/hq.jpg` } },
     },
@@ -80,23 +82,22 @@ describe("Hybrid Cascading Search — searchMusicWithCorrection", () => {
   it("falls back to raw query when the contextual (language-suffixed) attempt returns 0", async () => {
     // Unique query keeps this run independent of the module-level SEARCH_CACHE.
     const query = "hukum-cascade-a";
+    const rawIds = ["vidHUKUM1", "vidHUKUM2", "vidHUKUM3"];
 
     const { calls } = installFetchMock((call) => {
       if (call.endpoint === "search") {
         const q = (call.q ?? "").toLowerCase();
         // Attempt 1: contextual — includes "tamil" — return NO items.
         if (q.includes("tamil")) return { items: [] };
-        // Attempt 2: raw — no language suffix — return one hit.
-        return { items: [{ id: { videoId: "vidHUKUM1" } }] };
+        // Attempt 2: raw — no language suffix — return whitelisted hits.
+        return { items: rawIds.map((id) => ({ id: { videoId: id } })) };
       }
       if (call.endpoint === "videos") {
         return {
           items: [
-            videoItem({
-              id: "vidHUKUM1",
-              title: "Hukum (Official Audio) - Jailer",
-              channelTitle: "T-Series",
-            }),
+            videoItem({ id: "vidHUKUM1", title: "Hukum Official Audio Jailer" }),
+            videoItem({ id: "vidHUKUM2", title: "Hukum Official Video Song" }),
+            videoItem({ id: "vidHUKUM3", title: "Hukum Full Video Song" }),
           ],
         };
       }
@@ -115,28 +116,32 @@ describe("Hybrid Cascading Search — searchMusicWithCorrection", () => {
     // The raw attempt still sends the user term.
     expect(searchCalls[1]!.q!.toLowerCase()).toContain(query.toLowerCase());
 
-    // Track came from the raw attempt — no "did you mean" correction.
+    // Tracks came from the raw attempt — no "did you mean" correction surfaced.
     expect(correctedQuery).toBeNull();
-    expect(tracks).toHaveLength(1);
-    expect(tracks[0]!.youtubeId).toBe("vidHUKUM1");
-    expect(tracks[0]!.title.toLowerCase()).toContain("hukum");
+    expect(tracks.length).toBeGreaterThan(0);
+    const ids = tracks.map((t) => t.youtubeId);
+    expect(ids).toContain("vidHUKUM1");
+    for (const t of tracks) expect(t.title.toLowerCase()).toContain("hukum");
   });
 
   it("returns contextual results without invoking the raw fallback when attempt 1 succeeds", async () => {
     const query = "hukum-cascade-b";
+    const ids = ["vidCTX1", "vidCTX2", "vidCTX3"];
 
     const { calls } = installFetchMock((call) => {
       if (call.endpoint === "search") {
-        return { items: [{ id: { videoId: "vidHUKUM2" } }] };
+        return { items: ids.map((id) => ({ id: { videoId: id } })) };
       }
       if (call.endpoint === "videos") {
         return {
           items: [
+            videoItem({ id: "vidCTX1", title: "Hukum Official Audio Anirudh" }),
+            videoItem({ id: "vidCTX2", title: "Hukum Official Video" }),
             videoItem({
-              id: "vidHUKUM2",
-              title: "Hukum Official Audio — Anirudh",
-              channelTitle: "Sony Music South",
+              id: "vidCTX3",
+              title: "Hukum Full Song",
               channelId: "UCn4rEMqKtwBQ6-oEwbd4PcA",
+              channelTitle: "Sony Music South",
             }),
           ],
         };
@@ -149,31 +154,26 @@ describe("Hybrid Cascading Search — searchMusicWithCorrection", () => {
     });
 
     const searchCalls = calls.filter((c) => c.endpoint === "search");
-    // Only one search — contextual attempt sufficed.
+    // Only one search — contextual attempt sufficed, raw fallback never fired.
     expect(searchCalls).toHaveLength(1);
     expect(searchCalls[0]!.q!.toLowerCase()).toContain("tamil");
 
     expect(correctedQuery).toBeNull();
-    expect(tracks).toHaveLength(1);
-    expect(tracks[0]!.youtubeId).toBe("vidHUKUM2");
+    expect(tracks.length).toBeGreaterThan(0);
+    expect(tracks.map((t) => t.youtubeId)).toContain("vidCTX1");
   });
 
   it("returns [] when neither the contextual nor the raw attempt yield hits", async () => {
     const query = "zzz-none-cascade";
 
-    const { calls } = installFetchMock((call) => {
-      if (call.endpoint === "search") return { items: [] };
-      if (call.endpoint === "videos") return { items: [] };
-      return {};
-    });
+    const { calls } = installFetchMock(() => ({ items: [] }));
 
     const { tracks, correctedQuery } = await searchMusicWithCorrection(query, 10, {
       language: "Tamil",
     });
 
     const searchCalls = calls.filter((c) => c.endpoint === "search");
-    // Contextual + raw + a couple of transliteration / trim-last-char / suggestion
-    // attempts may run. The invariant we care about: BOTH contextual and raw fired.
+    // Invariant: the cascade fired BOTH the contextual and the raw attempts.
     expect(searchCalls.some((c) => c.q!.toLowerCase().includes("tamil"))).toBe(true);
     expect(searchCalls.some((c) => !c.q!.toLowerCase().includes("tamil"))).toBe(true);
 
