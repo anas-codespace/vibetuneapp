@@ -114,8 +114,68 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   const readyRef = useRef<boolean>(false);
   const pendingRef = useRef<string | null>(null);
   const logListenFn = useServerFn(logListen);
+  const logListenEventFn = useServerFn(logListenEvent);
   const mixFn = useServerFn(getSmartMix);
   const contextFn = useServerFn(getContextualQueue);
+
+  /**
+   * Track-in-progress state used to emit a rich `listening_events` row when
+   * a track ends or is replaced. Kept as refs so it never triggers renders.
+   */
+  const currentTrackRef = useRef<VibeTrack | null>(null);
+  const startedAtRef = useRef<string | null>(null);
+  const lastProgressMsRef = useRef<number>(0);
+  const lastDurationMsRef = useRef<number>(0);
+  const nextEndReasonRef = useRef<
+    "completed" | "next_pressed" | "prev_pressed" | "error" | "abandoned"
+  >("abandoned");
+
+  /**
+   * Emit a listening_events row for the *previous* track before replacing it.
+   * Called from every transition (next/prev/jump/play/error/completed).
+   */
+  const flushListenEvent = useCallback(
+    (reasonHint?: "completed" | "next_pressed" | "prev_pressed" | "error") => {
+      const prev = currentTrackRef.current;
+      const startedAt = startedAtRef.current;
+      if (!prev || !startedAt) return;
+      const listenedMs = Math.max(0, Math.floor(lastProgressMsRef.current));
+      const trackMs = Math.max(0, Math.floor(lastDurationMsRef.current));
+      const ratio = trackMs > 0 ? listenedMs / trackMs : 0;
+      let endReason: "completed" | "skipped_early" | "skipped_late" | "next_pressed" | "prev_pressed" | "error" | "abandoned";
+      const hint = reasonHint ?? nextEndReasonRef.current;
+      if (hint === "completed") endReason = "completed";
+      else if (hint === "error") endReason = "error";
+      else if (ratio >= 0.8) endReason = "skipped_late";
+      else if (listenedMs < 5000 || ratio < 0.15) endReason = "skipped_early";
+      else endReason = hint;
+      const hourLocal = new Date().getHours();
+      logListenEventFn({
+        data: {
+          youtubeId: prev.youtubeId,
+          title: prev.title,
+          artist: prev.artist,
+          startedAt,
+          listenedMs,
+          trackMs,
+          endReason,
+          source: "queue",
+          contextLang: null,
+          hourLocal,
+        },
+      }).catch(() => {});
+    },
+    [logListenEventFn],
+  );
+
+  /** Reset the per-track counters when a new track starts playing. */
+  const beginTrack = useCallback((track: VibeTrack) => {
+    currentTrackRef.current = track;
+    startedAtRef.current = new Date().toISOString();
+    lastProgressMsRef.current = 0;
+    lastDurationMsRef.current = (track.durationSeconds ?? 0) * 1000;
+    nextEndReasonRef.current = "abandoned";
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
