@@ -342,11 +342,27 @@ function AppHome() {
         {renderCarousel("Suggested For You", suggestedForYou, (t) => `Mix • ${t.artist}`)}
         {renderCarousel("Trending Now", trendingNow, (t) => t.artist || "Trending", trendingLoading)}
         {renderCarousel(
-          "Trending near you",
+          `Trending in ${labelForRegion(trendingRegion)}`,
           trendingNearList.length > 0 ? trendingNearList.slice(0, 20) : trendingNow,
-          (t) => t.artist || "Trending in IN",
+          (t) => t.artist || `Trending in ${trendingRegion}`,
           trendingNearLoading,
+          <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+            <span className="sr-only">Region</span>
+            <select
+              aria-label="Trending region"
+              value={trendingRegion}
+              onChange={(e) => changeTrendingRegion(e.target.value)}
+              className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-white/80 hover:bg-white/10 focus:border-white/30 focus:outline-none"
+            >
+              {TRENDING_REGIONS.map((r) => (
+                <option key={r.code} value={r.code} className="bg-neutral-900 text-white">
+                  {r.label} ({r.code}) — {r.language}
+                </option>
+              ))}
+            </select>
+          </label>,
         )}
+
         {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`)}
         {renderCarousel("New Releases", newReleases, (t) => t.artist)}
 
