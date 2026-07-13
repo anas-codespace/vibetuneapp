@@ -185,6 +185,7 @@ function SearchPage() {
 
   const results: SpotifyPlayableResult[] = data?.results ?? [];
   const correction = data?.correction ?? null;
+  const broadResults = data?.broadResults ?? false;
   const toVibe = (t: SpotifyPlayableResult): VibeTrack => ({
     youtubeId: t.youtubeId,
     title: t.title,
