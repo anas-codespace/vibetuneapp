@@ -358,7 +358,7 @@ async function searchMusicOnce(
   maxResults = 30,
   opts: SearchOptions = {},
 ): Promise<YTTrack[]> {
-  const optKey = `${opts.exactMatch ? "x" : "_"}::${(opts.language ?? "").toLowerCase()}`;
+  const optKey = `${(opts.language ?? "").toLowerCase()}`;
   const cacheKey = `${CACHE_VERSION}::${optKey}::${query.trim().toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return cached;
@@ -368,13 +368,11 @@ async function searchMusicOnce(
   const expansion = KEYWORD_EXPANSIONS[lowered];
   const isPolitical = !!expansion || POLITICAL_RE.test(query);
 
-  // Tasks 1 & 2 (System Directive): force EXACT match by wrapping the raw user
-  // term in double quotes, and inject a regional/language context so global
-  // APIs stop drifting to the wrong industry (e.g. Hindi results for a Tamil
-  // transliterated query). Skip when the caller already supplies a fully
-  // composed query (Spotify per-track resolves via `${artist} ${name} ...`).
-  const rawUserTerm = opts.exactMatch ? `"${query.trim()}"` : query;
-  const langSuffix = opts.language ? ` ${opts.language} song` : "";
+  // Hybrid cascade: drop the strict double-quote wrapping (was breaking single-word
+  // queries like "hukum"). Append a light language context — the outer cascade
+  // retries without it if this attempt returns 0.
+  const rawUserTerm = query.trim();
+  const langSuffix = opts.language ? ` ${opts.language}` : "";
 
   // Task 3: For political/campaign queries prefer "official song OR anthem"
   // (broader than "official audio", which was hiding campaign uploads).
@@ -384,6 +382,7 @@ async function searchMusicOnce(
       ? `${rawUserTerm} official song anthem${langSuffix}`
       : `${rawUserTerm} official audio${langSuffix}`;
   const q = `${base} ${QUERY_NEGATIVES}`.trim();
+
 
   // Political anthems are often uploaded under People/Politics (25) or News (25),
   // not Music (10). Drop the category restriction for those queries.
