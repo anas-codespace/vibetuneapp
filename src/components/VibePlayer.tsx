@@ -277,6 +277,40 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     });
   }, [index]);
 
+  const reorderQueue = useCallback((fromIdx: number, toIdx: number) => {
+    setQueue((q) => {
+      // Only allow reordering within the upcoming portion (after `index`).
+      if (fromIdx <= index || toIdx <= index) return q;
+      if (fromIdx >= q.length || toIdx >= q.length) return q;
+      if (fromIdx === toIdx) return q;
+      const next = q.slice();
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      return next;
+    });
+  }, [index]);
+
+  const jumpToQueueIndex = useCallback((targetIdx: number) => {
+    setQueue((q) => {
+      if (targetIdx <= index || targetIdx >= q.length) return q;
+      const chosen = q[targetIdx];
+      // Remove the chosen track from its queued slot and place it immediately after current.
+      const next = q.slice();
+      next.splice(targetIdx, 1);
+      const insertAt = index + 1;
+      next.splice(insertAt, 0, chosen);
+      const newIdx = insertAt;
+      setIndex(newIdx);
+      setCurrent(chosen);
+      loadAndPlay(chosen.youtubeId);
+      logListenFn({
+        data: { youtubeId: chosen.youtubeId, title: chosen.title, artist: chosen.artist },
+      }).catch(() => {});
+      startAudioForeground();
+      return next;
+    });
+  }, [index, loadAndPlay, logListenFn]);
+
 
   // Auto-replenish: when mix mode is on and queue is running low, fetch more tracks
   const replenishQueue = useCallback(async (remaining: number) => {
