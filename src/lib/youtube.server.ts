@@ -72,13 +72,13 @@ const OFFICIAL_LABEL_RE =
 /** Titles/keywords we down-rank. */
 const DOWNRANK_RE = /whatsapp\s*status|status\s*video|8d\s*audio|slowed|reverb|nightcore/i;
 
-/** Hard-block: non-song promo + fan-made lyric/status/mashup uploads. */
+/** Hard-block: only truly non-song content. Applied in every mode. */
 const FORBIDDEN_KEYWORDS_RE =
-  /trailer|teaser|promo|glimpse|making\s*of|sneak\s*peek|interview|announcement|first\s*look|behind\s*the\s*scenes|bts\s*video|fan\s*made|fanmade|whatsapp\s*status|\bstatus\b|lyrical\s*(video|whatsapp)?|lyric\s*video|\bmashup\b|\bremix\b|\bcover\b/i;
+  /\btrailer\b|\bteaser\b|\bpromo\b|\bglimpse\b|making\s*of|sneak\s*peek|\binterview\b|\bannouncement\b|first\s*look|behind\s*the\s*scenes|bts\s*video|\breaction\b/i;
 
-/** Quality Gate — low-quality keywords blocked regardless of channel. */
+/** Down-rank keywords blocked only in strict mode. Search UI falls back to relaxed. */
 const LOW_QUALITY_RE =
-  /\bstatus\b|whatsapp|\bedit\b|\bcover\b|\bmashup\b|\bremix\b|slowed|reverb|nightcore|8d\s*audio|ringtone|fan\s*made|fanmade/i;
+  /whatsapp\s*status|\bstatus\s*video\b|\bedit\b|\bmashup\b|slowed|reverb|nightcore|8d\s*audio|ringtone|fan\s*made|fanmade|lyric\s*video|lyrical\s*video/i;
 
 /** Quality Gate — high-quality keywords that signal a legitimate release. */
 const HIGH_QUALITY_RE =
@@ -275,6 +275,13 @@ export interface SearchOptions {
   exactMatch?: boolean;
   /** Preferred language/industry to append (e.g. "Tamil"). Prevents cross-language drift. */
   language?: string;
+  /**
+   * Relaxed mode: keep FORBIDDEN block (trailer/teaser/promo/etc), but skip the
+   * LOW_QUALITY block, the HIGH_QUALITY gate, and the tiered whitelist. Used as
+   * an automatic fallback when strict mode returns 0 results, so common queries
+   * ("tum hi ho") and long-tail artists never collapse to an empty carousel.
+   */
+  relaxed?: boolean;
 }
 
 export async function searchMusicWithCorrection(
@@ -306,6 +313,29 @@ export async function searchMusicWithCorrection(
       return { tracks: attempt2, correctedQuery: null };
     }
   }
+
+  // Attempt 2.5: relaxed strict pipeline (skip HIGH_QUALITY gate + tier whitelist
+  // + LOW_QUALITY block). Recovers everyday songs/artists that the strict pass
+  // discards ("tum hi ho", regional/indie uploads on non-whitelisted channels).
+  if (!opts.relaxed) {
+    const relaxed = await searchMusicOnce(original, maxResults, { ...opts, relaxed: true });
+    if (relaxed.length > 0) {
+      SEARCH_CACHE.set(cacheKey, relaxed);
+      return { tracks: relaxed, correctedQuery: null };
+    }
+    if (opts.language) {
+      const relaxedNoLang = await searchMusicOnce(original, maxResults, {
+        ...opts,
+        language: undefined,
+        relaxed: true,
+      });
+      if (relaxedNoLang.length > 0) {
+        SEARCH_CACHE.set(cacheKey, relaxedNoLang);
+        return { tracks: relaxedNoLang, correctedQuery: null };
+      }
+    }
+  }
+
 
   // Attempts 3–4: transliteration + trim-last-char (surface as "did you mean").
   const secondary: string[] = [];
@@ -358,7 +388,7 @@ async function searchMusicOnce(
   maxResults = 30,
   opts: SearchOptions = {},
 ): Promise<YTTrack[]> {
-  const optKey = `${(opts.language ?? "").toLowerCase()}`;
+  const optKey = `${(opts.language ?? "").toLowerCase()}::${opts.relaxed ? "r" : "s"}`;
   const cacheKey = `${CACHE_VERSION}::${optKey}::${query.trim().toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return cached;
@@ -441,20 +471,21 @@ async function searchMusicOnce(
   const filtered = durationFiltered.filter(({ v }) => {
     const t = v.snippet.title;
     if (FORBIDDEN_KEYWORDS_RE.test(t)) return false;
-    if (LOW_QUALITY_RE.test(t)) return false;
-    // Quality Gate: keep only titles that either signal a real release OR
+    if (!opts.relaxed && LOW_QUALITY_RE.test(t)) return false;
+    if (opts.relaxed) return true;
+    // Quality Gate (strict only): keep titles that signal a real release OR
     // originate from a verified channel.
     return HIGH_QUALITY_RE.test(t) || isOfficialChannel(v);
   });
 
   filtered.sort((a, b) => scoreVideo(b.v) - scoreVideo(a.v));
 
-  // Tiered whitelist strategy:
-  //   Layer 1 (priority): results from OFFICIAL_CHANNEL_IDS whitelist only.
-  //   Layer 2 (fallback): if Layer 1 < 3 results, append verified-quality
-  //                       channels (VEVO, "- Topic", label-name regex).
-  //   Layer 3 (safety):   if still empty, allow the general quality-gated pool.
-  // Political queries keep everything so anthems on party channels aren't lost.
+  // Tiered whitelist strategy (strict, non-political only):
+  //   Layer 1 (priority): OFFICIAL_CHANNEL_IDS whitelist.
+  //   Layer 2 (fallback): VEVO, "- Topic", label-name regex.
+  //   Layer 3 (safety):   general quality-gated pool.
+  // Relaxed mode and political queries skip tiering — every quality-filtered
+  // result is eligible, so common queries never collapse to zero.
   const tier1 = filtered.filter(({ v }) => officialIds.has(v.snippet.channelId));
   const tier2 = filtered.filter(
     ({ v }) =>
@@ -465,7 +496,7 @@ async function searchMusicOnce(
   );
 
   let finalPool: typeof filtered;
-  if (isPolitical) {
+  if (isPolitical || opts.relaxed) {
     finalPool = filtered;
   } else if (tier1.length >= 3) {
     finalPool = tier1;

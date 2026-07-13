@@ -14,6 +14,7 @@ import { getTrendingNearYou } from "@/lib/trending.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 import { FALLBACK_TRACKS } from "@/data/fallbackTracks";
+import { SafeArt } from "@/components/SafeArt";
 import {
   TRENDING_REGIONS,
   DEFAULT_TRENDING_REGION,
@@ -257,16 +258,7 @@ function AppHome() {
               className="flex w-40 shrink-0 snap-start flex-col text-left sm:w-44"
             >
               <div className="aspect-square overflow-hidden rounded-md bg-white/5 shadow-lg shadow-black/50">
-                {t.thumbnailUrl ? (
-                  <img
-                    src={t.thumbnailUrl}
-                    alt={t.title}
-                    loading="lazy"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="vibe-gradient h-full w-full" />
-                )}
+                <SafeArt src={t.thumbnailUrl} alt={t.title} />
               </div>
               <p className="mt-2 truncate text-sm font-bold text-white">
                 {t.title}
@@ -321,10 +313,11 @@ function AppHome() {
                   )}
                 >
                   {qp.art ? (
-                    <img
+                    <SafeArt
                       src={qp.art}
                       alt=""
-                      className="absolute inset-0 h-full w-full object-cover opacity-90"
+                      className="absolute inset-0 opacity-90"
+                      fallbackClassName="absolute inset-0 grid place-items-center"
                     />
                   ) : (
                     <Icon className="h-5 w-5 text-white" strokeWidth={2} />
