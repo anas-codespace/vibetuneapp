@@ -25,6 +25,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Slider } from "@/components/ui/slider";
 import { logListen } from "@/lib/profile.functions";
+import { logListenEvent } from "@/lib/taste.functions";
 import { getLikedIds, toggleLike } from "@/lib/library.functions";
 import { getSmartMix, getContextualQueue } from "@/lib/mix.functions";
 import { startAudioForeground, stopAudioForeground } from "@/lib/capacitor-audio";
