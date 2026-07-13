@@ -236,7 +236,7 @@ export const getTasteProfile = createServerFn({ method: "GET" })
       .upsert(
         {
           user_id: userId,
-          profile: profile as unknown as Record<string, unknown>,
+          profile: JSON.parse(JSON.stringify(profile)),
           computed_at: new Date().toISOString(),
         },
         { onConflict: "user_id" },
