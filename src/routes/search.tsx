@@ -54,8 +54,7 @@ function SearchPage() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const debounced = useDebounced(q.trim(), 320);
-  const fn = useServerFn(spotifySearchPlayable);
-  const ytFn = useServerFn(searchYouTubeWithCorrection);
+  const cascadeFn = useServerFn(searchCascade);
   const profileFn = useServerFn(getMyProfile);
   const logSearchFn = useServerFn(logSearchEvent);
   const markSearchPlayedFn = useServerFn(markSearchPlayed);
