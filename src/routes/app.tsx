@@ -137,10 +137,10 @@ function AppHome() {
   });
 
   const { data: trendingNear, isLoading: trendingNearLoading } = useQuery({
-    queryKey: ["trending-near-you", "IN"],
+    queryKey: ["trending-near-you", trendingRegion],
     queryFn: async () => {
       try {
-        const res = await trendingNearFn({ data: { regionCode: "IN", max: 25 } });
+        const res = await trendingNearFn({ data: { regionCode: trendingRegion, max: 25 } });
         if (res.stale) {
           console.warn("[trending-near-you] serving stale cache", {
             source: res.source,
@@ -157,6 +157,7 @@ function AppHome() {
     staleTime: 1000 * 60 * 30,
     retry: 2,
   });
+
 
 
 
