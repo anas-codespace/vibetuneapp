@@ -314,6 +314,29 @@ export async function searchMusicWithCorrection(
     }
   }
 
+  // Attempt 2.5: relaxed strict pipeline (skip HIGH_QUALITY gate + tier whitelist
+  // + LOW_QUALITY block). Recovers everyday songs/artists that the strict pass
+  // discards ("tum hi ho", regional/indie uploads on non-whitelisted channels).
+  if (!opts.relaxed) {
+    const relaxed = await searchMusicOnce(original, maxResults, { ...opts, relaxed: true });
+    if (relaxed.length > 0) {
+      SEARCH_CACHE.set(cacheKey, relaxed);
+      return { tracks: relaxed, correctedQuery: null };
+    }
+    if (opts.language) {
+      const relaxedNoLang = await searchMusicOnce(original, maxResults, {
+        ...opts,
+        language: undefined,
+        relaxed: true,
+      });
+      if (relaxedNoLang.length > 0) {
+        SEARCH_CACHE.set(cacheKey, relaxedNoLang);
+        return { tracks: relaxedNoLang, correctedQuery: null };
+      }
+    }
+  }
+
+
   // Attempts 3–4: transliteration + trim-last-char (surface as "did you mean").
   const secondary: string[] = [];
   for (const v of transliterationVariants(original)) if (v !== original) secondary.push(v);
