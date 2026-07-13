@@ -119,6 +119,30 @@ function AppHome() {
     staleTime: 1000 * 60 * 30,
   });
 
+  const { data: trendingNear, isLoading: trendingNearLoading } = useQuery({
+    queryKey: ["trending-near-you", "IN"],
+    queryFn: async () => {
+      try {
+        const res = await trendingNearFn({ data: { regionCode: "IN", max: 25 } });
+        if (res.stale) {
+          console.warn("[trending-near-you] serving stale cache", {
+            source: res.source,
+            ageMs: Date.now() - res.fetchedAt,
+          });
+        }
+        return res.tracks;
+      } catch (err) {
+        console.error("[trending-near-you] failed:", err);
+        return [];
+      }
+    },
+    enabled: !!session,
+    staleTime: 1000 * 60 * 30,
+    retry: 2,
+  });
+
+
+
 
   const mixFn = useServerFn(getSmartMix);
 
