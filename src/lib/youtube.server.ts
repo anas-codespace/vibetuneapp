@@ -365,7 +365,7 @@ async function searchMusicOnce(
   maxResults = 30,
   opts: SearchOptions = {},
 ): Promise<YTTrack[]> {
-  const optKey = `${(opts.language ?? "").toLowerCase()}`;
+  const optKey = `${(opts.language ?? "").toLowerCase()}::${opts.relaxed ? "r" : "s"}`;
   const cacheKey = `${CACHE_VERSION}::${optKey}::${query.trim().toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) return cached;
