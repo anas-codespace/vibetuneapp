@@ -53,6 +53,8 @@ interface PlayerCtx {
   startMix: (tracks: VibeTrack[]) => void;
   addToQueue: (track: VibeTrack) => void;
   removeFromQueue: (index: number) => void;
+  reorderQueue: (fromIdx: number, toIdx: number) => void;
+  jumpToQueueIndex: (idx: number) => void;
   toggle: () => void;
   next: () => void;
   prev: () => void;
