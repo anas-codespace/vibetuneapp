@@ -16,6 +16,7 @@ import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 import { FALLBACK_TRACKS } from "@/data/fallbackTracks";
 import { SafeArt } from "@/components/SafeArt";
+import { CleanArt } from "@/components/CleanArt";
 
 import {
   TRENDING_REGIONS,
@@ -223,6 +224,9 @@ function AppHome() {
     subtitleFor: (t: VibeTrack) => string,
     sectionLoading = false,
     trailing?: React.ReactNode,
+    /** When true, cards represent an artist "radio" and use the artist's
+     *  official picture instead of the track's album cover. */
+    artistArt = false,
   ) => (
 
     <div className="mt-8">
@@ -255,7 +259,13 @@ function AppHome() {
               className="flex w-40 shrink-0 snap-start flex-col text-left sm:w-44"
             >
               <div className="aspect-square overflow-hidden rounded-md bg-white/5 shadow-lg shadow-black/50">
-                <SafeArt src={t.thumbnailUrl} alt={t.title} />
+                <CleanArt
+                  mode={artistArt ? "artist" : "track"}
+                  artist={t.artist}
+                  title={t.title}
+                  fallbackSrc={t.thumbnailUrl}
+                  alt={t.title}
+                />
               </div>
               <p className="mt-2 truncate text-sm font-bold text-white">
                 {t.title}
@@ -269,6 +279,7 @@ function AppHome() {
 
     </div>
   );
+
 
   return (
     <main className="relative min-h-screen bg-[#000000] pb-[140px]">
@@ -358,7 +369,7 @@ function AppHome() {
           </label>,
         )}
 
-        {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`)}
+        {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`, false, undefined, true)}
         {renderCarousel("New Releases", newReleases, (t) => t.artist)}
 
       </section>

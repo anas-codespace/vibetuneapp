@@ -32,6 +32,7 @@ import { Route as SettingsAudioRouteImport } from './routes/settings.audio'
 import { Route as LibraryDownloadedRouteImport } from './routes/library.downloaded'
 import { Route as LibraryIdRouteImport } from './routes/library.$id'
 import { Route as ApiAnalyzeMoodRouteImport } from './routes/api/analyze-mood'
+import { Route as ApiPublicTrackCoverRouteImport } from './routes/api/public/track-cover'
 import { Route as ApiPublicArtistImageRouteImport } from './routes/api/public/artist-image'
 import { Route as ApiPublicHealthYoutubeRouteImport } from './routes/api/public/health.youtube'
 
@@ -150,6 +151,11 @@ const ApiAnalyzeMoodRoute = ApiAnalyzeMoodRouteImport.update({
   path: '/api/analyze-mood',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTrackCoverRoute = ApiPublicTrackCoverRouteImport.update({
+  id: '/api/public/track-cover',
+  path: '/api/public/track-cover',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicArtistImageRoute = ApiPublicArtistImageRouteImport.update({
   id: '/api/public/artist-image',
   path: '/api/public/artist-image',
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
   '/api/public/artist-image': typeof ApiPublicArtistImageRoute
+  '/api/public/track-cover': typeof ApiPublicTrackCoverRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRoutesByTo {
@@ -213,6 +220,7 @@ export interface FileRoutesByTo {
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
   '/api/public/artist-image': typeof ApiPublicArtistImageRoute
+  '/api/public/track-cover': typeof ApiPublicTrackCoverRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRoutesById {
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
   '/api/public/artist-image': typeof ApiPublicArtistImageRoute
+  '/api/public/track-cover': typeof ApiPublicTrackCoverRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
 }
 export interface FileRouteTypes {
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/songs/$id'
     | '/spotify/callback'
     | '/api/public/artist-image'
+    | '/api/public/track-cover'
     | '/api/public/health/youtube'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/songs/$id'
     | '/spotify/callback'
     | '/api/public/artist-image'
+    | '/api/public/track-cover'
     | '/api/public/health/youtube'
   id:
     | '__root__'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/songs/$id'
     | '/spotify/callback'
     | '/api/public/artist-image'
+    | '/api/public/track-cover'
     | '/api/public/health/youtube'
   fileRoutesById: FileRoutesById
 }
@@ -350,6 +362,7 @@ export interface RootRouteChildren {
   SongsIdRoute: typeof SongsIdRoute
   SpotifyCallbackRoute: typeof SpotifyCallbackRoute
   ApiPublicArtistImageRoute: typeof ApiPublicArtistImageRoute
+  ApiPublicTrackCoverRoute: typeof ApiPublicTrackCoverRoute
   ApiPublicHealthYoutubeRoute: typeof ApiPublicHealthYoutubeRoute
 }
 
@@ -516,6 +529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAnalyzeMoodRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/track-cover': {
+      id: '/api/public/track-cover'
+      path: '/api/public/track-cover'
+      fullPath: '/api/public/track-cover'
+      preLoaderRoute: typeof ApiPublicTrackCoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/artist-image': {
       id: '/api/public/artist-image'
       path: '/api/public/artist-image'
@@ -569,6 +589,7 @@ const rootRouteChildren: RootRouteChildren = {
   SongsIdRoute: SongsIdRoute,
   SpotifyCallbackRoute: SpotifyCallbackRoute,
   ApiPublicArtistImageRoute: ApiPublicArtistImageRoute,
+  ApiPublicTrackCoverRoute: ApiPublicTrackCoverRoute,
   ApiPublicHealthYoutubeRoute: ApiPublicHealthYoutubeRoute,
 }
 export const routeTree = rootRouteImport
