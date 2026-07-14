@@ -1,34 +1,35 @@
 /**
  * Region options for the "Trending near you" section and localStorage
- * persistence helpers. Codes are ISO 3166-1 alpha-2 (YouTube regionCode).
+ * persistence helpers. Codes are ISO 3166-1 alpha-2 (YouTube regionCode /
+ * Spotify market). Region is INDEPENDENT of language preference — do not
+ * bake language names into the label here.
  */
 export interface TrendingRegion {
   code: string;
   label: string;
-  language: string; // human-readable primary language hint
 }
 
 export const TRENDING_REGIONS: TrendingRegion[] = [
-  { code: "IN", label: "India", language: "Hindi / Tamil / Telugu" },
-  { code: "US", label: "United States", language: "English" },
-  { code: "GB", label: "United Kingdom", language: "English" },
-  { code: "CA", label: "Canada", language: "English / French" },
-  { code: "AU", label: "Australia", language: "English" },
-  { code: "BR", label: "Brazil", language: "Portuguese" },
-  { code: "MX", label: "Mexico", language: "Spanish" },
-  { code: "ES", label: "Spain", language: "Spanish" },
-  { code: "FR", label: "France", language: "French" },
-  { code: "DE", label: "Germany", language: "German" },
-  { code: "IT", label: "Italy", language: "Italian" },
-  { code: "JP", label: "Japan", language: "Japanese" },
-  { code: "KR", label: "South Korea", language: "Korean" },
-  { code: "ID", label: "Indonesia", language: "Indonesian" },
-  { code: "NG", label: "Nigeria", language: "English" },
-  { code: "ZA", label: "South Africa", language: "English" },
-  { code: "AE", label: "UAE", language: "Arabic / English" },
-  { code: "SA", label: "Saudi Arabia", language: "Arabic" },
-  { code: "TR", label: "Turkey", language: "Turkish" },
-  { code: "RU", label: "Russia", language: "Russian" },
+  { code: "IN", label: "India" },
+  { code: "US", label: "United States" },
+  { code: "GB", label: "United Kingdom" },
+  { code: "CA", label: "Canada" },
+  { code: "AU", label: "Australia" },
+  { code: "BR", label: "Brazil" },
+  { code: "MX", label: "Mexico" },
+  { code: "ES", label: "Spain" },
+  { code: "FR", label: "France" },
+  { code: "DE", label: "Germany" },
+  { code: "IT", label: "Italy" },
+  { code: "JP", label: "Japan" },
+  { code: "KR", label: "South Korea" },
+  { code: "ID", label: "Indonesia" },
+  { code: "NG", label: "Nigeria" },
+  { code: "ZA", label: "South Africa" },
+  { code: "AE", label: "UAE" },
+  { code: "SA", label: "Saudi Arabia" },
+  { code: "TR", label: "Turkey" },
+  { code: "RU", label: "Russia" },
 ];
 
 export const DEFAULT_TRENDING_REGION = "IN";

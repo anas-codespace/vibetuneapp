@@ -25,6 +25,12 @@ import {
   setStoredTrendingRegion,
   labelForRegion,
 } from "@/lib/trendingRegion";
+import {
+  TRENDING_LANGUAGES,
+  getStoredTrendingLanguages,
+  setStoredTrendingLanguages,
+  rankByLanguages,
+} from "@/lib/trendingLanguage";
 
 
 
@@ -69,10 +75,22 @@ function AppHome() {
 
   // Persisted region preference for "Trending near you".
   const [trendingRegion, setTrendingRegion] = useState<string>(DEFAULT_TRENDING_REGION);
-  useEffect(() => { setTrendingRegion(getStoredTrendingRegion()); }, []);
+  // Persisted multi-select language preference (independent of region).
+  const [trendingLangs, setTrendingLangs] = useState<string[]>([]);
+  useEffect(() => {
+    setTrendingRegion(getStoredTrendingRegion());
+    setTrendingLangs(getStoredTrendingLanguages());
+  }, []);
   const changeTrendingRegion = (code: string) => {
     setTrendingRegion(code);
     setStoredTrendingRegion(code);
+  };
+  const toggleTrendingLang = (code: string) => {
+    setTrendingLangs((prev) => {
+      const next = prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code];
+      setStoredTrendingLanguages(next);
+      return next;
+    });
   };
 
 
@@ -103,8 +121,11 @@ function AppHome() {
 
 
   const favLanguages = (profile?.fav_languages as string[] | null) ?? [];
-  const primaryLang = favLanguages[0] ?? "tamil";
-  const trendingQuery = `trending ${primaryLang.toLowerCase()} songs official`;
+  // Prefer the explicit selector; fall back to profile fav_languages, then "tamil".
+  const effectiveLangs = trendingLangs.length > 0 ? trendingLangs : favLanguages;
+  const primaryLang = (effectiveLangs[0] ?? "tamil").toLowerCase();
+  const langQueryPart = effectiveLangs.length > 0 ? effectiveLangs.join(" ") : primaryLang;
+  const trendingQuery = `trending ${langQueryPart} songs official`;
 
   const { data: trending, isLoading: trendingLoading } = useQuery({
     queryKey: ["trending-default", trendingQuery],
@@ -185,8 +206,8 @@ function AppHome() {
   const suggestedList: VibeTrack[] = (feed?.suggestedForYou ?? []).map(mapTrack);
   const topArtistList: VibeTrack[] = (feed?.topArtistMix ?? []).map(mapTrack);
   const dailyList: VibeTrack[] = (feed?.dailyMix ?? []).map(mapTrack);
-  const trendingList: VibeTrack[] = (trending ?? []).map(mapTrack);
-  const trendingNearList: VibeTrack[] = (trendingNear ?? []).map(mapTrack);
+  const trendingList: VibeTrack[] = rankByLanguages((trending ?? []).map(mapTrack), trendingLangs);
+  const trendingNearList: VibeTrack[] = rankByLanguages((trendingNear ?? []).map(mapTrack), trendingLangs);
 
   // For rows that lack real personalization, fall back to trending; if
   // trending is also empty, use static curated fallback.
@@ -352,21 +373,48 @@ function AppHome() {
           trendingNearList.length > 0 ? trendingNearList.slice(0, 20) : trendingNow,
           (t) => t.artist || `Trending in ${trendingRegion}`,
           trendingNearLoading,
-          <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
-            <span className="sr-only">Region</span>
-            <select
-              aria-label="Trending region"
-              value={trendingRegion}
-              onChange={(e) => changeTrendingRegion(e.target.value)}
-              className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-white/80 hover:bg-white/10 focus:border-white/30 focus:outline-none"
+          <div className="flex flex-col items-end gap-2">
+            <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+              <span>Region</span>
+              <select
+                aria-label="Trending region"
+                value={trendingRegion}
+                onChange={(e) => changeTrendingRegion(e.target.value)}
+                className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-white/80 hover:bg-white/10 focus:border-white/30 focus:outline-none"
+              >
+                {TRENDING_REGIONS.map((r) => (
+                  <option key={r.code} value={r.code} className="bg-neutral-900 text-white">
+                    {r.label} ({r.code})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div
+              role="group"
+              aria-label="Preferred languages"
+              className="flex max-w-[280px] flex-wrap justify-end gap-1.5"
             >
-              {TRENDING_REGIONS.map((r) => (
-                <option key={r.code} value={r.code} className="bg-neutral-900 text-white">
-                  {r.label} ({r.code}) — {r.language}
-                </option>
-              ))}
-            </select>
-          </label>,
+              {TRENDING_LANGUAGES.map((l) => {
+                const active = trendingLangs.includes(l.code);
+                return (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => toggleTrendingLang(l.code)}
+                    aria-pressed={active}
+                    className={cn(
+                      "rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors",
+                      active
+                        ? "border-white/60 bg-white text-black"
+                        : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10",
+                    )}
+                  >
+                    {l.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>,
         )}
 
         {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`, false, undefined, true)}
