@@ -113,10 +113,25 @@ function SearchPage() {
       acceptedStage: string | null;
     }> => {
       const raw = debounced;
+      if (raw.trim().toLowerCase() === "jailer 2") {
+        console.log("[search-trace][ui] queryFn input", {
+          rawInputState: q,
+          debounced,
+          preferredLanguage,
+          sessionPresent: !!session,
+          enabled: !!session && debounced.length > 1,
+        });
+      }
       try {
         const resp = await cascadeFn({
           data: { query: raw, max: 24, language: preferredLanguage },
         });
+        if (raw.trim().toLowerCase() === "jailer 2") {
+          console.log("[search-trace][ui] cascadeFn response before client-sort", {
+            query: raw,
+            response: resp,
+          });
+        }
         console.log("[search] cascade:", {
           query: raw,
           stage: resp.acceptedStage,
@@ -133,7 +148,19 @@ function SearchPage() {
             const albumHit = (r.album ?? "").toLowerCase().includes(term) ? 1 : 0;
             return titleHit + albumHit;
           };
+          if (raw.trim().toLowerCase() === "jailer 2") {
+            console.log("[search-trace][ui] before-client-sort", {
+              count: results.length,
+              scored: results.map((r) => ({ title: r.title, artist: r.artist, album: r.album, score: score(r) })),
+            });
+          }
           results = [...results].sort((a, b) => score(b) - score(a));
+          if (raw.trim().toLowerCase() === "jailer 2") {
+            console.log("[search-trace][ui] after-client-sort", {
+              count: results.length,
+              results,
+            });
+          }
         }
         return {
           results,
@@ -143,6 +170,9 @@ function SearchPage() {
         };
       } catch (err) {
         console.error("[search] cascade failed:", err);
+        if (raw.trim().toLowerCase() === "jailer 2") {
+          console.error("[search-trace][ui] swallowed-query-error-returning-empty", err);
+        }
         return { results: [], correction: null, broadResults: false, acceptedStage: null };
       }
     },
