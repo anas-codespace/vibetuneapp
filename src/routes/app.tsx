@@ -369,7 +369,7 @@ function AppHome() {
           </label>,
         )}
 
-        {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`)}
+        {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`, false, undefined, true)}
         {renderCarousel("New Releases", newReleases, (t) => t.artist)}
 
       </section>
