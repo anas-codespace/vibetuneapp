@@ -1,10 +1,20 @@
 // Server-only YouTube Data API v3 helpers.
 // Strict filters: regionCode=IN, videoCategoryId=10 (Music), embeddable only.
+import {
+  extractProviderReason,
+  isProviderError,
+  ProviderHttpError,
+  providerError,
+  providerOk,
+  type ProviderResult,
+} from "./providerResult";
 
 const YT_BASE = "https://www.googleapis.com/youtube/v3";
 const CACHE_VERSION = "strict-v3";
 const SEARCH_CACHE = new Map<string, YTTrack[]>();
 const SEARCH_TRACE_QUERY = "jailer 2";
+const YOUTUBE_CACHE_TTL_MS = 24 * 60 * 60_000;
+let youtubeQuotaDisabledUntil = 0;
 
 const shouldTraceSearch = (query: string) => query.trim().toLowerCase().includes(SEARCH_TRACE_QUERY);
 
@@ -24,6 +34,68 @@ function key(): string {
   const k = process.env.YOUTUBE_API_KEY;
   if (!k) throw new Error("YOUTUBE_API_KEY not configured");
   return k;
+}
+
+function nextUtcMidnightMs(): number {
+  const now = new Date();
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+}
+
+function youtubeBreakerResult<T>(): ProviderResult<T> | null {
+  if (Date.now() < youtubeQuotaDisabledUntil) {
+    const reason = `YouTube quota circuit breaker active until ${new Date(youtubeQuotaDisabledUntil).toISOString()}`;
+    console.warn("[youtube] skipping request", { httpStatus: 429, reason });
+    return providerError("youtube", reason, 429);
+  }
+  return null;
+}
+
+function isQuotaReason(httpStatus: number, reason: string): boolean {
+  return httpStatus === 429 || /quota|rate.?limit|too many requests/i.test(reason);
+}
+
+function recordYoutubeProviderError(httpStatus: number, reason: string) {
+  console.error("[youtube] provider error", { httpStatus, reason });
+  if (isQuotaReason(httpStatus, reason)) {
+    youtubeQuotaDisabledUntil = nextUtcMidnightMs();
+    console.warn("[youtube] quota circuit breaker opened", {
+      httpStatus,
+      reason,
+      disabledUntil: new Date(youtubeQuotaDisabledUntil).toISOString(),
+    });
+  }
+}
+
+async function readPersistentYoutubeCache(cacheKey: string, trace: boolean): Promise<YTTrack[] | null> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("youtube_search_cache")
+      .select("results, cached_at")
+      .eq("query", cacheKey)
+      .maybeSingle();
+    if (error || !data) return null;
+    const age = Date.now() - new Date(data.cached_at).getTime();
+    if (age > YOUTUBE_CACHE_TTL_MS) return null;
+    const tracks = Array.isArray(data.results) ? (data.results as unknown as YTTrack[]) : null;
+    if (trace) console.log("[search-trace][youtube.cache] db-hit", { cacheKey, count: tracks?.length ?? 0, age });
+    return tracks;
+  } catch (err) {
+    if (trace) console.warn("[search-trace][youtube.cache] db-read-failed", err);
+    return null;
+  }
+}
+
+async function writePersistentYoutubeCache(cacheKey: string, tracks: YTTrack[], trace: boolean): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("youtube_search_cache")
+      .upsert({ query: cacheKey, results: tracks, cached_at: new Date().toISOString() }, { onConflict: "query" });
+    if (trace) console.log("[search-trace][youtube.cache] db-write", { cacheKey, count: tracks.length, ok: !error, error: error?.message });
+  } catch (err) {
+    if (trace) console.warn("[search-trace][youtube.cache] db-write-failed", err);
+  }
 }
 
 /**
@@ -169,19 +241,28 @@ function scoreVideo(v: RawVideoItem): number {
   return score;
 }
 
-async function fetchVideoDetails(ids: string[]): Promise<RawVideoItem[]> {
-  if (ids.length === 0) return [];
+async function fetchVideoDetails(ids: string[]): Promise<ProviderResult<RawVideoItem[]>> {
+  if (ids.length === 0) return providerOk([]);
+  const breaker = youtubeBreakerResult<RawVideoItem[]>();
+  if (breaker) return breaker;
   const url =
     `${YT_BASE}/videos?part=snippet,contentDetails,status` +
     `&id=${ids.join(",")}&key=${key()}`;
   const res = await fetch(url);
-  if (!res.ok) return [];
-  const data = (await res.json()) as { items: RawVideoItem[] };
-  return data.items;
+  const text = await res.text();
+  if (!res.ok) {
+    const reason = extractProviderReason(text);
+    recordYoutubeProviderError(res.status, reason);
+    return providerError("youtube", reason, res.status);
+  }
+  const data = JSON.parse(text) as { items: RawVideoItem[] };
+  return providerOk(data.items);
 }
 
-async function fetchVideoDetailsTraced(ids: string[], trace: boolean): Promise<RawVideoItem[]> {
-  if (ids.length === 0) return [];
+async function fetchVideoDetailsTraced(ids: string[], trace: boolean): Promise<ProviderResult<RawVideoItem[]>> {
+  if (ids.length === 0) return providerOk([]);
+  const breaker = youtubeBreakerResult<RawVideoItem[]>();
+  if (breaker) return breaker;
   const url =
     `${YT_BASE}/videos?part=snippet,contentDetails,status` +
     `&id=${ids.join(",")}&key=${key()}`;
@@ -202,7 +283,11 @@ async function fetchVideoDetailsTraced(ids: string[], trace: boolean): Promise<R
       body: text,
     });
   }
-  if (!res.ok) return [];
+  if (!res.ok) {
+    const reason = extractProviderReason(text);
+    recordYoutubeProviderError(res.status, reason);
+    return providerError("youtube", reason, res.status);
+  }
   const data = JSON.parse(text) as { items: RawVideoItem[] };
   if (trace) {
     console.log("[search-trace][youtube.details] parsed", {
@@ -210,7 +295,7 @@ async function fetchVideoDetailsTraced(ids: string[], trace: boolean): Promise<R
       sample: safeJsonForTrace(data.items?.slice(0, 5) ?? []),
     });
   }
-  return data.items;
+  return providerOk(data.items);
 }
 
 /**
@@ -279,15 +364,21 @@ function similarity(a: string, b: string): number {
 }
 
 /** Fetch YouTube autocomplete suggestions for a query (best-effort). */
-async function ytSuggestions(query: string): Promise<string[]> {
+async function ytSuggestions(query: string): Promise<ProviderResult<string[]>> {
   try {
     const url = `https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`;
     const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0" } });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      const reason = extractProviderReason(await res.text().catch(() => ""));
+      console.error("[youtube] suggestions failed", { httpStatus: res.status, reason });
+      return providerError("youtube", reason, res.status);
+    }
     const data = (await res.json()) as [string, string[]];
-    return Array.isArray(data?.[1]) ? data[1].slice(0, 10) : [];
-  } catch {
-    return [];
+    return providerOk(Array.isArray(data?.[1]) ? data[1].slice(0, 10) : []);
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    console.error("[youtube] suggestions network error", { httpStatus: 0, reason });
+    return providerError("youtube", reason, 0);
   }
 }
 
