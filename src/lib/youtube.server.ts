@@ -16,6 +16,10 @@ function safeJsonForTrace(value: unknown): string {
   }
 }
 
+function redactSecretsForTrace(url: string): string {
+  return url.replace(/([?&]key=)[^&]+/g, "$1<redacted>");
+}
+
 function key(): string {
   const k = process.env.YOUTUBE_API_KEY;
   if (!k) throw new Error("YOUTUBE_API_KEY not configured");
@@ -184,7 +188,7 @@ async function fetchVideoDetailsTraced(ids: string[], trace: boolean): Promise<R
   if (trace) {
     console.log("[search-trace][youtube.details] request", {
       provider: "youtube",
-      url,
+      url: redactSecretsForTrace(url),
       idCount: ids.length,
       hasApiKeyAttached: !!process.env.YOUTUBE_API_KEY,
     });
@@ -557,7 +561,7 @@ async function searchMusicOnce(
   if (trace) {
     console.log("[search-trace][youtube.once] search-request", {
       provider: "youtube",
-      url: searchUrl,
+      url: redactSecretsForTrace(searchUrl),
       hasApiKeyAttached: !!process.env.YOUTUBE_API_KEY,
       encodedQ: encodeURIComponent(q),
     });
