@@ -6,6 +6,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { VibtuneLogo } from "@/components/VibtuneLogo";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
