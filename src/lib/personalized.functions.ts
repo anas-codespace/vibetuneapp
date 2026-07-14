@@ -90,8 +90,10 @@ export const getPersonalizedFeed = createServerFn({ method: "GET" })
       youtubeId: r.youtube_id,
       title: r.title,
       artist: r.artist ?? "",
-      thumbnailUrl: r.thumbnail_url ?? null,
+      album: "",
+      thumbnailUrl: r.thumbnail_url ?? "",
       durationSeconds: 0,
+      isEmbeddable: true,
       reason: "In your Liked Songs",
     }));
 
@@ -105,12 +107,15 @@ export const getPersonalizedFeed = createServerFn({ method: "GET" })
         youtubeId: r.youtube_id,
         title: r.title,
         artist: r.artist ?? "",
-        thumbnailUrl: null,
+        album: "",
+        thumbnailUrl: "",
         durationSeconds: 0,
+        isEmbeddable: true,
         reason: "You played this recently",
       });
       if (recentlyPlayed.length >= 20) break;
     }
+
 
     // ---- Top-Artist Mix ------------------------------------------------
     let topArtistMix: FeedTrack[] = [];
