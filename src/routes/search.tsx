@@ -326,7 +326,7 @@ function SearchPage() {
         )}
         {debounced && !isFetching && !error && results.length === 0 && (
           <div className="text-white/60 text-center py-20 space-y-3">
-            <div>No exact matches for &ldquo;{debounced}&rdquo;.</div>
+            <div>No results found for &ldquo;{debounced}&rdquo;.</div>
             {correction && (
               <div className="text-sm text-white/70">
                 Did you mean{" "}
@@ -340,6 +340,13 @@ function SearchPage() {
                 ?
               </div>
             )}
+          </div>
+        )}
+
+        {debounced && !isFetching && !error && results.length > 0 && broadResults && !correction && (
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+            Showing related results for{" "}
+            <span className="font-semibold text-white">&ldquo;{debounced}&rdquo;</span>.
           </div>
         )}
 
