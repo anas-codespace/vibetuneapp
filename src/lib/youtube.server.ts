@@ -423,151 +423,110 @@ export interface SearchOptions {
   relaxed?: boolean;
 }
 
-export async function searchMusicWithCorrection(
+export interface SearchMusicCorrection {
+  tracks: YTTrack[];
+  correctedQuery: string | null;
+}
+
+export async function searchMusicWithCorrectionResult(
   query: string,
   maxResults = 30,
   opts: SearchOptions = {},
-): Promise<{ tracks: YTTrack[]; correctedQuery: string | null }> {
+): Promise<ProviderResult<SearchMusicCorrection>> {
   const original = query.trim();
-  if (!original) return { tracks: [], correctedQuery: null };
+  if (!original) return providerOk({ tracks: [], correctedQuery: null });
   const trace = shouldTraceSearch(original);
-  if (trace) {
-    console.log("[search-trace][youtube.searchMusicWithCorrection] start", {
-      query,
-      original,
-      maxResults,
-      opts,
-    });
-  }
+  if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] start", { query, original, maxResults, opts });
 
-  const optKey = `${(opts.language ?? "").toLowerCase()}`;
+  const optKey = `${(opts.language ?? "").toLowerCase()}::${opts.relaxed ? "r" : "s"}`;
   const cacheKey = `${CACHE_VERSION}::tolerant::${optKey}::${original.toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) {
-    if (trace) {
-      console.log("[search-trace][youtube.searchMusicWithCorrection] cache-hit", {
-        cacheKey,
-        count: cached.length,
-      });
-    }
-    return { tracks: cached, correctedQuery: null };
+    if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] cache-hit", { cacheKey, count: cached.length });
+    return providerOk({ tracks: cached, correctedQuery: null });
   }
 
-  // ── Hybrid cascade ──
-  // Attempt 1: contextual (language suffix appended). Broad, not strict-quoted.
-  // Attempt 2: raw query with no language suffix — recovers global/single-word hits ("hukum").
+  const escapedLanguage = opts.language?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const languageAlreadyPresent = !!escapedLanguage && new RegExp(`\\b${escapedLanguage}\\b`, "i").test(original);
+
   const attempt1 = await searchMusicOnce(original, maxResults, opts);
-  if (trace) {
-    console.log("[search-trace][youtube.searchMusicWithCorrection] attempt1-contextual", {
-      count: attempt1.length,
-      opts,
-      results: safeJsonForTrace(attempt1),
-    });
-  }
-  if (attempt1.length > 0) {
-    SEARCH_CACHE.set(cacheKey, attempt1);
-    return { tracks: attempt1, correctedQuery: null };
+  if (isProviderError(attempt1)) return attempt1;
+  if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] attempt1-contextual", { count: attempt1.data.length, opts, results: safeJsonForTrace(attempt1.data) });
+  if (attempt1.data.length > 0) {
+    SEARCH_CACHE.set(cacheKey, attempt1.data);
+    return providerOk({ tracks: attempt1.data, correctedQuery: null });
   }
 
-  if (opts.language) {
+  if (opts.language && !languageAlreadyPresent) {
     const attempt2 = await searchMusicOnce(original, maxResults, { ...opts, language: undefined });
-    if (trace) {
-      console.log("[search-trace][youtube.searchMusicWithCorrection] attempt2-raw-no-language", {
-        count: attempt2.length,
-        opts: { ...opts, language: undefined },
-        results: safeJsonForTrace(attempt2),
-      });
-    }
-    if (attempt2.length > 0) {
-      SEARCH_CACHE.set(cacheKey, attempt2);
-      return { tracks: attempt2, correctedQuery: null };
+    if (isProviderError(attempt2)) return attempt2;
+    if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] attempt2-raw-no-language", { count: attempt2.data.length, opts: { ...opts, language: undefined }, results: safeJsonForTrace(attempt2.data) });
+    if (attempt2.data.length > 0) {
+      SEARCH_CACHE.set(cacheKey, attempt2.data);
+      return providerOk({ tracks: attempt2.data, correctedQuery: null });
     }
   }
 
-  // Attempt 2.5: relaxed strict pipeline (skip HIGH_QUALITY gate + tier whitelist
-  // + LOW_QUALITY block). Recovers everyday songs/artists that the strict pass
-  // discards ("tum hi ho", regional/indie uploads on non-whitelisted channels).
   if (!opts.relaxed) {
     const relaxed = await searchMusicOnce(original, maxResults, { ...opts, relaxed: true });
-    if (trace) {
-      console.log("[search-trace][youtube.searchMusicWithCorrection] attempt3-relaxed-language", {
-        count: relaxed.length,
-        opts: { ...opts, relaxed: true },
-        results: safeJsonForTrace(relaxed),
-      });
+    if (isProviderError(relaxed)) return relaxed;
+    if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] attempt3-relaxed-language", { count: relaxed.data.length, opts: { ...opts, relaxed: true }, results: safeJsonForTrace(relaxed.data) });
+    if (relaxed.data.length > 0) {
+      SEARCH_CACHE.set(cacheKey, relaxed.data);
+      return providerOk({ tracks: relaxed.data, correctedQuery: null });
     }
-    if (relaxed.length > 0) {
-      SEARCH_CACHE.set(cacheKey, relaxed);
-      return { tracks: relaxed, correctedQuery: null };
-    }
-    if (opts.language) {
-      const relaxedNoLang = await searchMusicOnce(original, maxResults, {
-        ...opts,
-        language: undefined,
-        relaxed: true,
-      });
-      if (trace) {
-        console.log("[search-trace][youtube.searchMusicWithCorrection] attempt4-relaxed-no-language", {
-          count: relaxedNoLang.length,
-          opts: { ...opts, language: undefined, relaxed: true },
-          results: safeJsonForTrace(relaxedNoLang),
-        });
-      }
-      if (relaxedNoLang.length > 0) {
-        SEARCH_CACHE.set(cacheKey, relaxedNoLang);
-        return { tracks: relaxedNoLang, correctedQuery: null };
+    if (opts.language && !languageAlreadyPresent) {
+      const relaxedNoLang = await searchMusicOnce(original, maxResults, { ...opts, language: undefined, relaxed: true });
+      if (isProviderError(relaxedNoLang)) return relaxedNoLang;
+      if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] attempt4-relaxed-no-language", { count: relaxedNoLang.data.length, opts: { ...opts, language: undefined, relaxed: true }, results: safeJsonForTrace(relaxedNoLang.data) });
+      if (relaxedNoLang.data.length > 0) {
+        SEARCH_CACHE.set(cacheKey, relaxedNoLang.data);
+        return providerOk({ tracks: relaxedNoLang.data, correctedQuery: null });
       }
     }
   }
 
-
-  // Attempts 3–4: transliteration + trim-last-char (surface as "did you mean").
   const secondary: string[] = [];
   for (const v of transliterationVariants(original)) if (v !== original) secondary.push(v);
   if (original.length > 3) secondary.push(original.slice(0, -1));
 
   for (const attempt of secondary) {
     const tracks = await searchMusicOnce(attempt, maxResults, opts);
-    if (trace) {
-      console.log("[search-trace][youtube.searchMusicWithCorrection] secondary", {
-        attempt,
-        count: tracks.length,
-        results: safeJsonForTrace(tracks),
-      });
-    }
-    if (tracks.length > 0) {
-      SEARCH_CACHE.set(cacheKey, tracks);
-      return { tracks, correctedQuery: attempt };
+    if (isProviderError(tracks)) return tracks;
+    if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] secondary", { attempt, count: tracks.data.length, results: safeJsonForTrace(tracks.data) });
+    if (tracks.data.length > 0) {
+      SEARCH_CACHE.set(cacheKey, tracks.data);
+      return providerOk({ tracks: tracks.data, correctedQuery: attempt });
     }
   }
 
-  // Attempt 5: YouTube autocomplete + Levenshtein scoring.
   const suggestions = await ytSuggestions(original);
-  const corrected = bestCorrection(original, suggestions);
-  if (trace) {
-    console.log("[search-trace][youtube.searchMusicWithCorrection] suggestions", {
-      suggestions,
-      corrected,
-    });
-  }
+  if (isProviderError(suggestions)) return suggestions;
+  const corrected = bestCorrection(original, suggestions.data);
+  if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] suggestions", { suggestions: suggestions.data, corrected });
   if (corrected) {
     const tracks = await searchMusicOnce(corrected, maxResults, opts);
-    if (trace) {
-      console.log("[search-trace][youtube.searchMusicWithCorrection] corrected-attempt", {
-        corrected,
-        count: tracks.length,
-        results: safeJsonForTrace(tracks),
-      });
-    }
-    if (tracks.length > 0) {
-      SEARCH_CACHE.set(cacheKey, tracks);
-      return { tracks, correctedQuery: corrected };
+    if (isProviderError(tracks)) return tracks;
+    if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] corrected-attempt", { corrected, count: tracks.data.length, results: safeJsonForTrace(tracks.data) });
+    if (tracks.data.length > 0) {
+      SEARCH_CACHE.set(cacheKey, tracks.data);
+      return providerOk({ tracks: tracks.data, correctedQuery: corrected });
     }
   }
 
-  return { tracks: [], correctedQuery: null };
+  SEARCH_CACHE.set(cacheKey, []);
+  return providerOk({ tracks: [], correctedQuery: null });
 }
 
+export async function searchMusicWithCorrection(
+  query: string,
+  maxResults = 30,
+  opts: SearchOptions = {},
+): Promise<SearchMusicCorrection> {
+  const result = await searchMusicWithCorrectionResult(query, maxResults, opts);
+  if (isProviderError(result)) throw new ProviderHttpError(result.provider, result.httpStatus, result.reason);
+  return result.data;
+}
 
 /** Back-compat wrapper — tracks only. */
 export async function searchMusic(
@@ -577,6 +536,15 @@ export async function searchMusic(
 ): Promise<YTTrack[]> {
   const { tracks } = await searchMusicWithCorrection(query, maxResults, opts);
   return tracks;
+}
+
+export async function searchMusicResult(
+  query: string,
+  maxResults = 30,
+  opts: SearchOptions = {},
+): Promise<ProviderResult<YTTrack[]>> {
+  const result = await searchMusicWithCorrectionResult(query, maxResults, opts);
+  return isProviderError(result) ? result : providerOk(result.data.tracks);
 }
 
 /**
