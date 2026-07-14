@@ -3,8 +3,8 @@
  * planner (src/lib/search.ts) against Spotify + YouTube, and returns the
  * first accepted stage's results alongside metadata for the UI.
  *
- * The UI uses this to render a "Showing broader results" banner when
- * stage 4 (typo-tolerant) had to run.
+ * The UI uses this to render a "Showing related results" banner when a
+ * broader stage (raw / typo-tolerant / relaxed) produced the results.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -17,13 +17,28 @@ import {
 import { searchTracks as spotifySearchTracks, type SpotifyPlayableResult } from "./spotify.server";
 import { searchMusic } from "./youtube.server";
 
-async function runStage(stage: SearchStage, max: number): Promise<SpotifyPlayableResult[]> {
-  // Spotify first (has richer metadata), fall back to YouTube-only.
+async function runStage(
+  stage: SearchStage,
+  rawQuery: string,
+  language: string | undefined,
+  max: number,
+): Promise<SpotifyPlayableResult[]> {
+  // ---- Spotify probe ----
   let spot: Awaited<ReturnType<typeof spotifySearchTracks>> = [];
   try {
     spot = await spotifySearchTracks(stage.query, Math.min(max, 20));
   } catch {
     spot = [];
+  }
+  // Stage 1 uses a quoted phrase. If Spotify's strict phrase returned 0,
+  // retry with an unquoted variant of the same stage before giving up.
+  if (spot.length === 0 && stage.query.includes('"')) {
+    const unquoted = stage.query.replace(/"/g, "").replace(/\s+/g, " ").trim();
+    try {
+      spot = await spotifySearchTracks(unquoted, Math.min(max, 20));
+    } catch {
+      spot = [];
+    }
   }
 
   if (spot.length > 0) {
@@ -32,7 +47,10 @@ async function runStage(stage: SearchStage, max: number): Promise<SpotifyPlayabl
         try {
           const primary = t.artists[0] ?? "";
           const targetSec = Math.round(t.durationMs / 1000);
-          const yt = await searchMusic(`${primary} ${t.name} official audio`, 3);
+          // Spotify already gave us title/artist — resolve with a *relaxed*
+          // YouTube lookup so non-whitelisted uploads (indie/regional labels)
+          // are not silently dropped by the strict Quality Gate.
+          const yt = await searchMusic(`${primary} ${t.name}`, 3, { relaxed: true });
           if (yt.length === 0) return null;
           const best = [...yt].sort(
             (a, b) => Math.abs(a.durationSeconds - targetSec) - Math.abs(b.durationSeconds - targetSec),
@@ -61,9 +79,18 @@ async function runStage(stage: SearchStage, max: number): Promise<SpotifyPlayabl
     if (out.length) return out;
   }
 
-  // YouTube fallback for this stage.
+  // ---- YouTube fallback ----
+  // Pass the RAW user query (never the quoted / language-suffixed stage.query)
+  // so YouTube's own hybrid cascade inside youtube.server.ts can do its job.
+  // The stage merely governs whether we forward the language hint and whether
+  // we accept a relaxed pass.
+  const wantLanguage = stage.kind === "quoted_lang" || stage.kind === "unquoted_lang";
+  const wantRelaxed = stage.kind === "raw" || stage.kind === "typo_tolerant";
   try {
-    const yt = await searchMusic(stage.query, max);
+    const yt = await searchMusic(rawQuery, max, {
+      language: wantLanguage ? language : undefined,
+      relaxed: wantRelaxed,
+    });
     return yt.map((t) => ({
       spotifyId: `yt:${t.youtubeId}`,
       youtubeId: t.youtubeId,
@@ -89,7 +116,9 @@ export interface CascadeResponse {
   results: SpotifyPlayableResult[];
   /** Which planned stage produced the accepted results. */
   acceptedStage: SearchStage["kind"] | null;
-  /** True when we fell through to stage 4 (typo-tolerant / broad). */
+  /** True when the results came from a broader stage (raw / typo-tolerant)
+   *  or a relaxed fallback — i.e. NOT a perfect strict match. UI should show
+   *  "Showing related results for …". */
   broadResults: boolean;
   /** Optional "did you mean" from transliteration fallback. */
   correction: string | null;
@@ -114,30 +143,36 @@ export const searchCascade = createServerFn({ method: "POST" })
       transliterations: data.transliterations,
     });
 
-    let lastResults: SpotifyPlayableResult[] = [];
-    let lastStage: SearchStage | null = null;
+    let bestResults: SpotifyPlayableResult[] = [];
+    let bestStage: SearchStage | null = null;
 
     for (const stage of stages) {
-      const results = await runStage(stage, max);
-      lastResults = results;
-      lastStage = stage;
+      const results = await runStage(stage, data.query, data.language, max);
+      if (results.length > bestResults.length) {
+        bestResults = results;
+        bestStage = stage;
+      }
       const evalRes = evaluateStage(data.query, results.map(toLite));
       if (evalRes.accept) {
+        const isBroad =
+          stage.broadResults ||
+          stage.kind === "raw" ||
+          stage.kind === "typo_tolerant";
         return {
           results,
           acceptedStage: stage.kind,
-          broadResults: stage.broadResults,
+          broadResults: isBroad,
           correction: stage.kind === "typo_tolerant" ? stage.query : null,
         };
       }
     }
 
-    // No stage cleared the acceptance threshold — return whatever the last
-    // stage produced, and flag broadResults if we ended on typo_tolerant.
+    // No stage cleared the acceptance threshold — return the largest stage's
+    // output. broadResults=true because it's not a strict match.
     return {
-      results: lastResults,
-      acceptedStage: lastStage?.kind ?? null,
-      broadResults: lastStage?.broadResults ?? false,
-      correction: lastStage?.kind === "typo_tolerant" ? lastStage.query : null,
+      results: bestResults,
+      acceptedStage: bestStage?.kind ?? null,
+      broadResults: bestResults.length > 0,
+      correction: bestStage?.kind === "typo_tolerant" ? bestStage.query : null,
     };
   });
