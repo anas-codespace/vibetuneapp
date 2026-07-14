@@ -16,6 +16,7 @@ import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 import { FALLBACK_TRACKS } from "@/data/fallbackTracks";
 import { SafeArt } from "@/components/SafeArt";
+import { CleanArt } from "@/components/CleanArt";
 
 import {
   TRENDING_REGIONS,
