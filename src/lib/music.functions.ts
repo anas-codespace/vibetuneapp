@@ -169,7 +169,12 @@ export const searchYouTubeOnly = createServerFn({ method: "POST" })
     z.object({ query: z.string().min(1).max(200), max: z.number().int().min(1).max(25).optional() }).parse(d),
   )
   .handler(async ({ data }): Promise<YTTrack[]> => {
-    return searchMusic(data.query, data.max ?? 12);
+    try {
+      return await searchMusic(data.query, data.max ?? 12);
+    } catch (err) {
+      console.error("[searchYouTubeOnly] provider error, returning empty", err instanceof Error ? err.message : err);
+      return [];
+    }
   });
 
 /**
