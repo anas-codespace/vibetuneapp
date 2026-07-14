@@ -56,7 +56,7 @@ function AppHome() {
   useOnboardingGate();
   const navigate = useNavigate();
   const profileFn = useServerFn(getMyProfile);
-  const tracksFn = useServerFn(tracksForArtists);
+  const feedFn = useServerFn(getPersonalizedFeed);
   const trendingFn = useServerFn(searchYouTubeOnly);
   const trendingNearFn = useServerFn(getTrendingNearYou);
   const { play, startMix } = usePlayer();
@@ -92,29 +92,14 @@ function AppHome() {
     "vibe";
   const displayName = name.charAt(0).toUpperCase() + name.slice(1);
 
-  const favArtists = (profile?.fav_artists as Array<{ name: string }> | null) ?? [];
-  const seedArtists = favArtists.length
-    ? favArtists.map((a) => a.name).slice(0, 6)
-    : ["Anirudh Ravichander", "A.R. Rahman", "The Weeknd", "Arijit Singh"];
-
-  const { data: tracks, isLoading } = useQuery({
-    queryKey: ["tracks-for", seedArtists],
-    queryFn: async () => {
-      try {
-        const res = await tracksFn({ data: { artists: seedArtists } });
-        if (!res || res.length === 0) {
-          console.warn("[Vibtune Protect] tracksForArtists empty, using fallback.");
-          return [];
-        }
-        return res;
-      } catch (err) {
-        console.error("[Vibtune Protect] tracksForArtists failed, using fallback.", err);
-        return [];
-      }
-    },
+  // Personalized feed built from REAL user signals (liked_songs + history).
+  const { data: feed, isLoading } = useQuery({
+    queryKey: ["personalized-feed", user?.id],
+    queryFn: () => feedFn(),
     enabled: !!session,
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   });
+
 
   const favLanguages = (profile?.fav_languages as string[] | null) ?? [];
   const primaryLang = favLanguages[0] ?? "tamil";
