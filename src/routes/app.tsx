@@ -25,6 +25,12 @@ import {
   setStoredTrendingRegion,
   labelForRegion,
 } from "@/lib/trendingRegion";
+import {
+  TRENDING_LANGUAGES,
+  getStoredTrendingLanguages,
+  setStoredTrendingLanguages,
+  rankByLanguages,
+} from "@/lib/trendingLanguage";
 
 
 
