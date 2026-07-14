@@ -91,7 +91,7 @@ async function writePersistentYoutubeCache(cacheKey: string, tracks: YTTrack[], 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("youtube_search_cache")
-      .upsert({ query: cacheKey, results: tracks, cached_at: new Date().toISOString() }, { onConflict: "query" });
+      .upsert({ query: cacheKey, results: tracks as any, cached_at: new Date().toISOString() }, { onConflict: "query" });
     if (trace) console.log("[search-trace][youtube.cache] db-write", { cacheKey, count: tracks.length, ok: !error, error: error?.message });
   } catch (err) {
     if (trace) console.warn("[search-trace][youtube.cache] db-write-failed", err);
