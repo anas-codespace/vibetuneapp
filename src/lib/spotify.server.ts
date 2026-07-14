@@ -19,7 +19,10 @@ let cache: TokenCache | null = null;
 let spotifyConsecutive403 = 0;
 let spotifyDisabledUntil = 0;
 const SPOTIFY_403_BREAKER_THRESHOLD = 2;
-const SPOTIFY_BREAKER_MS = Number(process.env.SPOTIFY_CIRCUIT_BREAKER_MS ?? 15 * 60_000);
+
+function spotifyBreakerMs(): number {
+  return Number(process.env.SPOTIFY_CIRCUIT_BREAKER_MS ?? 15 * 60_000);
+}
 
 const SEARCH_TRACE_QUERY = "jailer 2";
 const shouldTraceSearch = (query: string) => query.trim().toLowerCase().includes(SEARCH_TRACE_QUERY);
@@ -99,12 +102,13 @@ function recordSpotifyHttpStatus(httpStatus: number, reason: string) {
     spotifyConsecutive403 += 1;
     console.error("[spotify] provider error", { httpStatus, reason, consecutive403: spotifyConsecutive403 });
     if (spotifyConsecutive403 >= SPOTIFY_403_BREAKER_THRESHOLD) {
-      spotifyDisabledUntil = Date.now() + SPOTIFY_BREAKER_MS;
+      const durationMs = spotifyBreakerMs();
+      spotifyDisabledUntil = Date.now() + durationMs;
       console.warn("[spotify] circuit breaker opened", {
         httpStatus,
         reason,
         disabledUntil: new Date(spotifyDisabledUntil).toISOString(),
-        durationMs: SPOTIFY_BREAKER_MS,
+        durationMs,
       });
     }
   } else if (httpStatus >= 200 && httpStatus < 300) {
@@ -130,7 +134,7 @@ export async function searchArtist(name: string): Promise<ProviderResult<Spotify
     return providerError("spotify", reason, res.status);
   }
   recordSpotifyHttpStatus(res.status, "ok");
-  const data = (await res.json()) as {
+  const data = JSON.parse(text) as {
     artists: { items: Array<{ id: string; name: string; images: { url: string }[]; followers: { total: number }; genres: string[] }> };
   };
   const a = data.artists.items[0];
