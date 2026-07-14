@@ -206,8 +206,8 @@ function AppHome() {
   const suggestedList: VibeTrack[] = (feed?.suggestedForYou ?? []).map(mapTrack);
   const topArtistList: VibeTrack[] = (feed?.topArtistMix ?? []).map(mapTrack);
   const dailyList: VibeTrack[] = (feed?.dailyMix ?? []).map(mapTrack);
-  const trendingList: VibeTrack[] = (trending ?? []).map(mapTrack);
-  const trendingNearList: VibeTrack[] = (trendingNear ?? []).map(mapTrack);
+  const trendingList: VibeTrack[] = rankByLanguages((trending ?? []).map(mapTrack), trendingLangs);
+  const trendingNearList: VibeTrack[] = rankByLanguages((trendingNear ?? []).map(mapTrack), trendingLangs);
 
   // For rows that lack real personalization, fall back to trending; if
   // trending is also empty, use static curated fallback.
