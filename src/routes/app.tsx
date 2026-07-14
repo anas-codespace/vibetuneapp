@@ -298,8 +298,13 @@ function AppHome() {
               <button
                 key={qp.title}
                 onClick={() => {
-                  if (i === 0) handleSmartMix();
-                  else if (list[i]) play(list[i], list);
+                  if (qp.title === "Liked Songs" && qp.list.length === 0) {
+                    handleSmartMix();
+                  } else if (qp.list[0]) {
+                    play(qp.list[0], qp.list);
+                  } else {
+                    handleSmartMix();
+                  }
                 }}
                 className="group flex h-14 items-center overflow-hidden rounded-md bg-white/5 text-left transition-colors hover:bg-white/10 active:scale-[0.98]"
               >
