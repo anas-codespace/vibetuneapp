@@ -23,6 +23,7 @@ import {
   type SpotifyAvailability,
 } from "./spotify.server";
 import { searchMusic } from "./youtube.server";
+import { isProviderError } from "./providerResult";
 
 export type { SpotifyPlayableResult, SpotifyAvailability };
 
@@ -123,7 +124,11 @@ export const spotifySearch = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ query: z.string().min(1).max(120) }).parse(d))
   .handler(async ({ data }) => {
     const spot = await searchTracks(data.query, 12);
-    return spot.map((t) => ({
+    if (isProviderError(spot)) {
+      console.error("[spotify.functions] search failed", { httpStatus: spot.httpStatus, reason: spot.reason });
+      return [];
+    }
+    return spot.data.map((t) => ({
       spotifyId: t.id,
       title: t.name,
       artist: t.artists.join(", "),
@@ -149,9 +154,19 @@ export const spotifySearchPlayable = createServerFn({ method: "POST" })
     const lang = data.language ?? "Tamil";
     const contextQuery = `${cleanQuery} ${lang}`;
     const max = Math.min(data.max ?? 16, 20);
-    let spot = await searchTracks(contextQuery, max);
-    if (!spot || spot.length === 0) {
-      spot = await searchTracks(cleanQuery, max);
+    let spotResult = await searchTracks(contextQuery, max);
+    if (isProviderError(spotResult)) {
+      console.error("[spotify.functions] contextual search failed", { httpStatus: spotResult.httpStatus, reason: spotResult.reason });
+    }
+    let spot = spotResult.status === "ok" ? spotResult.data : [];
+    if (spot.length === 0) {
+      spotResult = await searchTracks(cleanQuery, max);
+      if (isProviderError(spotResult)) {
+        console.error("[spotify.functions] raw search failed", { httpStatus: spotResult.httpStatus, reason: spotResult.reason });
+        spot = [];
+      } else {
+        spot = spotResult.data;
+      }
     }
 
     const resolved = await Promise.all(
