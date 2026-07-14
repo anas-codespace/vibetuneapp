@@ -8,6 +8,17 @@ interface TokenCache {
 
 let cache: TokenCache | null = null;
 
+const SEARCH_TRACE_QUERY = "jailer 2";
+const shouldTraceSearch = (query: string) => query.trim().toLowerCase().includes(SEARCH_TRACE_QUERY);
+
+function safeJsonForTrace(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
 async function getSpotifyToken(): Promise<string> {
   if (cache && cache.expiresAt > Date.now() + 30_000) return cache.token;
   const id = process.env.SPOTIFY_CLIENT_ID;
@@ -27,6 +38,15 @@ async function getSpotifyToken(): Promise<string> {
   const data = (await res.json()) as { access_token: string; expires_in: number };
   cache = { token: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
   return cache.token;
+}
+
+function spotifyTokenState() {
+  return {
+    hasCachedToken: !!cache?.token,
+    expiresAt: cache?.expiresAt ? new Date(cache.expiresAt).toISOString() : null,
+    expired: cache ? cache.expiresAt <= Date.now() : null,
+    usableForRequest: cache ? cache.expiresAt > Date.now() + 30_000 : false,
+  };
 }
 
 export type { SpotifyArtistInfo } from "./music.types";
@@ -109,12 +129,45 @@ function mapTrack(t: RawTrack): SpotifyTrackMeta {
 }
 
 export async function searchTracks(query: string, limit = 20): Promise<SpotifyTrackMeta[]> {
+  const trace = shouldTraceSearch(query);
+  if (trace) {
+    console.log("[search-trace][spotify.searchTracks] input", { query, limit, tokenBefore: spotifyTokenState() });
+  }
   const token = await getSpotifyToken();
   const url = `https://api.spotify.com/v1/search?type=track&limit=${limit}&q=${encodeURIComponent(query)}`;
+  if (trace) {
+    console.log("[search-trace][spotify.searchTracks] request", {
+      provider: "spotify",
+      url,
+      hasBearerTokenAttached: !!token,
+      tokenAfter: spotifyTokenState(),
+    });
+  }
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const text = await res.text();
+  if (trace) {
+    console.log("[search-trace][spotify.searchTracks] response", {
+      status: res.status,
+      ok: res.ok,
+      body: text,
+    });
+  }
   if (!res.ok) return [];
-  const data = (await res.json()) as { tracks: { items: RawTrack[] } };
-  return data.tracks.items.map(mapTrack);
+  const data = JSON.parse(text) as { tracks: { items: RawTrack[] } };
+  if (trace) {
+    console.log("[search-trace][spotify.searchTracks] transform", {
+      beforeMapCount: data.tracks?.items?.length ?? 0,
+      sampleBeforeMap: safeJsonForTrace(data.tracks?.items?.slice(0, 3) ?? []),
+    });
+  }
+  const mapped = data.tracks.items.map(mapTrack);
+  if (trace) {
+    console.log("[search-trace][spotify.searchTracks] mapped", {
+      afterMapCount: mapped.length,
+      sampleAfterMap: safeJsonForTrace(mapped.slice(0, 5)),
+    });
+  }
+  return mapped;
 }
 
 // ---------- User OAuth (Authorization Code) ----------
