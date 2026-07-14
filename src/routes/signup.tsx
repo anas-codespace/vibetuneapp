@@ -32,10 +32,15 @@ const SignupSchema = z.object({
 
 function SignupPage() {
   const navigate = useNavigate();
+  const { status } = useAuth();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+
+  useEffect(() => {
+    if (status === "authenticated") navigate({ to: "/app", replace: true });
+  }, [status, navigate]);
 
   const rules = [
     { label: "At least 8 characters", ok: form.password.length >= 8 },
