@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -31,10 +32,15 @@ const SignupSchema = z.object({
 
 function SignupPage() {
   const navigate = useNavigate();
+  const { status } = useAuth();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+
+  useEffect(() => {
+    if (status === "authenticated") navigate({ to: "/app", replace: true });
+  }, [status, navigate]);
 
   const rules = [
     { label: "At least 8 characters", ok: form.password.length >= 8 },
@@ -75,7 +81,7 @@ function SignupPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/app" });
+    // Session set by helper; the `status === "authenticated"` effect will navigate.
   }
 
   return (

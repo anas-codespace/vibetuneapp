@@ -6,6 +6,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { VibtuneLogo } from "@/components/VibtuneLogo";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -24,11 +25,19 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { status } = useAuth();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // If already authenticated (fresh mount, OAuth completion, refresh), leave the login page.
+  useEffect(() => {
+    if (status === "authenticated") {
+      navigate({ to: "/app", replace: true });
+    }
+  }, [status, navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,35 +66,6 @@ function LoginPage() {
   }
 
   useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const queryParams = new URLSearchParams(window.location.search);
-    const relevant = ["access_token", "refresh_token", "expires_at", "provider_token", "type", "error", "error_description", "code", "state"];
-    const hashSummary = Object.fromEntries(relevant.filter((k) => hashParams.has(k)).map((k) => [k, k.includes("token") ? `len=${hashParams.get(k)?.length ?? 0}` : hashParams.get(k)]));
-    const querySummary = Object.fromEntries(relevant.filter((k) => queryParams.has(k)).map((k) => [k, k.includes("token") ? `len=${queryParams.get(k)?.length ?? 0}` : queryParams.get(k)]));
-    supabase.auth.getSession().then(({ data }) => {
-      console.log("[oauth-debug][login] mount", {
-        href: window.location.href,
-        origin: window.location.origin,
-        pathname: window.location.pathname,
-        hashSummary,
-        querySummary,
-        hasSession: !!data.session,
-        userIdPrefix: data.session?.user.id.slice(0, 8) ?? null,
-        provider: data.session?.user.app_metadata?.provider ?? null,
-      });
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[oauth-debug][login] onAuthStateChange", {
-        event,
-        hasSession: !!session,
-        userIdPrefix: session?.user.id.slice(0, 8) ?? null,
-        provider: session?.user.app_metadata?.provider ?? null,
-      });
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
     const htmlPrev = document.documentElement.style.overflow;
     const bodyPrev = document.body.style.overflow;
     document.documentElement.style.overflow = "hidden";
@@ -99,20 +79,8 @@ function LoginPage() {
 
   async function handleGoogle() {
     setGoogleLoading(true);
-    const redirectUri = window.location.origin;
-    console.log("[oauth-debug][google] signInWithOAuth start", {
-      redirectUri,
-      origin: window.location.origin,
-      href: window.location.href,
-      inIframe: window.self !== window.top,
-    });
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: redirectUri,
-    });
-    console.log("[oauth-debug][google] signInWithOAuth result", {
-      redirected: (result as { redirected?: boolean }).redirected ?? false,
-      hasError: !!result.error,
-      errorMessage: result.error?.message ?? null,
+      redirect_uri: window.location.origin,
     });
     if (result.error) {
       setGoogleLoading(false);
@@ -120,14 +88,9 @@ function LoginPage() {
       return;
     }
     if (result.redirected) return;
-    const { data } = await supabase.auth.getSession();
-    console.log("[oauth-debug][google] post-signin session", {
-      hasSession: !!data.session,
-      userIdPrefix: data.session?.user.id.slice(0, 8) ?? null,
-      provider: data.session?.user.app_metadata?.provider ?? null,
-    });
-    navigate({ to: "/app" });
+    // Session set by helper; the `status === "authenticated"` effect above will navigate.
   }
+
 
   return (
     <main className="flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-black p-4">

@@ -52,7 +52,7 @@ function timeGreeting(): string {
 }
 
 function AppHome() {
-  const { session, loading, user } = useAuth();
+  const { session, status, user } = useAuth();
   useOnboardingGate();
   const navigate = useNavigate();
   const profileFn = useServerFn(getMyProfile);
@@ -76,8 +76,8 @@ function AppHome() {
 
 
   useEffect(() => {
-    if (!loading && !session) navigate({ to: "/login" });
-  }, [loading, session, navigate]);
+    if (status === "unauthenticated") navigate({ to: "/login", replace: true });
+  }, [status, navigate]);
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
