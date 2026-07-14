@@ -559,7 +559,7 @@ async function searchMusicOnce(
   query: string,
   maxResults = 30,
   opts: SearchOptions = {},
-): Promise<YTTrack[]> {
+): Promise<ProviderResult<YTTrack[]>> {
   const optKey = `${(opts.language ?? "").toLowerCase()}::${opts.relaxed ? "r" : "s"}`;
   const cacheKey = `${CACHE_VERSION}::${optKey}::${query.trim().toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
@@ -568,7 +568,12 @@ async function searchMusicOnce(
     if (trace) {
       console.log("[search-trace][youtube.once] cache-hit", { query, maxResults, opts, cacheKey, count: cached.length });
     }
-    return cached;
+    return providerOk(cached);
+  }
+  const persistentCached = await readPersistentYoutubeCache(cacheKey, trace);
+  if (persistentCached) {
+    SEARCH_CACHE.set(cacheKey, persistentCached);
+    return providerOk(persistentCached);
   }
 
   // Task 1: Keyword expansion — map political/campaign queries to a richer query.
@@ -626,35 +631,28 @@ async function searchMusicOnce(
     });
   }
 
+  const breaker = youtubeBreakerResult<YTTrack[]>();
+  if (breaker) return breaker;
+
   let searchRes: Response;
   try {
     searchRes = await fetch(searchUrl);
   } catch (e) {
-    console.error("[youtube] network error", e);
+    const reason = e instanceof Error ? e.message : String(e);
+    console.error("[youtube] network error", { httpStatus: 0, reason });
     if (trace) console.error("[search-trace][youtube.once] swallowed-network-error", e);
-    return [];
-  }
-
-  if (searchRes.status === 403) {
-    console.warn("[youtube] quota exceeded or forbidden");
-    if (trace) {
-      console.warn("[search-trace][youtube.once] returning-empty-on-403", { status: searchRes.status });
-    }
-    return [];
-  }
-  if (!searchRes.ok) {
-    const errorText = await searchRes.text().catch(() => "");
-    console.error("[youtube] search failed", searchRes.status, errorText);
-    if (trace) {
-      console.error("[search-trace][youtube.once] returning-empty-on-non-ok", {
-        status: searchRes.status,
-        body: errorText,
-      });
-    }
-    return [];
+    return providerError("youtube", reason, 0);
   }
 
   const rawSearchText = await searchRes.text();
+  if (!searchRes.ok) {
+    const reason = extractProviderReason(rawSearchText);
+    recordYoutubeProviderError(searchRes.status, reason);
+    if (trace) {
+      console.error("[search-trace][youtube.once] provider-error", { status: searchRes.status, body: rawSearchText, reason });
+    }
+    return providerError("youtube", reason, searchRes.status);
+  }
   if (trace) {
     console.log("[search-trace][youtube.once] search-response", {
       status: searchRes.status,
@@ -673,9 +671,15 @@ async function searchMusicOnce(
       ids,
     });
   }
-  if (ids.length === 0) return [];
+  if (ids.length === 0) {
+    SEARCH_CACHE.set(cacheKey, []);
+    await writePersistentYoutubeCache(cacheKey, [], trace);
+    return providerOk([]);
+  }
 
-  const items = trace ? await fetchVideoDetailsTraced(ids, trace) : await fetchVideoDetails(ids);
+  const details = trace ? await fetchVideoDetailsTraced(ids, trace) : await fetchVideoDetails(ids);
+  if (isProviderError(details)) return details;
+  const items = details.data;
   if (trace) {
     console.log("[search-trace][youtube.once] before-duration-filter", {
       detailsCount: items.length,
@@ -829,8 +833,9 @@ async function searchMusicOnce(
     });
   }
 
-  if (tracks.length > 0) SEARCH_CACHE.set(cacheKey, tracks);
-  return tracks;
+  SEARCH_CACHE.set(cacheKey, tracks);
+  await writePersistentYoutubeCache(cacheKey, tracks, trace);
+  return providerOk(tracks);
 }
 
 export async function relatedArtistNames(seedArtist: string, limit = 8): Promise<string[]> {
