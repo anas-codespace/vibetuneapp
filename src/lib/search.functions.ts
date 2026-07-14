@@ -17,17 +17,52 @@ import {
 import { searchTracks as spotifySearchTracks, type SpotifyPlayableResult } from "./spotify.server";
 import { searchMusic } from "./youtube.server";
 
+const SEARCH_TRACE_QUERY = "jailer 2";
+const shouldTraceSearch = (query: string) => query.trim().toLowerCase() === SEARCH_TRACE_QUERY;
+
+function safeJsonForTrace(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
 async function runStage(
   stage: SearchStage,
   rawQuery: string,
   language: string | undefined,
   max: number,
 ): Promise<SpotifyPlayableResult[]> {
+  const trace = shouldTraceSearch(rawQuery);
+  if (trace) {
+    console.log("[search-trace][cascade.runStage] start", {
+      stage,
+      rawQuery,
+      language,
+      max,
+    });
+  }
   // ---- Spotify probe ----
   let spot: Awaited<ReturnType<typeof spotifySearchTracks>> = [];
   try {
     spot = await spotifySearchTracks(stage.query, Math.min(max, 20));
-  } catch {
+    if (trace) {
+      console.log("[search-trace][cascade.runStage] spotify-probe-result", {
+        stage: stage.kind,
+        querySent: stage.query,
+        count: spot.length,
+        results: safeJsonForTrace(spot),
+      });
+    }
+  } catch (err) {
+    if (trace) {
+      console.error("[search-trace][cascade.runStage] spotify-probe-swallowed-error", {
+        stage: stage.kind,
+        querySent: stage.query,
+        error: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : String(err),
+      });
+    }
     spot = [];
   }
   // Stage 1 uses a quoted phrase. If Spotify's strict phrase returned 0,
@@ -36,12 +71,33 @@ async function runStage(
     const unquoted = stage.query.replace(/"/g, "").replace(/\s+/g, " ").trim();
     try {
       spot = await spotifySearchTracks(unquoted, Math.min(max, 20));
-    } catch {
+      if (trace) {
+        console.log("[search-trace][cascade.runStage] spotify-unquoted-retry-result", {
+          stage: stage.kind,
+          querySent: unquoted,
+          count: spot.length,
+          results: safeJsonForTrace(spot),
+        });
+      }
+    } catch (err) {
+      if (trace) {
+        console.error("[search-trace][cascade.runStage] spotify-unquoted-retry-swallowed-error", {
+          stage: stage.kind,
+          querySent: unquoted,
+          error: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : String(err),
+        });
+      }
       spot = [];
     }
   }
 
   if (spot.length > 0) {
+    if (trace) {
+      console.log("[search-trace][cascade.runStage] spotify-before-youtube-resolution", {
+        stage: stage.kind,
+        spotifyCount: spot.length,
+      });
+    }
     const resolved = await Promise.all(
       spot.map(async (t) => {
         try {
@@ -51,6 +107,16 @@ async function runStage(
           // YouTube lookup so non-whitelisted uploads (indie/regional labels)
           // are not silently dropped by the strict Quality Gate.
           const yt = await searchMusic(`${primary} ${t.name}`, 3, { relaxed: true });
+          if (trace) {
+            console.log("[search-trace][cascade.runStage] resolve-track-youtube", {
+              stage: stage.kind,
+              spotifyTrack: t,
+              youtubeQuery: `${primary} ${t.name}`,
+              targetSec,
+              youtubeCount: yt.length,
+              youtubeResults: safeJsonForTrace(yt),
+            });
+          }
           if (yt.length === 0) return null;
           const best = [...yt].sort(
             (a, b) => Math.abs(a.durationSeconds - targetSec) - Math.abs(b.durationSeconds - targetSec),
@@ -64,7 +130,14 @@ async function runStage(
             albumArt: t.albumArt,
             durationSeconds: best.durationSeconds || targetSec,
           } satisfies SpotifyPlayableResult;
-        } catch {
+        } catch (err) {
+          if (trace) {
+            console.error("[search-trace][cascade.runStage] resolve-track-swallowed-error", {
+              stage: stage.kind,
+              spotifyTrack: t,
+              error: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : String(err),
+            });
+          }
           return null;
         }
       }),
@@ -75,6 +148,15 @@ async function runStage(
       if (!r || seen.has(r.youtubeId)) continue;
       seen.add(r.youtubeId);
       out.push(r);
+    }
+    if (trace) {
+      console.log("[search-trace][cascade.runStage] spotify-after-resolution-dedup", {
+        stage: stage.kind,
+        beforeResolveCount: spot.length,
+        resolvedNonNullCount: resolved.filter(Boolean).length,
+        afterDedupCount: out.length,
+        results: safeJsonForTrace(out),
+      });
     }
     if (out.length) return out;
   }
@@ -87,10 +169,27 @@ async function runStage(
   const wantLanguage = stage.kind === "quoted_lang" || stage.kind === "unquoted_lang";
   const wantRelaxed = stage.kind === "raw" || stage.kind === "typo_tolerant";
   try {
+    if (trace) {
+      console.log("[search-trace][cascade.runStage] youtube-fallback-start", {
+        stage: stage.kind,
+        rawQuerySent: rawQuery,
+        options: {
+          language: wantLanguage ? language : undefined,
+          relaxed: wantRelaxed,
+        },
+      });
+    }
     const yt = await searchMusic(rawQuery, max, {
       language: wantLanguage ? language : undefined,
       relaxed: wantRelaxed,
     });
+    if (trace) {
+      console.log("[search-trace][cascade.runStage] youtube-fallback-result", {
+        stage: stage.kind,
+        count: yt.length,
+        results: safeJsonForTrace(yt),
+      });
+    }
     return yt.map((t) => ({
       spotifyId: `yt:${t.youtubeId}`,
       youtubeId: t.youtubeId,
@@ -100,7 +199,13 @@ async function runStage(
       albumArt: t.thumbnailUrl ?? null,
       durationSeconds: t.durationSeconds,
     }));
-  } catch {
+  } catch (err) {
+    if (trace) {
+      console.error("[search-trace][cascade.runStage] youtube-fallback-swallowed-error", {
+        stage: stage.kind,
+        error: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : String(err),
+      });
+    }
     return [];
   }
 }
@@ -142,22 +247,54 @@ export const searchCascade = createServerFn({ method: "POST" })
       language: data.language,
       transliterations: data.transliterations,
     });
+    const trace = shouldTraceSearch(data.query);
+    if (trace) {
+      console.log("[search-trace][cascade] input", {
+        data,
+        max,
+        stages,
+      });
+    }
 
     let bestResults: SpotifyPlayableResult[] = [];
     let bestStage: SearchStage | null = null;
 
     for (const stage of stages) {
+      if (trace) console.log("[search-trace][cascade] stage-start", { stage });
       const results = await runStage(stage, data.query, data.language, max);
+      if (trace) {
+        console.log("[search-trace][cascade] stage-results-before-best-check", {
+          stage,
+          count: results.length,
+          results: safeJsonForTrace(results),
+        });
+      }
       if (results.length > bestResults.length) {
         bestResults = results;
         bestStage = stage;
       }
       const evalRes = evaluateStage(data.query, results.map(toLite));
+      if (trace) {
+        console.log("[search-trace][cascade] stage-evaluation", {
+          stage,
+          evalRes,
+          lite: safeJsonForTrace(results.map(toLite)),
+          bestStage: bestStage?.kind ?? null,
+          bestCount: bestResults.length,
+        });
+      }
       if (evalRes.accept) {
         const isBroad =
           stage.broadResults ||
           stage.kind === "raw" ||
           stage.kind === "typo_tolerant";
+        if (trace) {
+          console.log("[search-trace][cascade] accepted-return", {
+            stage: stage.kind,
+            broadResults: isBroad,
+            count: results.length,
+          });
+        }
         return {
           results,
           acceptedStage: stage.kind,
@@ -169,6 +306,14 @@ export const searchCascade = createServerFn({ method: "POST" })
 
     // No stage cleared the acceptance threshold — return the largest stage's
     // output. broadResults=true because it's not a strict match.
+    if (trace) {
+      console.log("[search-trace][cascade] fallback-return-best", {
+        acceptedStage: bestStage?.kind ?? null,
+        broadResults: bestResults.length > 0,
+        count: bestResults.length,
+        results: safeJsonForTrace(bestResults),
+      });
+    }
     return {
       results: bestResults,
       acceptedStage: bestStage?.kind ?? null,
