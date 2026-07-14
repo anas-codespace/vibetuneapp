@@ -8,13 +8,15 @@ import { useAuth } from "@/hooks/use-auth";
 import { useOnboardingGate } from "@/hooks/use-onboarding-gate";
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { getMyProfile } from "@/lib/profile.functions";
-import { tracksForArtists, searchYouTubeOnly } from "@/lib/music.functions";
+import { searchYouTubeOnly } from "@/lib/music.functions";
 import { getSmartMix } from "@/lib/mix.functions";
+import { getPersonalizedFeed } from "@/lib/personalized.functions";
 import { getTrendingNearYou } from "@/lib/trending.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 import { FALLBACK_TRACKS } from "@/data/fallbackTracks";
 import { SafeArt } from "@/components/SafeArt";
+
 import {
   TRENDING_REGIONS,
   DEFAULT_TRENDING_REGION,
