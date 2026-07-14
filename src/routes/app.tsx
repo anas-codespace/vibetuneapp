@@ -8,13 +8,15 @@ import { useAuth } from "@/hooks/use-auth";
 import { useOnboardingGate } from "@/hooks/use-onboarding-gate";
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { getMyProfile } from "@/lib/profile.functions";
-import { tracksForArtists, searchYouTubeOnly } from "@/lib/music.functions";
+import { searchYouTubeOnly } from "@/lib/music.functions";
 import { getSmartMix } from "@/lib/mix.functions";
+import { getPersonalizedFeed } from "@/lib/personalized.functions";
 import { getTrendingNearYou } from "@/lib/trending.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 import { FALLBACK_TRACKS } from "@/data/fallbackTracks";
 import { SafeArt } from "@/components/SafeArt";
+
 import {
   TRENDING_REGIONS,
   DEFAULT_TRENDING_REGION,
@@ -54,7 +56,7 @@ function AppHome() {
   useOnboardingGate();
   const navigate = useNavigate();
   const profileFn = useServerFn(getMyProfile);
-  const tracksFn = useServerFn(tracksForArtists);
+  const feedFn = useServerFn(getPersonalizedFeed);
   const trendingFn = useServerFn(searchYouTubeOnly);
   const trendingNearFn = useServerFn(getTrendingNearYou);
   const { play, startMix } = usePlayer();
@@ -90,29 +92,14 @@ function AppHome() {
     "vibe";
   const displayName = name.charAt(0).toUpperCase() + name.slice(1);
 
-  const favArtists = (profile?.fav_artists as Array<{ name: string }> | null) ?? [];
-  const seedArtists = favArtists.length
-    ? favArtists.map((a) => a.name).slice(0, 6)
-    : ["Anirudh Ravichander", "A.R. Rahman", "The Weeknd", "Arijit Singh"];
-
-  const { data: tracks, isLoading } = useQuery({
-    queryKey: ["tracks-for", seedArtists],
-    queryFn: async () => {
-      try {
-        const res = await tracksFn({ data: { artists: seedArtists } });
-        if (!res || res.length === 0) {
-          console.warn("[Vibtune Protect] tracksForArtists empty, using fallback.");
-          return [];
-        }
-        return res;
-      } catch (err) {
-        console.error("[Vibtune Protect] tracksForArtists failed, using fallback.", err);
-        return [];
-      }
-    },
+  // Personalized feed built from REAL user signals (liked_songs + history).
+  const { data: feed, isLoading } = useQuery({
+    queryKey: ["personalized-feed", user?.id],
+    queryFn: () => feedFn(),
     enabled: !!session,
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   });
+
 
   const favLanguages = (profile?.fav_languages as string[] | null) ?? [];
   const primaryLang = favLanguages[0] ?? "tamil";
@@ -192,32 +179,42 @@ function AppHome() {
     durationSeconds: t.durationSeconds,
   });
 
-  const list: VibeTrack[] = (tracks ?? []).map(mapTrack);
+  const likedList: VibeTrack[] = (feed?.likedSongs ?? []).map(mapTrack);
+  const recentList: VibeTrack[] = (feed?.recentlyPlayed ?? []).map(mapTrack);
+  const suggestedList: VibeTrack[] = (feed?.suggestedForYou ?? []).map(mapTrack);
+  const topArtistList: VibeTrack[] = (feed?.topArtistMix ?? []).map(mapTrack);
+  const dailyList: VibeTrack[] = (feed?.dailyMix ?? []).map(mapTrack);
   const trendingList: VibeTrack[] = (trending ?? []).map(mapTrack);
   const trendingNearList: VibeTrack[] = (trendingNear ?? []).map(mapTrack);
 
-  // Bulletproof: if both live sources are empty (post-load), use static fallback.
-  const primary: VibeTrack[] =
-    list.length > 0 ? list : trendingList.length > 0 ? trendingList : FALLBACK_TRACKS;
-
+  // For rows that lack real personalization, fall back to trending; if
+  // trending is also empty, use static curated fallback.
   const ensureFilled = (items: VibeTrack[]): VibeTrack[] =>
-    items.length > 0 ? items : FALLBACK_TRACKS;
+    items.length > 0 ? items : trendingList.length > 0 ? trendingList : FALLBACK_TRACKS;
 
-  const quickPicks = [
-    { title: "Liked Songs", art: primary[0]?.thumbnailUrl, icon: Heart, gradient: "from-pink-500 to-violet-500" },
-    { title: "Tamil Top 50", art: primary[1]?.thumbnailUrl, icon: Disc3, gradient: "from-orange-500 to-pink-500" },
-    { title: "Anirudh Essentials", art: primary[2]?.thumbnailUrl, icon: Sparkles, gradient: "from-violet-500 to-fuchsia-500" },
-    { title: "Late Night Lo-Fi", art: primary[3]?.thumbnailUrl, icon: Radio, gradient: "from-indigo-500 to-purple-500" },
-    { title: "Daily Mix 1", art: primary[4]?.thumbnailUrl, icon: Sparkles, gradient: "from-emerald-500 to-cyan-500" },
-    { title: "Recently Played", art: primary[5]?.thumbnailUrl, icon: Play, gradient: "from-rose-500 to-orange-500" },
+  const topArtistName = feed?.topArtist ?? null;
+  const primaryLangLabel = feed?.primaryLang ?? "Tamil";
+  const coldStart = feed?.coldStart ?? false;
+  const artistTileTitle = topArtistName
+    ? `${topArtistName} Essentials`
+    : `${primaryLangLabel} Essentials`;
+
+  type QuickPick = { title: string; art: string | undefined; icon: typeof Heart; gradient: string; list: VibeTrack[] };
+  const quickPicks: QuickPick[] = [
+    { title: "Liked Songs", art: likedList[0]?.thumbnailUrl, icon: Heart, gradient: "from-pink-500 to-violet-500", list: likedList },
+    { title: `${primaryLangLabel} Top`, art: suggestedList[0]?.thumbnailUrl, icon: Disc3, gradient: "from-orange-500 to-pink-500", list: suggestedList },
+    { title: artistTileTitle, art: topArtistList[0]?.thumbnailUrl, icon: Sparkles, gradient: "from-violet-500 to-fuchsia-500", list: topArtistList.length ? topArtistList : suggestedList },
+    { title: coldStart ? "Discover Mix" : "Daily Mix 1", art: dailyList[0]?.thumbnailUrl, icon: Sparkles, gradient: "from-emerald-500 to-cyan-500", list: dailyList },
+    { title: "Recently Played", art: recentList[0]?.thumbnailUrl, icon: Play, gradient: "from-rose-500 to-orange-500", list: recentList },
+    { title: "Late Night Lo-Fi", art: suggestedList[3]?.thumbnailUrl, icon: Radio, gradient: "from-indigo-500 to-purple-500", list: suggestedList },
   ];
 
-  const suggestedForYou = ensureFilled(primary.slice(0, 20));
+  const suggestedForYou = ensureFilled(suggestedList.slice(0, 20));
   const trendingNow = ensureFilled(
-    trendingList.length > 0 ? trendingList.slice(0, 20) : primary.slice(0, 20),
+    trendingList.length > 0 ? trendingList.slice(0, 20) : suggestedList.slice(0, 20),
   );
-  const popularRadios = ensureFilled(primary.slice(15, 35).length > 0 ? primary.slice(15, 35) : primary.slice(0, 20));
-  const newReleases = ensureFilled(primary.slice(25, 50).length > 0 ? primary.slice(25, 50) : primary.slice(0, 20));
+  const popularRadios = ensureFilled(topArtistList.slice(0, 20));
+  const newReleases = ensureFilled(dailyList.slice(0, 20));
 
 
   const renderCarousel = (
@@ -301,8 +298,13 @@ function AppHome() {
               <button
                 key={qp.title}
                 onClick={() => {
-                  if (i === 0) handleSmartMix();
-                  else if (list[i]) play(list[i], list);
+                  if (qp.title === "Liked Songs" && qp.list.length === 0) {
+                    handleSmartMix();
+                  } else if (qp.list[0]) {
+                    play(qp.list[0], qp.list);
+                  } else {
+                    handleSmartMix();
+                  }
                 }}
                 className="group flex h-14 items-center overflow-hidden rounded-md bg-white/5 text-left transition-colors hover:bg-white/10 active:scale-[0.98]"
               >
