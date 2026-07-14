@@ -4,6 +4,17 @@
 const YT_BASE = "https://www.googleapis.com/youtube/v3";
 const CACHE_VERSION = "strict-v3";
 const SEARCH_CACHE = new Map<string, YTTrack[]>();
+const SEARCH_TRACE_QUERY = "jailer 2";
+
+const shouldTraceSearch = (query: string) => query.trim().toLowerCase().includes(SEARCH_TRACE_QUERY);
+
+function safeJsonForTrace(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
 
 function key(): string {
   const k = process.env.YOUTUBE_API_KEY;
@@ -165,6 +176,39 @@ async function fetchVideoDetails(ids: string[]): Promise<RawVideoItem[]> {
   return data.items;
 }
 
+async function fetchVideoDetailsTraced(ids: string[], trace: boolean): Promise<RawVideoItem[]> {
+  if (ids.length === 0) return [];
+  const url =
+    `${YT_BASE}/videos?part=snippet,contentDetails,status` +
+    `&id=${ids.join(",")}&key=${key()}`;
+  if (trace) {
+    console.log("[search-trace][youtube.details] request", {
+      provider: "youtube",
+      url,
+      idCount: ids.length,
+      hasApiKeyAttached: !!process.env.YOUTUBE_API_KEY,
+    });
+  }
+  const res = await fetch(url);
+  const text = await res.text();
+  if (trace) {
+    console.log("[search-trace][youtube.details] response", {
+      status: res.status,
+      ok: res.ok,
+      body: text,
+    });
+  }
+  if (!res.ok) return [];
+  const data = JSON.parse(text) as { items: RawVideoItem[] };
+  if (trace) {
+    console.log("[search-trace][youtube.details] parsed", {
+      itemCount: data.items?.length ?? 0,
+      sample: safeJsonForTrace(data.items?.slice(0, 5) ?? []),
+    });
+  }
+  return data.items;
+}
+
 /**
  * Tamil-to-English transliteration variants. Same phoneme, different Roman spellings.
  * We expand the user's query into all variants and try each until we get hits.
@@ -291,16 +335,40 @@ export async function searchMusicWithCorrection(
 ): Promise<{ tracks: YTTrack[]; correctedQuery: string | null }> {
   const original = query.trim();
   if (!original) return { tracks: [], correctedQuery: null };
+  const trace = shouldTraceSearch(original);
+  if (trace) {
+    console.log("[search-trace][youtube.searchMusicWithCorrection] start", {
+      query,
+      original,
+      maxResults,
+      opts,
+    });
+  }
 
   const optKey = `${(opts.language ?? "").toLowerCase()}`;
   const cacheKey = `${CACHE_VERSION}::tolerant::${optKey}::${original.toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
-  if (cached) return { tracks: cached, correctedQuery: null };
+  if (cached) {
+    if (trace) {
+      console.log("[search-trace][youtube.searchMusicWithCorrection] cache-hit", {
+        cacheKey,
+        count: cached.length,
+      });
+    }
+    return { tracks: cached, correctedQuery: null };
+  }
 
   // ── Hybrid cascade ──
   // Attempt 1: contextual (language suffix appended). Broad, not strict-quoted.
   // Attempt 2: raw query with no language suffix — recovers global/single-word hits ("hukum").
   const attempt1 = await searchMusicOnce(original, maxResults, opts);
+  if (trace) {
+    console.log("[search-trace][youtube.searchMusicWithCorrection] attempt1-contextual", {
+      count: attempt1.length,
+      opts,
+      results: safeJsonForTrace(attempt1),
+    });
+  }
   if (attempt1.length > 0) {
     SEARCH_CACHE.set(cacheKey, attempt1);
     return { tracks: attempt1, correctedQuery: null };
@@ -308,6 +376,13 @@ export async function searchMusicWithCorrection(
 
   if (opts.language) {
     const attempt2 = await searchMusicOnce(original, maxResults, { ...opts, language: undefined });
+    if (trace) {
+      console.log("[search-trace][youtube.searchMusicWithCorrection] attempt2-raw-no-language", {
+        count: attempt2.length,
+        opts: { ...opts, language: undefined },
+        results: safeJsonForTrace(attempt2),
+      });
+    }
     if (attempt2.length > 0) {
       SEARCH_CACHE.set(cacheKey, attempt2);
       return { tracks: attempt2, correctedQuery: null };
@@ -319,6 +394,13 @@ export async function searchMusicWithCorrection(
   // discards ("tum hi ho", regional/indie uploads on non-whitelisted channels).
   if (!opts.relaxed) {
     const relaxed = await searchMusicOnce(original, maxResults, { ...opts, relaxed: true });
+    if (trace) {
+      console.log("[search-trace][youtube.searchMusicWithCorrection] attempt3-relaxed-language", {
+        count: relaxed.length,
+        opts: { ...opts, relaxed: true },
+        results: safeJsonForTrace(relaxed),
+      });
+    }
     if (relaxed.length > 0) {
       SEARCH_CACHE.set(cacheKey, relaxed);
       return { tracks: relaxed, correctedQuery: null };
@@ -329,6 +411,13 @@ export async function searchMusicWithCorrection(
         language: undefined,
         relaxed: true,
       });
+      if (trace) {
+        console.log("[search-trace][youtube.searchMusicWithCorrection] attempt4-relaxed-no-language", {
+          count: relaxedNoLang.length,
+          opts: { ...opts, language: undefined, relaxed: true },
+          results: safeJsonForTrace(relaxedNoLang),
+        });
+      }
       if (relaxedNoLang.length > 0) {
         SEARCH_CACHE.set(cacheKey, relaxedNoLang);
         return { tracks: relaxedNoLang, correctedQuery: null };
@@ -344,6 +433,13 @@ export async function searchMusicWithCorrection(
 
   for (const attempt of secondary) {
     const tracks = await searchMusicOnce(attempt, maxResults, opts);
+    if (trace) {
+      console.log("[search-trace][youtube.searchMusicWithCorrection] secondary", {
+        attempt,
+        count: tracks.length,
+        results: safeJsonForTrace(tracks),
+      });
+    }
     if (tracks.length > 0) {
       SEARCH_CACHE.set(cacheKey, tracks);
       return { tracks, correctedQuery: attempt };
@@ -353,8 +449,21 @@ export async function searchMusicWithCorrection(
   // Attempt 5: YouTube autocomplete + Levenshtein scoring.
   const suggestions = await ytSuggestions(original);
   const corrected = bestCorrection(original, suggestions);
+  if (trace) {
+    console.log("[search-trace][youtube.searchMusicWithCorrection] suggestions", {
+      suggestions,
+      corrected,
+    });
+  }
   if (corrected) {
     const tracks = await searchMusicOnce(corrected, maxResults, opts);
+    if (trace) {
+      console.log("[search-trace][youtube.searchMusicWithCorrection] corrected-attempt", {
+        corrected,
+        count: tracks.length,
+        results: safeJsonForTrace(tracks),
+      });
+    }
     if (tracks.length > 0) {
       SEARCH_CACHE.set(cacheKey, tracks);
       return { tracks, correctedQuery: corrected };
@@ -391,7 +500,13 @@ async function searchMusicOnce(
   const optKey = `${(opts.language ?? "").toLowerCase()}::${opts.relaxed ? "r" : "s"}`;
   const cacheKey = `${CACHE_VERSION}::${optKey}::${query.trim().toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
-  if (cached) return cached;
+  const trace = shouldTraceSearch(query);
+  if (cached) {
+    if (trace) {
+      console.log("[search-trace][youtube.once] cache-hit", { query, maxResults, opts, cacheKey, count: cached.length });
+    }
+    return cached;
+  }
 
   // Task 1: Keyword expansion — map political/campaign queries to a richer query.
   const lowered = query.trim().toLowerCase();
@@ -413,6 +528,21 @@ async function searchMusicOnce(
       : `${rawUserTerm} official audio${langSuffix}`;
   const q = `${base} ${QUERY_NEGATIVES}`.trim();
 
+  if (trace) {
+    console.log("[search-trace][youtube.once] built-query", {
+      inputQuery: query,
+      maxResults,
+      opts,
+      lowered,
+      expansion,
+      isPolitical,
+      rawUserTerm,
+      langSuffix,
+      base,
+      q,
+    });
+  }
+
 
   // Political anthems are often uploaded under People/Politics (25) or News (25),
   // not Music (10). Drop the category restriction for those queries.
@@ -424,30 +554,72 @@ async function searchMusicOnce(
     `${categoryParam}&videoEmbeddable=true` +
     `&maxResults=50&q=${encodeURIComponent(q)}&key=${key()}`;
 
+  if (trace) {
+    console.log("[search-trace][youtube.once] search-request", {
+      provider: "youtube",
+      url: searchUrl,
+      hasApiKeyAttached: !!process.env.YOUTUBE_API_KEY,
+      encodedQ: encodeURIComponent(q),
+    });
+  }
+
   let searchRes: Response;
   try {
     searchRes = await fetch(searchUrl);
   } catch (e) {
     console.error("[youtube] network error", e);
+    if (trace) console.error("[search-trace][youtube.once] swallowed-network-error", e);
     return [];
   }
 
   if (searchRes.status === 403) {
     console.warn("[youtube] quota exceeded or forbidden");
+    if (trace) {
+      console.warn("[search-trace][youtube.once] returning-empty-on-403", { status: searchRes.status });
+    }
     return [];
   }
   if (!searchRes.ok) {
-    console.error("[youtube] search failed", searchRes.status, await searchRes.text().catch(() => ""));
+    const errorText = await searchRes.text().catch(() => "");
+    console.error("[youtube] search failed", searchRes.status, errorText);
+    if (trace) {
+      console.error("[search-trace][youtube.once] returning-empty-on-non-ok", {
+        status: searchRes.status,
+        body: errorText,
+      });
+    }
     return [];
   }
 
-  const searchData = (await searchRes.json()) as {
+  const rawSearchText = await searchRes.text();
+  if (trace) {
+    console.log("[search-trace][youtube.once] search-response", {
+      status: searchRes.status,
+      ok: searchRes.ok,
+      body: rawSearchText,
+    });
+  }
+  const searchData = JSON.parse(rawSearchText) as {
     items: Array<{ id: { videoId?: string } }>;
   };
   const ids = searchData.items.map((i) => i.id.videoId).filter((v): v is string => !!v);
+  if (trace) {
+    console.log("[search-trace][youtube.once] ids-transform", {
+      rawItemCount: searchData.items?.length ?? 0,
+      videoIdCount: ids.length,
+      ids,
+    });
+  }
   if (ids.length === 0) return [];
 
-  const items = await fetchVideoDetails(ids);
+  const items = trace ? await fetchVideoDetailsTraced(ids, trace) : await fetchVideoDetails(ids);
+  if (trace) {
+    console.log("[search-trace][youtube.once] before-duration-filter", {
+      detailsCount: items.length,
+      minDur: isPolitical ? 45 : 90,
+      maxDur: isPolitical ? 600 : 480,
+    });
+  }
 
   // Duration bounds — widen for political anthems (often 60s–10min).
   const minDur = isPolitical ? 45 : 90;
@@ -455,6 +627,22 @@ async function searchMusicOnce(
   const durationFiltered = items
     .map((v) => ({ v, seconds: isoDurationToSeconds(v.contentDetails.duration) }))
     .filter(({ v, seconds }) => v.status.embeddable && seconds >= minDur && seconds <= maxDur);
+  if (trace) {
+    console.log("[search-trace][youtube.once] after-duration-filter", {
+      beforeCount: items.length,
+      afterCount: durationFiltered.length,
+      removed: items
+        .map((v) => ({
+          id: v.id,
+          title: v.snippet.title,
+          channel: v.snippet.channelTitle,
+          seconds: isoDurationToSeconds(v.contentDetails.duration),
+          embeddable: v.status.embeddable,
+          kept: v.status.embeddable && isoDurationToSeconds(v.contentDetails.duration) >= minDur && isoDurationToSeconds(v.contentDetails.duration) <= maxDur,
+        }))
+        .filter((v) => !v.kept),
+    });
+  }
 
   // Guillotine + Quality Gate: block trailers/teasers/promos AND low-quality
   // keywords (status, whatsapp, edit, cover, mashup, remix, ringtone) regardless
@@ -477,6 +665,32 @@ async function searchMusicOnce(
     // originate from a verified channel.
     return HIGH_QUALITY_RE.test(t) || isOfficialChannel(v);
   });
+  if (trace) {
+    console.log("[search-trace][youtube.once] after-quality-filter", {
+      beforeCount: durationFiltered.length,
+      afterCount: filtered.length,
+      relaxed: !!opts.relaxed,
+      removed: durationFiltered
+        .map(({ v, seconds }) => {
+          const t = v.snippet.title;
+          const forbidden = FORBIDDEN_KEYWORDS_RE.test(t);
+          const lowQuality = !opts.relaxed && LOW_QUALITY_RE.test(t);
+          const relaxedKept = !!opts.relaxed && !forbidden;
+          const qualityKept = HIGH_QUALITY_RE.test(t) || isOfficialChannel(v);
+          return {
+            id: v.id,
+            title: t,
+            channel: v.snippet.channelTitle,
+            seconds,
+            forbidden,
+            lowQuality,
+            qualityKept,
+            kept: forbidden ? false : lowQuality ? false : relaxedKept ? true : qualityKept,
+          };
+        })
+        .filter((v) => !v.kept),
+    });
+  }
 
   filtered.sort((a, b) => scoreVideo(b.v) - scoreVideo(a.v));
 
@@ -507,6 +721,17 @@ async function searchMusicOnce(
   }
   filtered.length = 0;
   filtered.push(...finalPool);
+  if (trace) {
+    console.log("[search-trace][youtube.once] after-tier-filter", {
+      beforeCount: tier1.length + tier2.length,
+      filteredCountBeforeTier: tier1.length + tier2.length,
+      tier1Count: tier1.length,
+      tier2Count: tier2.length,
+      finalPoolCount: finalPool.length,
+      relaxed: !!opts.relaxed,
+      isPolitical,
+    });
+  }
 
   // Task 3: Only expose the channel as "artist" when it's a verified/official-looking
   // channel (label, VEVO, or auto-generated "- Topic"). Generic uploader channels
@@ -532,6 +757,14 @@ async function searchMusicOnce(
       isEmbeddable: v.status.embeddable,
     };
   });
+
+  if (trace) {
+    console.log("[search-trace][youtube.once] final-tracks", {
+      beforeSliceCount: filtered.length,
+      returnedCount: tracks.length,
+      tracks: safeJsonForTrace(tracks),
+    });
+  }
 
   if (tracks.length > 0) SEARCH_CACHE.set(cacheKey, tracks);
   return tracks;
