@@ -1,12 +1,25 @@
 // Server-only Spotify helpers (Client Credentials flow).
 // Cached token across invocations of the same worker.
+import {
+  extractProviderReason,
+  isProviderError,
+  providerError,
+  providerOk,
+  type ProviderResult,
+} from "./providerResult";
 
 interface TokenCache {
   token: string;
+  tokenType: string;
+  scope: string;
   expiresAt: number;
 }
 
 let cache: TokenCache | null = null;
+let spotifyConsecutive403 = 0;
+let spotifyDisabledUntil = 0;
+const SPOTIFY_403_BREAKER_THRESHOLD = 2;
+const SPOTIFY_BREAKER_MS = Number(process.env.SPOTIFY_CIRCUIT_BREAKER_MS ?? 15 * 60_000);
 
 const SEARCH_TRACE_QUERY = "jailer 2";
 const shouldTraceSearch = (query: string) => query.trim().toLowerCase().includes(SEARCH_TRACE_QUERY);
@@ -26,6 +39,12 @@ async function getSpotifyToken(): Promise<string> {
   if (!id || !secret) throw new Error("Spotify credentials not configured");
 
   const basic = btoa(`${id}:${secret}`);
+  console.log("[spotify] requesting client-credentials token", {
+    grantType: "client_credentials",
+    requestedScope: "none",
+    hasClientId: !!id,
+    hasClientSecret: !!secret,
+  });
   const res = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
     headers: {
@@ -34,56 +53,119 @@ async function getSpotifyToken(): Promise<string> {
     },
     body: "grant_type=client_credentials",
   });
-  if (!res.ok) throw new Error(`Spotify token error ${res.status}`);
-  const data = (await res.json()) as { access_token: string; expires_in: number };
-  cache = { token: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    const reason = extractProviderReason(text);
+    console.error("[spotify] client-credentials token failed", { httpStatus: res.status, reason });
+    throw new Error(`Spotify token error ${res.status}: ${reason}`);
+  }
+  const data = (await res.json()) as { access_token: string; expires_in: number; token_type?: string; scope?: string };
+  cache = {
+    token: data.access_token,
+    tokenType: data.token_type ?? "Bearer",
+    scope: data.scope ?? "",
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+  console.log("[spotify] client-credentials token ok", {
+    tokenType: cache.tokenType,
+    scope: cache.scope || "none",
+    expiresIn: data.expires_in,
+  });
   return cache.token;
 }
 
 function spotifyTokenState() {
   return {
     hasCachedToken: !!cache?.token,
+    tokenType: cache?.tokenType ?? null,
+    scope: cache?.scope ?? null,
     expiresAt: cache?.expiresAt ? new Date(cache.expiresAt).toISOString() : null,
     expired: cache ? cache.expiresAt <= Date.now() : null,
     usableForRequest: cache ? cache.expiresAt > Date.now() + 30_000 : false,
   };
 }
 
+function spotifyBreakerResult<T>(): ProviderResult<T> | null {
+  if (Date.now() < spotifyDisabledUntil) {
+    const reason = `Spotify circuit breaker active until ${new Date(spotifyDisabledUntil).toISOString()}`;
+    console.warn("[spotify] skipping request", { httpStatus: 503, reason });
+    return providerError("spotify", reason, 503);
+  }
+  return null;
+}
+
+function recordSpotifyHttpStatus(httpStatus: number, reason: string) {
+  if (httpStatus === 403) {
+    spotifyConsecutive403 += 1;
+    console.error("[spotify] provider error", { httpStatus, reason, consecutive403: spotifyConsecutive403 });
+    if (spotifyConsecutive403 >= SPOTIFY_403_BREAKER_THRESHOLD) {
+      spotifyDisabledUntil = Date.now() + SPOTIFY_BREAKER_MS;
+      console.warn("[spotify] circuit breaker opened", {
+        httpStatus,
+        reason,
+        disabledUntil: new Date(spotifyDisabledUntil).toISOString(),
+        durationMs: SPOTIFY_BREAKER_MS,
+      });
+    }
+  } else if (httpStatus >= 200 && httpStatus < 300) {
+    spotifyConsecutive403 = 0;
+  } else {
+    console.error("[spotify] provider error", { httpStatus, reason });
+  }
+}
+
 export type { SpotifyArtistInfo } from "./music.types";
 import type { SpotifyArtistInfo } from "./music.types";
 
-export async function searchArtist(name: string): Promise<SpotifyArtistInfo | null> {
+export async function searchArtist(name: string): Promise<ProviderResult<SpotifyArtistInfo | null>> {
+  const breaker = spotifyBreakerResult<SpotifyArtistInfo | null>();
+  if (breaker) return breaker;
   const token = await getSpotifyToken();
   const url = `https://api.spotify.com/v1/search?type=artist&limit=1&q=${encodeURIComponent(name)}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) return null;
+  const text = await res.text();
+  if (!res.ok) {
+    const reason = extractProviderReason(text);
+    recordSpotifyHttpStatus(res.status, reason);
+    return providerError("spotify", reason, res.status);
+  }
+  recordSpotifyHttpStatus(res.status, "ok");
   const data = (await res.json()) as {
     artists: { items: Array<{ id: string; name: string; images: { url: string }[]; followers: { total: number }; genres: string[] }> };
   };
   const a = data.artists.items[0];
-  if (!a) return null;
-  return {
+  if (!a) return providerOk(null);
+  return providerOk({
     id: a.id,
     name: a.name,
     hdPhotoUrl: a.images[0]?.url ?? null,
     isVerified: a.followers.total > 100_000,
     followers: a.followers.total,
     genres: a.genres,
-  };
+  });
 }
 
-export async function getRelatedArtistsByName(name: string, limit = 8): Promise<SpotifyArtistInfo[]> {
+export async function getRelatedArtistsByName(name: string, limit = 8): Promise<ProviderResult<SpotifyArtistInfo[]>> {
+  const breaker = spotifyBreakerResult<SpotifyArtistInfo[]>();
+  if (breaker) return breaker;
   const token = await getSpotifyToken();
   const seed = await searchArtist(name);
-  if (!seed) return [];
+  if (isProviderError(seed)) return seed;
+  if (!seed.data) return providerOk([]);
   // Spotify "related-artists" endpoint was deprecated; use genre-based recs fallback.
-  const genreQuery = seed.genres[0] ? `genre:"${seed.genres[0]}"` : seed.name;
+  const genreQuery = seed.data.genres[0] ? `genre:"${seed.data.genres[0]}"` : seed.data.name;
   const url = `https://api.spotify.com/v1/search?type=artist&limit=${limit + 4}&q=${encodeURIComponent(genreQuery)}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) return [];
-  const data = (await res.json()) as { artists: { items: Array<{ id: string; name: string; images: { url: string }[]; followers: { total: number }; genres: string[] }> } };
-  return data.artists.items
-    .filter((a) => a.id !== seed.id && a.images.length > 0)
+  const text = await res.text();
+  if (!res.ok) {
+    const reason = extractProviderReason(text);
+    recordSpotifyHttpStatus(res.status, reason);
+    return providerError("spotify", reason, res.status);
+  }
+  recordSpotifyHttpStatus(res.status, "ok");
+  const data = JSON.parse(text) as { artists: { items: Array<{ id: string; name: string; images: { url: string }[]; followers: { total: number }; genres: string[] }> } };
+  return providerOk(data.artists.items
+    .filter((a) => a.id !== seed.data!.id && a.images.length > 0)
     .slice(0, limit)
     .map((a) => ({
       id: a.id,
@@ -92,7 +174,7 @@ export async function getRelatedArtistsByName(name: string, limit = 8): Promise<
       isVerified: a.followers.total > 100_000,
       followers: a.followers.total,
       genres: a.genres,
-    }));
+    })));
 }
 
 // ---------- Track search (Client Credentials) ----------
@@ -128,8 +210,10 @@ function mapTrack(t: RawTrack): SpotifyTrackMeta {
   };
 }
 
-export async function searchTracks(query: string, limit = 20): Promise<SpotifyTrackMeta[]> {
+export async function searchTracks(query: string, limit = 20): Promise<ProviderResult<SpotifyTrackMeta[]>> {
   const trace = shouldTraceSearch(query);
+  const breaker = spotifyBreakerResult<SpotifyTrackMeta[]>();
+  if (breaker) return breaker;
   if (trace) {
     console.log("[search-trace][spotify.searchTracks] input", { query, limit, tokenBefore: spotifyTokenState() });
   }
@@ -140,6 +224,8 @@ export async function searchTracks(query: string, limit = 20): Promise<SpotifyTr
       provider: "spotify",
       url,
       hasBearerTokenAttached: !!token,
+      tokenType: cache?.tokenType ?? null,
+      scope: cache?.scope ?? null,
       tokenAfter: spotifyTokenState(),
     });
   }
@@ -152,7 +238,12 @@ export async function searchTracks(query: string, limit = 20): Promise<SpotifyTr
       body: text,
     });
   }
-  if (!res.ok) return [];
+  if (!res.ok) {
+    const reason = extractProviderReason(text);
+    recordSpotifyHttpStatus(res.status, reason);
+    return providerError("spotify", reason, res.status);
+  }
+  recordSpotifyHttpStatus(res.status, "ok");
   const data = JSON.parse(text) as { tracks: { items: RawTrack[] } };
   if (trace) {
     console.log("[search-trace][spotify.searchTracks] transform", {
@@ -167,7 +258,7 @@ export async function searchTracks(query: string, limit = 20): Promise<SpotifyTr
       sampleAfterMap: safeJsonForTrace(mapped.slice(0, 5)),
     });
   }
-  return mapped;
+  return providerOk(mapped);
 }
 
 // ---------- User OAuth (Authorization Code) ----------

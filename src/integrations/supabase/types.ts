@@ -454,6 +454,24 @@ export type Database = {
         }
         Relationships: []
       }
+      youtube_search_cache: {
+        Row: {
+          cached_at: string
+          query: string
+          results: Json
+        }
+        Insert: {
+          cached_at?: string
+          query: string
+          results: Json
+        }
+        Update: {
+          cached_at?: string
+          query?: string
+          results?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
