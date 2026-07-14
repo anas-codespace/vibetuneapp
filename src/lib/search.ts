@@ -82,7 +82,7 @@ function tokenize(s: string): string[] {
     .toLowerCase()
     .replace(/["'.,()\[\]!?]/g, " ")
     .split(/\s+/)
-    .filter((t) => t.length > 1);
+    .filter((t) => t.length >= 1);
 }
 
 /** Threshold below which the cascade proceeds to the next stage. */
