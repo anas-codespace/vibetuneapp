@@ -75,10 +75,22 @@ function AppHome() {
 
   // Persisted region preference for "Trending near you".
   const [trendingRegion, setTrendingRegion] = useState<string>(DEFAULT_TRENDING_REGION);
-  useEffect(() => { setTrendingRegion(getStoredTrendingRegion()); }, []);
+  // Persisted multi-select language preference (independent of region).
+  const [trendingLangs, setTrendingLangs] = useState<string[]>([]);
+  useEffect(() => {
+    setTrendingRegion(getStoredTrendingRegion());
+    setTrendingLangs(getStoredTrendingLanguages());
+  }, []);
   const changeTrendingRegion = (code: string) => {
     setTrendingRegion(code);
     setStoredTrendingRegion(code);
+  };
+  const toggleTrendingLang = (code: string) => {
+    setTrendingLangs((prev) => {
+      const next = prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code];
+      setStoredTrendingLanguages(next);
+      return next;
+    });
   };
 
 
