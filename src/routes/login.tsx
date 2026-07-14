@@ -25,11 +25,19 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { status } = useAuth();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // If already authenticated (fresh mount, OAuth completion, refresh), leave the login page.
+  useEffect(() => {
+    if (status === "authenticated") {
+      navigate({ to: "/app", replace: true });
+    }
+  }, [status, navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
