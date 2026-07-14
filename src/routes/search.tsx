@@ -111,6 +111,7 @@ function SearchPage() {
       correction: string | null;
       broadResults: boolean;
       acceptedStage: string | null;
+      unavailable: boolean;
     }> => {
       const raw = debounced;
       if (raw.trim().toLowerCase() === "jailer 2") {
@@ -137,6 +138,8 @@ function SearchPage() {
           stage: resp.acceptedStage,
           broad: resp.broadResults,
           count: resp.results.length,
+          unavailable: resp.unavailable,
+          providerErrors: resp.providerErrors,
         });
 
         // Client-side relevance sort — favor title/album hits.
@@ -167,13 +170,14 @@ function SearchPage() {
           correction: resp.correction,
           broadResults: resp.broadResults,
           acceptedStage: resp.acceptedStage,
+          unavailable: resp.unavailable,
         };
       } catch (err) {
         console.error("[search] cascade failed:", err);
         if (raw.trim().toLowerCase() === "jailer 2") {
           console.error("[search-trace][ui] swallowed-query-error-returning-empty", err);
         }
-        return { results: [], correction: null, broadResults: false, acceptedStage: null };
+        return { results: [], correction: null, broadResults: false, acceptedStage: null, unavailable: true };
       }
     },
     enabled: !!session && debounced.length > 1,
@@ -216,6 +220,7 @@ function SearchPage() {
   const results: SpotifyPlayableResult[] = data?.results ?? [];
   const correction = data?.correction ?? null;
   const broadResults = data?.broadResults ?? false;
+  const searchUnavailable = data?.unavailable ?? false;
   const toVibe = (t: SpotifyPlayableResult): VibeTrack => ({
     youtubeId: t.youtubeId,
     title: t.title,
@@ -354,7 +359,12 @@ function SearchPage() {
             Search failed. Please check your connection and try again.
           </div>
         )}
-        {debounced && !isFetching && !error && results.length === 0 && (
+        {debounced && !isFetching && !error && results.length === 0 && searchUnavailable && (
+          <div className="text-white/60 text-center py-20 space-y-2" role="alert">
+            <div>Search is temporarily unavailable, please try again shortly.</div>
+          </div>
+        )}
+        {debounced && !isFetching && !error && results.length === 0 && !searchUnavailable && (
           <div className="text-white/60 text-center py-20 space-y-3">
             <div>No results found for &ldquo;{debounced}&rdquo;.</div>
             {correction && (

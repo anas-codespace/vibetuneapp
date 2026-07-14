@@ -9,6 +9,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { searchMusic, relatedArtistNames, type YTTrack } from "./youtube.server";
+import { isProviderError } from "./providerResult";
 
 export interface FeedTrack extends YTTrack {
   reason: string;
@@ -142,7 +143,11 @@ export const getPersonalizedFeed = createServerFn({ method: "GET" })
       // For each seed, get related artists then fetch their tracks.
       const perSeed = await Promise.all(
         suggestSeeds.map(async (seed) => {
-          const related = await relatedArtistNames(seed, 4).catch(() => [] as string[]);
+          const relatedResult = await relatedArtistNames(seed, 4).catch(() => null);
+          if (relatedResult && isProviderError(relatedResult)) {
+            console.error("[personalized] related artists failed", { seed, httpStatus: relatedResult.httpStatus, reason: relatedResult.reason });
+          }
+          const related = relatedResult?.status === "ok" ? relatedResult.data : [];
           // Include the seed itself as a related node (deeper cuts).
           const targets = [...new Set([seed, ...related])].slice(0, 5);
           const tracksPerTarget = await Promise.all(

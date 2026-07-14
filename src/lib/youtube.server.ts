@@ -1,10 +1,20 @@
 // Server-only YouTube Data API v3 helpers.
 // Strict filters: regionCode=IN, videoCategoryId=10 (Music), embeddable only.
+import {
+  extractProviderReason,
+  isProviderError,
+  ProviderHttpError,
+  providerError,
+  providerOk,
+  type ProviderResult,
+} from "./providerResult";
 
 const YT_BASE = "https://www.googleapis.com/youtube/v3";
 const CACHE_VERSION = "strict-v3";
 const SEARCH_CACHE = new Map<string, YTTrack[]>();
 const SEARCH_TRACE_QUERY = "jailer 2";
+const YOUTUBE_CACHE_TTL_MS = 24 * 60 * 60_000;
+let youtubeQuotaDisabledUntil = 0;
 
 const shouldTraceSearch = (query: string) => query.trim().toLowerCase().includes(SEARCH_TRACE_QUERY);
 
@@ -24,6 +34,68 @@ function key(): string {
   const k = process.env.YOUTUBE_API_KEY;
   if (!k) throw new Error("YOUTUBE_API_KEY not configured");
   return k;
+}
+
+function nextUtcMidnightMs(): number {
+  const now = new Date();
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+}
+
+function youtubeBreakerResult<T>(): ProviderResult<T> | null {
+  if (Date.now() < youtubeQuotaDisabledUntil) {
+    const reason = `YouTube quota circuit breaker active until ${new Date(youtubeQuotaDisabledUntil).toISOString()}`;
+    console.warn("[youtube] skipping request", { httpStatus: 429, reason });
+    return providerError("youtube", reason, 429);
+  }
+  return null;
+}
+
+function isQuotaReason(httpStatus: number, reason: string): boolean {
+  return httpStatus === 429 || /quota|rate.?limit|too many requests/i.test(reason);
+}
+
+function recordYoutubeProviderError(httpStatus: number, reason: string) {
+  console.error("[youtube] provider error", { httpStatus, reason });
+  if (isQuotaReason(httpStatus, reason)) {
+    youtubeQuotaDisabledUntil = nextUtcMidnightMs();
+    console.warn("[youtube] quota circuit breaker opened", {
+      httpStatus,
+      reason,
+      disabledUntil: new Date(youtubeQuotaDisabledUntil).toISOString(),
+    });
+  }
+}
+
+async function readPersistentYoutubeCache(cacheKey: string, trace: boolean): Promise<YTTrack[] | null> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("youtube_search_cache")
+      .select("results, cached_at")
+      .eq("query", cacheKey)
+      .maybeSingle();
+    if (error || !data) return null;
+    const age = Date.now() - new Date(data.cached_at).getTime();
+    if (age > YOUTUBE_CACHE_TTL_MS) return null;
+    const tracks = Array.isArray(data.results) ? (data.results as unknown as YTTrack[]) : null;
+    if (trace) console.log("[search-trace][youtube.cache] db-hit", { cacheKey, count: tracks?.length ?? 0, age });
+    return tracks;
+  } catch (err) {
+    if (trace) console.warn("[search-trace][youtube.cache] db-read-failed", err);
+    return null;
+  }
+}
+
+async function writePersistentYoutubeCache(cacheKey: string, tracks: YTTrack[], trace: boolean): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("youtube_search_cache")
+      .upsert({ query: cacheKey, results: tracks as any, cached_at: new Date().toISOString() }, { onConflict: "query" });
+    if (trace) console.log("[search-trace][youtube.cache] db-write", { cacheKey, count: tracks.length, ok: !error, error: error?.message });
+  } catch (err) {
+    if (trace) console.warn("[search-trace][youtube.cache] db-write-failed", err);
+  }
 }
 
 /**
@@ -169,19 +241,28 @@ function scoreVideo(v: RawVideoItem): number {
   return score;
 }
 
-async function fetchVideoDetails(ids: string[]): Promise<RawVideoItem[]> {
-  if (ids.length === 0) return [];
+async function fetchVideoDetails(ids: string[]): Promise<ProviderResult<RawVideoItem[]>> {
+  if (ids.length === 0) return providerOk([]);
+  const breaker = youtubeBreakerResult<RawVideoItem[]>();
+  if (breaker) return breaker;
   const url =
     `${YT_BASE}/videos?part=snippet,contentDetails,status` +
     `&id=${ids.join(",")}&key=${key()}`;
   const res = await fetch(url);
-  if (!res.ok) return [];
-  const data = (await res.json()) as { items: RawVideoItem[] };
-  return data.items;
+  const text = await res.text();
+  if (!res.ok) {
+    const reason = extractProviderReason(text);
+    recordYoutubeProviderError(res.status, reason);
+    return providerError("youtube", reason, res.status);
+  }
+  const data = JSON.parse(text) as { items: RawVideoItem[] };
+  return providerOk(data.items);
 }
 
-async function fetchVideoDetailsTraced(ids: string[], trace: boolean): Promise<RawVideoItem[]> {
-  if (ids.length === 0) return [];
+async function fetchVideoDetailsTraced(ids: string[], trace: boolean): Promise<ProviderResult<RawVideoItem[]>> {
+  if (ids.length === 0) return providerOk([]);
+  const breaker = youtubeBreakerResult<RawVideoItem[]>();
+  if (breaker) return breaker;
   const url =
     `${YT_BASE}/videos?part=snippet,contentDetails,status` +
     `&id=${ids.join(",")}&key=${key()}`;
@@ -202,7 +283,11 @@ async function fetchVideoDetailsTraced(ids: string[], trace: boolean): Promise<R
       body: text,
     });
   }
-  if (!res.ok) return [];
+  if (!res.ok) {
+    const reason = extractProviderReason(text);
+    recordYoutubeProviderError(res.status, reason);
+    return providerError("youtube", reason, res.status);
+  }
   const data = JSON.parse(text) as { items: RawVideoItem[] };
   if (trace) {
     console.log("[search-trace][youtube.details] parsed", {
@@ -210,7 +295,7 @@ async function fetchVideoDetailsTraced(ids: string[], trace: boolean): Promise<R
       sample: safeJsonForTrace(data.items?.slice(0, 5) ?? []),
     });
   }
-  return data.items;
+  return providerOk(data.items);
 }
 
 /**
@@ -279,15 +364,21 @@ function similarity(a: string, b: string): number {
 }
 
 /** Fetch YouTube autocomplete suggestions for a query (best-effort). */
-async function ytSuggestions(query: string): Promise<string[]> {
+async function ytSuggestions(query: string): Promise<ProviderResult<string[]>> {
   try {
     const url = `https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`;
     const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0" } });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      const reason = extractProviderReason(await res.text().catch(() => ""));
+      console.error("[youtube] suggestions failed", { httpStatus: res.status, reason });
+      return providerError("youtube", reason, res.status);
+    }
     const data = (await res.json()) as [string, string[]];
-    return Array.isArray(data?.[1]) ? data[1].slice(0, 10) : [];
-  } catch {
-    return [];
+    return providerOk(Array.isArray(data?.[1]) ? data[1].slice(0, 10) : []);
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    console.error("[youtube] suggestions network error", { httpStatus: 0, reason });
+    return providerError("youtube", reason, 0);
   }
 }
 
@@ -332,151 +423,110 @@ export interface SearchOptions {
   relaxed?: boolean;
 }
 
-export async function searchMusicWithCorrection(
+export interface SearchMusicCorrection {
+  tracks: YTTrack[];
+  correctedQuery: string | null;
+}
+
+export async function searchMusicWithCorrectionResult(
   query: string,
   maxResults = 30,
   opts: SearchOptions = {},
-): Promise<{ tracks: YTTrack[]; correctedQuery: string | null }> {
+): Promise<ProviderResult<SearchMusicCorrection>> {
   const original = query.trim();
-  if (!original) return { tracks: [], correctedQuery: null };
+  if (!original) return providerOk({ tracks: [], correctedQuery: null });
   const trace = shouldTraceSearch(original);
-  if (trace) {
-    console.log("[search-trace][youtube.searchMusicWithCorrection] start", {
-      query,
-      original,
-      maxResults,
-      opts,
-    });
-  }
+  if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] start", { query, original, maxResults, opts });
 
-  const optKey = `${(opts.language ?? "").toLowerCase()}`;
+  const optKey = `${(opts.language ?? "").toLowerCase()}::${opts.relaxed ? "r" : "s"}`;
   const cacheKey = `${CACHE_VERSION}::tolerant::${optKey}::${original.toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
   if (cached) {
-    if (trace) {
-      console.log("[search-trace][youtube.searchMusicWithCorrection] cache-hit", {
-        cacheKey,
-        count: cached.length,
-      });
-    }
-    return { tracks: cached, correctedQuery: null };
+    if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] cache-hit", { cacheKey, count: cached.length });
+    return providerOk({ tracks: cached, correctedQuery: null });
   }
 
-  // ── Hybrid cascade ──
-  // Attempt 1: contextual (language suffix appended). Broad, not strict-quoted.
-  // Attempt 2: raw query with no language suffix — recovers global/single-word hits ("hukum").
+  const escapedLanguage = opts.language?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const languageAlreadyPresent = !!escapedLanguage && new RegExp(`\\b${escapedLanguage}\\b`, "i").test(original);
+
   const attempt1 = await searchMusicOnce(original, maxResults, opts);
-  if (trace) {
-    console.log("[search-trace][youtube.searchMusicWithCorrection] attempt1-contextual", {
-      count: attempt1.length,
-      opts,
-      results: safeJsonForTrace(attempt1),
-    });
-  }
-  if (attempt1.length > 0) {
-    SEARCH_CACHE.set(cacheKey, attempt1);
-    return { tracks: attempt1, correctedQuery: null };
+  if (isProviderError(attempt1)) return attempt1;
+  if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] attempt1-contextual", { count: attempt1.data.length, opts, results: safeJsonForTrace(attempt1.data) });
+  if (attempt1.data.length > 0) {
+    SEARCH_CACHE.set(cacheKey, attempt1.data);
+    return providerOk({ tracks: attempt1.data, correctedQuery: null });
   }
 
-  if (opts.language) {
+  if (opts.language && !languageAlreadyPresent) {
     const attempt2 = await searchMusicOnce(original, maxResults, { ...opts, language: undefined });
-    if (trace) {
-      console.log("[search-trace][youtube.searchMusicWithCorrection] attempt2-raw-no-language", {
-        count: attempt2.length,
-        opts: { ...opts, language: undefined },
-        results: safeJsonForTrace(attempt2),
-      });
-    }
-    if (attempt2.length > 0) {
-      SEARCH_CACHE.set(cacheKey, attempt2);
-      return { tracks: attempt2, correctedQuery: null };
+    if (isProviderError(attempt2)) return attempt2;
+    if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] attempt2-raw-no-language", { count: attempt2.data.length, opts: { ...opts, language: undefined }, results: safeJsonForTrace(attempt2.data) });
+    if (attempt2.data.length > 0) {
+      SEARCH_CACHE.set(cacheKey, attempt2.data);
+      return providerOk({ tracks: attempt2.data, correctedQuery: null });
     }
   }
 
-  // Attempt 2.5: relaxed strict pipeline (skip HIGH_QUALITY gate + tier whitelist
-  // + LOW_QUALITY block). Recovers everyday songs/artists that the strict pass
-  // discards ("tum hi ho", regional/indie uploads on non-whitelisted channels).
   if (!opts.relaxed) {
     const relaxed = await searchMusicOnce(original, maxResults, { ...opts, relaxed: true });
-    if (trace) {
-      console.log("[search-trace][youtube.searchMusicWithCorrection] attempt3-relaxed-language", {
-        count: relaxed.length,
-        opts: { ...opts, relaxed: true },
-        results: safeJsonForTrace(relaxed),
-      });
+    if (isProviderError(relaxed)) return relaxed;
+    if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] attempt3-relaxed-language", { count: relaxed.data.length, opts: { ...opts, relaxed: true }, results: safeJsonForTrace(relaxed.data) });
+    if (relaxed.data.length > 0) {
+      SEARCH_CACHE.set(cacheKey, relaxed.data);
+      return providerOk({ tracks: relaxed.data, correctedQuery: null });
     }
-    if (relaxed.length > 0) {
-      SEARCH_CACHE.set(cacheKey, relaxed);
-      return { tracks: relaxed, correctedQuery: null };
-    }
-    if (opts.language) {
-      const relaxedNoLang = await searchMusicOnce(original, maxResults, {
-        ...opts,
-        language: undefined,
-        relaxed: true,
-      });
-      if (trace) {
-        console.log("[search-trace][youtube.searchMusicWithCorrection] attempt4-relaxed-no-language", {
-          count: relaxedNoLang.length,
-          opts: { ...opts, language: undefined, relaxed: true },
-          results: safeJsonForTrace(relaxedNoLang),
-        });
-      }
-      if (relaxedNoLang.length > 0) {
-        SEARCH_CACHE.set(cacheKey, relaxedNoLang);
-        return { tracks: relaxedNoLang, correctedQuery: null };
+    if (opts.language && !languageAlreadyPresent) {
+      const relaxedNoLang = await searchMusicOnce(original, maxResults, { ...opts, language: undefined, relaxed: true });
+      if (isProviderError(relaxedNoLang)) return relaxedNoLang;
+      if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] attempt4-relaxed-no-language", { count: relaxedNoLang.data.length, opts: { ...opts, language: undefined, relaxed: true }, results: safeJsonForTrace(relaxedNoLang.data) });
+      if (relaxedNoLang.data.length > 0) {
+        SEARCH_CACHE.set(cacheKey, relaxedNoLang.data);
+        return providerOk({ tracks: relaxedNoLang.data, correctedQuery: null });
       }
     }
   }
 
-
-  // Attempts 3–4: transliteration + trim-last-char (surface as "did you mean").
   const secondary: string[] = [];
   for (const v of transliterationVariants(original)) if (v !== original) secondary.push(v);
   if (original.length > 3) secondary.push(original.slice(0, -1));
 
   for (const attempt of secondary) {
     const tracks = await searchMusicOnce(attempt, maxResults, opts);
-    if (trace) {
-      console.log("[search-trace][youtube.searchMusicWithCorrection] secondary", {
-        attempt,
-        count: tracks.length,
-        results: safeJsonForTrace(tracks),
-      });
-    }
-    if (tracks.length > 0) {
-      SEARCH_CACHE.set(cacheKey, tracks);
-      return { tracks, correctedQuery: attempt };
+    if (isProviderError(tracks)) return tracks;
+    if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] secondary", { attempt, count: tracks.data.length, results: safeJsonForTrace(tracks.data) });
+    if (tracks.data.length > 0) {
+      SEARCH_CACHE.set(cacheKey, tracks.data);
+      return providerOk({ tracks: tracks.data, correctedQuery: attempt });
     }
   }
 
-  // Attempt 5: YouTube autocomplete + Levenshtein scoring.
   const suggestions = await ytSuggestions(original);
-  const corrected = bestCorrection(original, suggestions);
-  if (trace) {
-    console.log("[search-trace][youtube.searchMusicWithCorrection] suggestions", {
-      suggestions,
-      corrected,
-    });
-  }
+  if (isProviderError(suggestions)) return suggestions;
+  const corrected = bestCorrection(original, suggestions.data);
+  if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] suggestions", { suggestions: suggestions.data, corrected });
   if (corrected) {
     const tracks = await searchMusicOnce(corrected, maxResults, opts);
-    if (trace) {
-      console.log("[search-trace][youtube.searchMusicWithCorrection] corrected-attempt", {
-        corrected,
-        count: tracks.length,
-        results: safeJsonForTrace(tracks),
-      });
-    }
-    if (tracks.length > 0) {
-      SEARCH_CACHE.set(cacheKey, tracks);
-      return { tracks, correctedQuery: corrected };
+    if (isProviderError(tracks)) return tracks;
+    if (trace) console.log("[search-trace][youtube.searchMusicWithCorrection] corrected-attempt", { corrected, count: tracks.data.length, results: safeJsonForTrace(tracks.data) });
+    if (tracks.data.length > 0) {
+      SEARCH_CACHE.set(cacheKey, tracks.data);
+      return providerOk({ tracks: tracks.data, correctedQuery: corrected });
     }
   }
 
-  return { tracks: [], correctedQuery: null };
+  SEARCH_CACHE.set(cacheKey, []);
+  return providerOk({ tracks: [], correctedQuery: null });
 }
 
+export async function searchMusicWithCorrection(
+  query: string,
+  maxResults = 30,
+  opts: SearchOptions = {},
+): Promise<SearchMusicCorrection> {
+  const result = await searchMusicWithCorrectionResult(query, maxResults, opts);
+  if (isProviderError(result)) throw new ProviderHttpError(result.provider, result.httpStatus, result.reason);
+  return result.data;
+}
 
 /** Back-compat wrapper — tracks only. */
 export async function searchMusic(
@@ -486,6 +536,15 @@ export async function searchMusic(
 ): Promise<YTTrack[]> {
   const { tracks } = await searchMusicWithCorrection(query, maxResults, opts);
   return tracks;
+}
+
+export async function searchMusicResult(
+  query: string,
+  maxResults = 30,
+  opts: SearchOptions = {},
+): Promise<ProviderResult<YTTrack[]>> {
+  const result = await searchMusicWithCorrectionResult(query, maxResults, opts);
+  return isProviderError(result) ? result : providerOk(result.data.tracks);
 }
 
 /**
@@ -500,7 +559,7 @@ async function searchMusicOnce(
   query: string,
   maxResults = 30,
   opts: SearchOptions = {},
-): Promise<YTTrack[]> {
+): Promise<ProviderResult<YTTrack[]>> {
   const optKey = `${(opts.language ?? "").toLowerCase()}::${opts.relaxed ? "r" : "s"}`;
   const cacheKey = `${CACHE_VERSION}::${optKey}::${query.trim().toLowerCase()}::${maxResults}`;
   const cached = SEARCH_CACHE.get(cacheKey);
@@ -509,7 +568,12 @@ async function searchMusicOnce(
     if (trace) {
       console.log("[search-trace][youtube.once] cache-hit", { query, maxResults, opts, cacheKey, count: cached.length });
     }
-    return cached;
+    return providerOk(cached);
+  }
+  const persistentCached = await readPersistentYoutubeCache(cacheKey, trace);
+  if (persistentCached) {
+    SEARCH_CACHE.set(cacheKey, persistentCached);
+    return providerOk(persistentCached);
   }
 
   // Task 1: Keyword expansion — map political/campaign queries to a richer query.
@@ -567,35 +631,28 @@ async function searchMusicOnce(
     });
   }
 
+  const breaker = youtubeBreakerResult<YTTrack[]>();
+  if (breaker) return breaker;
+
   let searchRes: Response;
   try {
     searchRes = await fetch(searchUrl);
   } catch (e) {
-    console.error("[youtube] network error", e);
+    const reason = e instanceof Error ? e.message : String(e);
+    console.error("[youtube] network error", { httpStatus: 0, reason });
     if (trace) console.error("[search-trace][youtube.once] swallowed-network-error", e);
-    return [];
-  }
-
-  if (searchRes.status === 403) {
-    console.warn("[youtube] quota exceeded or forbidden");
-    if (trace) {
-      console.warn("[search-trace][youtube.once] returning-empty-on-403", { status: searchRes.status });
-    }
-    return [];
-  }
-  if (!searchRes.ok) {
-    const errorText = await searchRes.text().catch(() => "");
-    console.error("[youtube] search failed", searchRes.status, errorText);
-    if (trace) {
-      console.error("[search-trace][youtube.once] returning-empty-on-non-ok", {
-        status: searchRes.status,
-        body: errorText,
-      });
-    }
-    return [];
+    return providerError("youtube", reason, 0);
   }
 
   const rawSearchText = await searchRes.text();
+  if (!searchRes.ok) {
+    const reason = extractProviderReason(rawSearchText);
+    recordYoutubeProviderError(searchRes.status, reason);
+    if (trace) {
+      console.error("[search-trace][youtube.once] provider-error", { status: searchRes.status, body: rawSearchText, reason });
+    }
+    return providerError("youtube", reason, searchRes.status);
+  }
   if (trace) {
     console.log("[search-trace][youtube.once] search-response", {
       status: searchRes.status,
@@ -614,9 +671,15 @@ async function searchMusicOnce(
       ids,
     });
   }
-  if (ids.length === 0) return [];
+  if (ids.length === 0) {
+    SEARCH_CACHE.set(cacheKey, []);
+    await writePersistentYoutubeCache(cacheKey, [], trace);
+    return providerOk([]);
+  }
 
-  const items = trace ? await fetchVideoDetailsTraced(ids, trace) : await fetchVideoDetails(ids);
+  const details = trace ? await fetchVideoDetailsTraced(ids, trace) : await fetchVideoDetails(ids);
+  if (isProviderError(details)) return details;
+  const items = details.data;
   if (trace) {
     console.log("[search-trace][youtube.once] before-duration-filter", {
       detailsCount: items.length,
@@ -770,17 +833,25 @@ async function searchMusicOnce(
     });
   }
 
-  if (tracks.length > 0) SEARCH_CACHE.set(cacheKey, tracks);
-  return tracks;
+  SEARCH_CACHE.set(cacheKey, tracks);
+  await writePersistentYoutubeCache(cacheKey, tracks, trace);
+  return providerOk(tracks);
 }
 
-export async function relatedArtistNames(seedArtist: string, limit = 8): Promise<string[]> {
+export async function relatedArtistNames(seedArtist: string, limit = 8): Promise<ProviderResult<string[]>> {
+  const breaker = youtubeBreakerResult<string[]>();
+  if (breaker) return breaker;
   const url =
     `${YT_BASE}/search?part=snippet&type=video&videoCategoryId=10` +
     `&regionCode=IN&relevanceLanguage=ta&maxResults=25&q=${encodeURIComponent(seedArtist + " similar artists")}&key=${key()}`;
   const res = await fetch(url);
-  if (!res.ok) return [];
-  const data = (await res.json()) as { items: Array<{ snippet: { channelTitle: string } }> };
+  const text = await res.text();
+  if (!res.ok) {
+    const reason = extractProviderReason(text);
+    recordYoutubeProviderError(res.status, reason);
+    return providerError("youtube", reason, res.status);
+  }
+  const data = JSON.parse(text) as { items: Array<{ snippet: { channelTitle: string } }> };
   const seen = new Set<string>();
   const out: string[] = [];
   for (const item of data.items) {
@@ -791,7 +862,7 @@ export async function relatedArtistNames(seedArtist: string, limit = 8): Promise
     out.push(name);
     if (out.length >= limit) break;
   }
-  return out;
+  return providerOk(out);
 }
 
 /**

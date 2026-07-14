@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { searchArtist, getRelatedArtistsByName, searchTracks as spotifySearchTracks, type SpotifyArtistInfo, type SpotifyTrackMeta } from "./spotify.server";
+import { isProviderError } from "./providerResult";
 import {
   searchMusic,
   searchMusicWithCorrection,
@@ -38,7 +39,15 @@ export const getSeedArtists = createServerFn({ method: "POST" })
       }
     }
     const results = await Promise.all(names.slice(0, 18).map(searchArtist));
-    return results.filter((a): a is SpotifyArtistInfo => a !== null && a.hdPhotoUrl !== null);
+    return results
+      .filter((r) => {
+        if (isProviderError(r)) {
+          console.error("[music] seed artist lookup failed", { httpStatus: r.httpStatus, reason: r.reason });
+          return false;
+        }
+        return !!r.data?.hdPhotoUrl;
+      })
+      .map((r) => (r as { status: "ok"; data: SpotifyArtistInfo }).data);
   });
 
 export const expandSimilarArtists = createServerFn({ method: "POST" })
@@ -51,14 +60,22 @@ export const expandSimilarArtists = createServerFn({ method: "POST" })
       getRelatedArtistsByName(data.seedArtistName, 6),
       relatedArtistNames(data.seedArtistName, 6),
     ]);
-    const merged: SpotifyArtistInfo[] = [...spot];
+    if (isProviderError(spot)) console.error("[music] related Spotify artists failed", { httpStatus: spot.httpStatus, reason: spot.reason });
+    if (isProviderError(ytNames)) console.error("[music] related YouTube artists failed", { httpStatus: ytNames.httpStatus, reason: ytNames.reason });
+    const merged: SpotifyArtistInfo[] = spot.status === "ok" ? [...spot.data] : [];
     const have = new Set(merged.map((a) => a.name.toLowerCase()));
     have.add(data.seedArtistName.toLowerCase());
+    const relatedNames = ytNames.status === "ok" ? ytNames.data : [];
     const fetched = await Promise.all(
-      ytNames.filter((n) => !have.has(n.toLowerCase())).slice(0, 4).map(searchArtist),
+      relatedNames.filter((n) => !have.has(n.toLowerCase())).slice(0, 4).map(searchArtist),
     );
-    for (const a of fetched) {
-      if (a && a.hdPhotoUrl && !have.has(a.name.toLowerCase())) {
+    for (const r of fetched) {
+      if (isProviderError(r)) {
+        console.error("[music] fetched related artist failed", { httpStatus: r.httpStatus, reason: r.reason });
+        continue;
+      }
+      const a = r.data;
+      if (a?.hdPhotoUrl && !have.has(a.name.toLowerCase())) {
         have.add(a.name.toLowerCase());
         merged.push(a);
       }
@@ -76,7 +93,13 @@ export const searchTracks = createServerFn({ method: "POST" })
     // Spotify-first: fetch canonical track metadata, then resolve to playable YouTube.
     let spotifyTracks: SpotifyTrackMeta[] = [];
     try {
-      spotifyTracks = await spotifySearchTracks(data.query, Math.min(max, 20));
+      const spotifyResult = await spotifySearchTracks(data.query, Math.min(max, 20));
+      if (isProviderError(spotifyResult)) {
+        console.error("[music] Spotify track search failed", { httpStatus: spotifyResult.httpStatus, reason: spotifyResult.reason });
+        spotifyTracks = [];
+      } else {
+        spotifyTracks = spotifyResult.data;
+      }
     } catch {
       spotifyTracks = [];
     }
