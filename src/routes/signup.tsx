@@ -81,7 +81,7 @@ function SignupPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/app" });
+    // Session set by helper; the `status === "authenticated"` effect will navigate.
   }
 
   return (
