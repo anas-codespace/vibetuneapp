@@ -121,8 +121,11 @@ function AppHome() {
 
 
   const favLanguages = (profile?.fav_languages as string[] | null) ?? [];
-  const primaryLang = favLanguages[0] ?? "tamil";
-  const trendingQuery = `trending ${primaryLang.toLowerCase()} songs official`;
+  // Prefer the explicit selector; fall back to profile fav_languages, then "tamil".
+  const effectiveLangs = trendingLangs.length > 0 ? trendingLangs : favLanguages;
+  const primaryLang = (effectiveLangs[0] ?? "tamil").toLowerCase();
+  const langQueryPart = effectiveLangs.length > 0 ? effectiveLangs.join(" ") : primaryLang;
+  const trendingQuery = `trending ${langQueryPart} songs official`;
 
   const { data: trending, isLoading: trendingLoading } = useQuery({
     queryKey: ["trending-default", trendingQuery],
