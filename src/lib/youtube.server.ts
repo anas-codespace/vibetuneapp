@@ -838,13 +838,20 @@ async function searchMusicOnce(
   return providerOk(tracks);
 }
 
-export async function relatedArtistNames(seedArtist: string, limit = 8): Promise<string[]> {
+export async function relatedArtistNames(seedArtist: string, limit = 8): Promise<ProviderResult<string[]>> {
+  const breaker = youtubeBreakerResult<string[]>();
+  if (breaker) return breaker;
   const url =
     `${YT_BASE}/search?part=snippet&type=video&videoCategoryId=10` +
     `&regionCode=IN&relevanceLanguage=ta&maxResults=25&q=${encodeURIComponent(seedArtist + " similar artists")}&key=${key()}`;
   const res = await fetch(url);
-  if (!res.ok) return [];
-  const data = (await res.json()) as { items: Array<{ snippet: { channelTitle: string } }> };
+  const text = await res.text();
+  if (!res.ok) {
+    const reason = extractProviderReason(text);
+    recordYoutubeProviderError(res.status, reason);
+    return providerError("youtube", reason, res.status);
+  }
+  const data = JSON.parse(text) as { items: Array<{ snippet: { channelTitle: string } }> };
   const seen = new Set<string>();
   const out: string[] = [];
   for (const item of data.items) {
@@ -855,7 +862,7 @@ export async function relatedArtistNames(seedArtist: string, limit = 8): Promise
     out.push(name);
     if (out.length >= limit) break;
   }
-  return out;
+  return providerOk(out);
 }
 
 /**
