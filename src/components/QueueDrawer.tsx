@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { GripVertical, Trash2, X } from "lucide-react";
+import { GripVertical, Loader2, Trash2, X } from "lucide-react";
 import { usePlayer } from "@/components/VibePlayer";
 import {
   DndContext,
