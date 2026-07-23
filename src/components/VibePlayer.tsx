@@ -110,10 +110,19 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   const [isLoadingNext, setIsLoadingNext] = useState(false);
   const playedHistoryRef = useRef<Set<string>>(new Set());
 
+  // Freshest-state refs (avoid stale closures in async / event callbacks).
+  const queueRef = useRef<VibeTrack[]>([]);
+  const indexRef = useRef<number>(0);
+  const currentRef = useRef<VibeTrack | null>(null);
+  useEffect(() => { queueRef.current = queue; }, [queue]);
+  useEffect(() => { indexRef.current = index; }, [index]);
+  useEffect(() => { currentRef.current = current; }, [current]);
+
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const tickRef = useRef<number | null>(null);
   const replenishRef = useRef<boolean>(false);
+
   const readyRef = useRef<boolean>(false);
   const pendingRef = useRef<string | null>(null);
   const logListenFn = useServerFn(logListen);
@@ -467,39 +476,54 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     }
   }, [contextFn]);
 
+  const triggerSmartAutoplay = useCallback(async () => {
+    // Always read the freshest state from refs to avoid stale closures.
+    const curQueue = queueRef.current;
+    const curIndex = indexRef.current;
+    const lastTrack = curQueue[curIndex] ?? currentRef.current;
+    if (!lastTrack) return;
+
+    setIsLoadingNext(true);
+    try {
+      const newTracks = await fetchAndAppendRelated(lastTrack);
+      if (newTracks.length === 0) {
+        playerRef.current?.pauseVideo?.();
+        setIsPlaying(false);
+        return;
+      }
+      // Re-read latest queue/index after the async gap.
+      const freshQueue = queueRef.current;
+      const freshIndex = indexRef.current;
+      const merged = [...freshQueue, ...newTracks];
+      const ni = freshIndex + 1;
+      setQueue(merged);
+      playAtIndex(ni, merged);
+      const remaining = merged.length - ni - 1;
+      replenishQueue(remaining);
+    } finally {
+      setIsLoadingNext(false);
+    }
+  }, [fetchAndAppendRelated, playAtIndex, replenishQueue]);
+
   const next = useCallback(() => {
-    if (!queue.length) return;
+    // Read freshest state from refs (avoids stale closures when called
+    // from the YouTube onStateChange event or async continuations).
+    const curQueue = queueRef.current;
+    const curIndex = indexRef.current;
+    if (!curQueue.length) return;
     flushListenEvent();
-    // At the end of the queue → trigger Infinite Autoplay instead of looping.
-    if (index >= queue.length - 1) {
-      const last = queue[index] ?? current;
-      if (!last) return;
-      setIsLoadingNext(true);
-      fetchAndAppendRelated(last)
-        .then((newTracks) => {
-          if (newTracks.length === 0) {
-            // Fallback: pause player, nothing more to play.
-            playerRef.current?.pauseVideo?.();
-            setIsPlaying(false);
-            return;
-          }
-          setQueue((prev) => {
-            const merged = [...prev, ...newTracks];
-            const ni = index + 1;
-            playAtIndex(ni, merged);
-            const remaining = merged.length - ni - 1;
-            replenishQueue(remaining);
-            return merged;
-          });
-        })
-        .finally(() => setIsLoadingNext(false));
+    const isLastSong = curIndex >= curQueue.length - 1;
+    if (isLastSong) {
+      // Queue exhausted → trigger Infinite Autoplay via the store action.
+      void triggerSmartAutoplay();
       return;
     }
-    const ni = index + 1;
-    playAtIndex(ni, queue);
-    const remaining = queue.length - ni - 1;
+    const ni = curIndex + 1;
+    playAtIndex(ni, curQueue);
+    const remaining = curQueue.length - ni - 1;
     replenishQueue(remaining);
-  }, [index, queue, current, playAtIndex, replenishQueue, flushListenEvent, fetchAndAppendRelated]);
+  }, [playAtIndex, replenishQueue, flushListenEvent, triggerSmartAutoplay]);
+
 
   const prev = useCallback(() => {
     if (!queue.length) return;
