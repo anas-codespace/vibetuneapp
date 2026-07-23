@@ -61,8 +61,13 @@ function SpotifyCallback() {
         const state = params.get("state");
         const err = params.get("error");
         const errDesc = params.get("error_description");
-        const savedState = sessionStorage.getItem("spotify_state");
-        const savedRedirect = sessionStorage.getItem("spotify_redirect_uri");
+        // Prefer localStorage (shared across tabs); fall back to sessionStorage
+        // for legacy flows still open in the same tab.
+        const savedState =
+          localStorage.getItem("spotify_state") ?? sessionStorage.getItem("spotify_state");
+        const savedRedirect =
+          localStorage.getItem("spotify_redirect_uri") ??
+          sessionStorage.getItem("spotify_redirect_uri");
         const { data: sessionData } = await supabase.auth.getSession();
         console.log("[oauth-debug][spotify-callback] received", {
           href: window.location.href,
@@ -85,6 +90,8 @@ function SpotifyCallback() {
         if (state !== savedState) throw new Error("State mismatch");
 
         const res = await withTimeout(exchange({ data: { code, state, redirectUri: savedRedirect } }), CALLBACK_TIMEOUT_MS, "Spotify token exchange");
+        localStorage.removeItem("spotify_state");
+        localStorage.removeItem("spotify_redirect_uri");
         sessionStorage.removeItem("spotify_state");
         sessionStorage.removeItem("spotify_redirect_uri");
 
