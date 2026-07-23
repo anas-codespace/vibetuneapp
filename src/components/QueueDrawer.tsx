@@ -96,7 +96,7 @@ function SortableQueueItem({
 }
 
 export function QueueDrawer({ open, onClose }: Props) {
-  const { current, queue, index, removeFromQueue, reorderQueue, jumpToQueueIndex } =
+  const { current, queue, index, isLoadingNext, removeFromQueue, reorderQueue, jumpToQueueIndex } =
     usePlayer();
 
   const upNext: QueueRow[] = queue.slice(index + 1).map((t, i) => {
