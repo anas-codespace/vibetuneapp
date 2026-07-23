@@ -402,7 +402,13 @@ function AppHome() {
 
         {/* Horizontal sections */}
         {renderCarousel("Suggested For You", suggestedForYou, (t) => `Mix • ${t.artist}`)}
-        {renderCarousel("Trending Now", trendingNow, (t) => t.artist || "Trending", trendingLoading)}
+        {renderCarousel(
+          `Trending in ${primaryLangLabel}`,
+          trendingNow,
+          (t) => t.artist || "Trending",
+          trendingLoading || languageTrendingLoading,
+        )}
+
         {renderCarousel(
           `Trending in ${labelForRegion(trendingRegion)}`,
           trendingNearList.length > 0 ? trendingNearList.slice(0, 20) : trendingNow,
