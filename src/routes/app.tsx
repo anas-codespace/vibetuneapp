@@ -11,7 +11,7 @@ import { getMyProfile } from "@/lib/profile.functions";
 import { searchYouTubeOnly } from "@/lib/music.functions";
 import { getSmartMix } from "@/lib/mix.functions";
 import { getPersonalizedFeed } from "@/lib/personalized.functions";
-import { getTrendingNearYou } from "@/lib/trending.functions";
+import { getTrendingNearYou, getLanguageTrending } from "@/lib/trending.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 import { FALLBACK_TRACKS } from "@/data/fallbackTracks";
