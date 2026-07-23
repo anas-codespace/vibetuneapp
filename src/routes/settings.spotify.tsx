@@ -168,13 +168,17 @@ function SpotifySettings() {
   }, [connection.isLoading, connection.data]);
 
   const persistState = (state: string, redirectUri: string) => {
+    // Use localStorage so the value survives across tabs — Spotify auth may
+    // open in a new tab (popup / iframe escape), and sessionStorage is per-tab.
+    localStorage.setItem("spotify_state", state);
+    localStorage.setItem("spotify_redirect_uri", redirectUri);
+    // Legacy sessionStorage write for older callback builds still open in this tab.
     sessionStorage.setItem("spotify_state", state);
     sessionStorage.setItem("spotify_redirect_uri", redirectUri);
     try {
-      // Callback route also breaks out of the preview iframe; mirror state there.
       if (window.top && window.top !== window.self) {
-        window.top.sessionStorage.setItem("spotify_state", state);
-        window.top.sessionStorage.setItem("spotify_redirect_uri", redirectUri);
+        window.top.localStorage.setItem("spotify_state", state);
+        window.top.localStorage.setItem("spotify_redirect_uri", redirectUri);
       }
     } catch {
       /* cross-origin top; ignore */
