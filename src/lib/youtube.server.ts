@@ -930,3 +930,107 @@ export async function fetchTrendingNearYou(
   throw lastErr instanceof Error ? lastErr : new Error("YT mostPopular failed");
 }
 
+/**
+ * Fetch tracks from a specific YouTube playlist (Playlist-Mapped trending).
+ *
+ * Two-step:
+ *  1) `playlistItems` — page through the playlist to collect video IDs
+ *  2) `videos` — batch-fetch snippet/contentDetails/status to filter by
+ *     duration (1–10 min) and embeddability, matching mostPopular semantics.
+ *
+ * Retries transient 5xx / network failures; throws on 4xx so the caller
+ * (getLanguageTrending) can fall back to search-based trending.
+ */
+export async function fetchPlaylistTracks(
+  playlistId: string,
+  maxResults: number = 25,
+): Promise<YTTrack[]> {
+  const capped = Math.min(Math.max(maxResults, 1), 50);
+  const itemsUrl =
+    `${YT_BASE}/playlistItems?part=contentDetails` +
+    `&playlistId=${encodeURIComponent(playlistId)}` +
+    `&maxResults=${capped}` +
+    `&key=${key()}`;
+
+  let itemsRes: Response | null = null;
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      itemsRes = await fetch(itemsUrl);
+      if (!itemsRes.ok) {
+        if (itemsRes.status >= 500) {
+          lastErr = new Error(`YT playlistItems ${itemsRes.status}`);
+        } else {
+          throw new Error(
+            `YT playlistItems ${itemsRes.status}: ${await itemsRes.text().catch(() => "")}`,
+          );
+        }
+      } else {
+        break;
+      }
+    } catch (err) {
+      lastErr = err;
+      if (err instanceof Error && /\b4\d\d\b/.test(err.message)) throw err;
+    }
+    await new Promise((r) => setTimeout(r, 250 * Math.pow(2, attempt)));
+  }
+  if (!itemsRes || !itemsRes.ok) {
+    throw lastErr instanceof Error ? lastErr : new Error("YT playlistItems failed");
+  }
+
+  const itemsData = (await itemsRes.json()) as {
+    items?: Array<{ contentDetails: { videoId: string } }>;
+  };
+  const ids = (itemsData.items ?? [])
+    .map((i) => i.contentDetails?.videoId)
+    .filter((v): v is string => typeof v === "string" && v.length > 0);
+  if (ids.length === 0) return [];
+
+  const videosUrl =
+    `${YT_BASE}/videos?part=snippet,contentDetails,status` +
+    `&id=${encodeURIComponent(ids.join(","))}` +
+    `&maxResults=50` +
+    `&key=${key()}`;
+  const videosRes = await fetch(videosUrl);
+  if (!videosRes.ok) {
+    throw new Error(
+      `YT videos ${videosRes.status}: ${await videosRes.text().catch(() => "")}`,
+    );
+  }
+  const videosData = (await videosRes.json()) as {
+    items: Array<{
+      id: string;
+      snippet: {
+        title: string;
+        channelTitle: string;
+        thumbnails: { high?: { url: string }; medium?: { url: string } };
+      };
+      contentDetails: { duration: string };
+      status: { embeddable: boolean };
+    }>;
+  };
+
+  // Preserve playlist order.
+  const byId = new Map(videosData.items.map((v) => [v.id, v]));
+  const out: YTTrack[] = [];
+  for (const id of ids) {
+    const v = byId.get(id);
+    if (!v) continue;
+    const seconds = isoDurationToSeconds(v.contentDetails.duration);
+    if (seconds < 60 || seconds > 900) continue;
+    if (!v.status.embeddable) continue;
+    out.push({
+      youtubeId: v.id,
+      title: cleanTitle(v.snippet.title),
+      artist: v.snippet.channelTitle.replace(/ *-? *Topic$/i, "").trim(),
+      album: parseAlbum(v.snippet.title),
+      thumbnailUrl:
+        v.snippet.thumbnails.high?.url ?? v.snippet.thumbnails.medium?.url ?? "",
+      durationSeconds: seconds,
+      isEmbeddable: true,
+    });
+  }
+  return out;
+}
+
+
