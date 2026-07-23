@@ -110,10 +110,19 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   const [isLoadingNext, setIsLoadingNext] = useState(false);
   const playedHistoryRef = useRef<Set<string>>(new Set());
 
+  // Freshest-state refs (avoid stale closures in async / event callbacks).
+  const queueRef = useRef<VibeTrack[]>([]);
+  const indexRef = useRef<number>(0);
+  const currentRef = useRef<VibeTrack | null>(null);
+  useEffect(() => { queueRef.current = queue; }, [queue]);
+  useEffect(() => { indexRef.current = index; }, [index]);
+  useEffect(() => { currentRef.current = current; }, [current]);
+
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const tickRef = useRef<number | null>(null);
   const replenishRef = useRef<boolean>(false);
+
   const readyRef = useRef<boolean>(false);
   const pendingRef = useRef<string | null>(null);
   const logListenFn = useServerFn(logListen);
