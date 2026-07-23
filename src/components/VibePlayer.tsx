@@ -118,6 +118,27 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => { indexRef.current = index; }, [index]);
   useEffect(() => { currentRef.current = current; }, [current]);
 
+  // Prefetch coordination: when the currently-playing track is at (or near)
+  // the end of the queue, warm up related-track suggestions and the next
+  // thumbnail so the transition is instant.
+  useEffect(() => {
+    if (!current) return;
+    const remaining = queue.length - index - 1;
+    // Warm the next queued track's thumbnail so the UI paints instantly.
+    if (remaining > 0) {
+      const nextTrack = queue[index + 1];
+      if (nextTrack?.thumbnailUrl && typeof window !== "undefined") {
+        try { const img = new Image(); img.decoding = "async"; img.src = nextTrack.thumbnailUrl; } catch { /* noop */ }
+      }
+    }
+    // If this is the last track, prefetch related-tracks now so autoplay is instant.
+    if (remaining <= 0) {
+      // Fire-and-forget; guarded internally against duplicate work.
+      void prefetchRelatedForRef.current?.(current);
+    }
+  }, [current, queue, index]);
+
+
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const tickRef = useRef<number | null>(null);
