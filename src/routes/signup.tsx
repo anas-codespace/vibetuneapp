@@ -9,7 +9,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { VibtuneLogo } from "@/components/VibtuneLogo";
 
+function isSafeNext(v: unknown): v is string {
+  return typeof v === "string" && v.startsWith("/") && !v.startsWith("//");
+}
+
 export const Route = createFileRoute("/signup")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: isSafeNext(s.next) ? s.next : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Sign up · Vibtune" },
@@ -32,6 +39,7 @@ const SignupSchema = z.object({
 
 function SignupPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const { status } = useAuth();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -39,8 +47,10 @@ function SignupPage() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
 
   useEffect(() => {
-    if (status === "authenticated") navigate({ to: "/app", replace: true });
-  }, [status, navigate]);
+    if (status !== "authenticated") return;
+    if (next) window.location.replace(next);
+    else navigate({ to: "/app", replace: true });
+  }, [status, navigate, next]);
 
   const rules = [
     { label: "At least 8 characters", ok: form.password.length >= 8 },
@@ -72,8 +82,11 @@ function SignupPage() {
 
   async function handleGoogle() {
     setGoogleLoading(true);
+    if (next && typeof window !== "undefined") {
+      sessionStorage.setItem("post_login_next", next);
+    }
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: window.location.origin + "/login",
     });
     if (result.error) {
       setGoogleLoading(false);
@@ -155,7 +168,7 @@ function SignupPage() {
         </button>
         <p className="mt-6 text-center text-sm text-white/60">
           Already on Vibtune?{" "}
-          <Link to="/login" className="text-white underline-offset-4 hover:underline">Log in</Link>
+          <Link to="/login" search={next ? { next } : {}} className="text-white underline-offset-4 hover:underline">Log in</Link>
         </p>
       </motion.form>
     </main>
