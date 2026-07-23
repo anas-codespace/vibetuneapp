@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { planSearchStages, evaluateStage, type SearchStage, type SearchResultLite } from "./search";
 import { searchTracks as spotifySearchTracks, type SpotifyPlayableResult } from "./spotify.server";
-import { searchMusicResult } from "./youtube.server";
+import { searchMusicResult, fallbackSearchFromCache } from "./youtube.server";
 import { isProviderError, providerOk, type ProviderName, type ProviderResult } from "./providerResult";
 
 const SEARCH_TRACE_QUERY = "jailer 2";
