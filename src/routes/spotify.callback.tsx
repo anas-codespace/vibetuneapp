@@ -155,6 +155,9 @@ function SpotifyCallback() {
         {status === "done" && <CheckCircle2 className="h-10 w-10 text-emerald-400" />}
         {status === "error" && <XCircle className="h-10 w-10 text-red-400" />}
         <p className="text-sm text-white/80">{msg}</p>
+        {status === "error" && hint && (
+          <p className="text-xs text-white/50">{hint}</p>
+        )}
         {status === "error" && (
           <button
             onClick={() => navigate({ to: "/settings/spotify" })}
