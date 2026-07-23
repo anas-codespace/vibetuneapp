@@ -453,6 +453,11 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     logListenFn({ data: { youtubeId: t.youtubeId, title: t.title, artist: t.artist } }).catch(() => {});
   }, [loadAndPlay, logListenFn, beginTrack]);
 
+  // Prefetched "next batch" of related tracks — populated in the background
+  // before the queue exhausts, so autoplay transitions are instant.
+  const prefetchedNextRef = useRef<{ seedId: string; tracks: VibeTrack[] } | null>(null);
+  const prefetchInFlightRef = useRef<string | null>(null);
+
   const fetchAndAppendRelated = useCallback(async (lastTrack: VibeTrack): Promise<VibeTrack[]> => {
     try {
       const related = await contextFn({
@@ -476,6 +481,35 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     }
   }, [contextFn]);
 
+  // Warm the browser cache for a track's thumbnail so the next track paints
+  // instantly (no image flash during transition).
+  const warmThumbnail = useCallback((url?: string) => {
+    if (!url || typeof window === "undefined") return;
+    try {
+      const img = new Image();
+      img.decoding = "async";
+      img.src = url;
+    } catch { /* noop */ }
+  }, []);
+
+  // Prefetch the related-tracks batch for the given seed if we haven't already.
+  // Cheap network work done during current playback so autoplay is instant.
+  const prefetchRelatedFor = useCallback(async (seed: VibeTrack) => {
+    if (!seed?.youtubeId) return;
+    if (prefetchedNextRef.current?.seedId === seed.youtubeId) return;
+    if (prefetchInFlightRef.current === seed.youtubeId) return;
+    prefetchInFlightRef.current = seed.youtubeId;
+    try {
+      const tracks = await fetchAndAppendRelated(seed);
+      if (tracks.length > 0) {
+        prefetchedNextRef.current = { seedId: seed.youtubeId, tracks };
+        warmThumbnail(tracks[0]?.thumbnailUrl);
+      }
+    } finally {
+      if (prefetchInFlightRef.current === seed.youtubeId) prefetchInFlightRef.current = null;
+    }
+  }, [fetchAndAppendRelated, warmThumbnail]);
+
   const triggerSmartAutoplay = useCallback(async () => {
     // Always read the freshest state from refs to avoid stale closures.
     const curQueue = queueRef.current;
@@ -483,27 +517,37 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     const lastTrack = curQueue[curIndex] ?? currentRef.current;
     if (!lastTrack) return;
 
-    setIsLoadingNext(true);
-    try {
-      const newTracks = await fetchAndAppendRelated(lastTrack);
-      if (newTracks.length === 0) {
-        playerRef.current?.pauseVideo?.();
-        setIsPlaying(false);
-        return;
+    // Fast path: use prefetched batch if it matches the current seed.
+    let newTracks: VibeTrack[] = [];
+    const cached = prefetchedNextRef.current;
+    if (cached && cached.seedId === lastTrack.youtubeId && cached.tracks.length > 0) {
+      newTracks = cached.tracks;
+      prefetchedNextRef.current = null;
+    } else {
+      setIsLoadingNext(true);
+      try {
+        newTracks = await fetchAndAppendRelated(lastTrack);
+      } finally {
+        setIsLoadingNext(false);
       }
-      // Re-read latest queue/index after the async gap.
-      const freshQueue = queueRef.current;
-      const freshIndex = indexRef.current;
-      const merged = [...freshQueue, ...newTracks];
-      const ni = freshIndex + 1;
-      setQueue(merged);
-      playAtIndex(ni, merged);
-      const remaining = merged.length - ni - 1;
-      replenishQueue(remaining);
-    } finally {
-      setIsLoadingNext(false);
     }
+
+    if (newTracks.length === 0) {
+      playerRef.current?.pauseVideo?.();
+      setIsPlaying(false);
+      return;
+    }
+    // Re-read latest queue/index after any async gap.
+    const freshQueue = queueRef.current;
+    const freshIndex = indexRef.current;
+    const merged = [...freshQueue, ...newTracks];
+    const ni = freshIndex + 1;
+    setQueue(merged);
+    playAtIndex(ni, merged);
+    const remaining = merged.length - ni - 1;
+    replenishQueue(remaining);
   }, [fetchAndAppendRelated, playAtIndex, replenishQueue]);
+
 
   const next = useCallback(() => {
     // Read freshest state from refs (avoids stale closures when called
