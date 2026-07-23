@@ -50,6 +50,7 @@ interface PlayerCtx {
   index: number;
   isPlaying: boolean;
   mixMode: boolean;
+  isLoadingNext: boolean;
   play: (track: VibeTrack, queue?: VibeTrack[]) => void;
   startMix: (tracks: VibeTrack[]) => void;
   addToQueue: (track: VibeTrack) => void;
@@ -106,6 +107,8 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   const [duration, setDuration] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [mixMode, setMixMode] = useState(false);
+  const [isLoadingNext, setIsLoadingNext] = useState(false);
+  const playedHistoryRef = useRef<Set<string>>(new Set());
 
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -430,20 +433,73 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     } catch { /* noop */ }
   }, [current, isPlaying]);
 
-  const next = useCallback(() => {
-    if (!queue.length) return;
-    // If flush hasn't already fired (e.g. natural end), record why the transition happened.
-    flushListenEvent();
-    const ni = (index + 1) % queue.length;
-    const t = queue[ni];
+  const playAtIndex = useCallback((ni: number, q: VibeTrack[]) => {
+    const t = q[ni];
+    if (!t) return;
     setIndex(ni);
     setCurrent(t);
     loadAndPlay(t.youtubeId);
     beginTrack(t);
+    playedHistoryRef.current.add(t.youtubeId);
     logListenFn({ data: { youtubeId: t.youtubeId, title: t.title, artist: t.artist } }).catch(() => {});
+  }, [loadAndPlay, logListenFn, beginTrack]);
+
+  const fetchAndAppendRelated = useCallback(async (lastTrack: VibeTrack): Promise<VibeTrack[]> => {
+    try {
+      const related = await contextFn({
+        data: { youtubeId: lastTrack.youtubeId, title: lastTrack.title, artist: lastTrack.artist },
+      });
+      const history = playedHistoryRef.current;
+      const uniques: VibeTrack[] = (related ?? [])
+        .filter((t) => !history.has(t.youtubeId))
+        .slice(0, 10)
+        .map((t) => ({
+          youtubeId: t.youtubeId,
+          title: t.title,
+          artist: t.artist,
+          thumbnailUrl: t.thumbnailUrl,
+          durationSeconds: t.durationSeconds,
+        }));
+      return uniques;
+    } catch (err) {
+      console.error("Autoplay failed to fetch related songs", err);
+      return [];
+    }
+  }, [contextFn]);
+
+  const next = useCallback(() => {
+    if (!queue.length) return;
+    flushListenEvent();
+    // At the end of the queue → trigger Infinite Autoplay instead of looping.
+    if (index >= queue.length - 1) {
+      const last = queue[index] ?? current;
+      if (!last) return;
+      setIsLoadingNext(true);
+      fetchAndAppendRelated(last)
+        .then((newTracks) => {
+          if (newTracks.length === 0) {
+            // Fallback: pause player, nothing more to play.
+            playerRef.current?.pauseVideo?.();
+            setIsPlaying(false);
+            return;
+          }
+          setQueue((prev) => {
+            const merged = [...prev, ...newTracks];
+            const ni = index + 1;
+            playAtIndex(ni, merged);
+            const remaining = merged.length - ni - 1;
+            replenishQueue(remaining);
+            return merged;
+          });
+        })
+        .finally(() => setIsLoadingNext(false));
+      return;
+    }
+    const ni = index + 1;
+    playAtIndex(ni, queue);
     const remaining = queue.length - ni - 1;
     replenishQueue(remaining);
-  }, [index, queue, loadAndPlay, logListenFn, replenishQueue, flushListenEvent, beginTrack]);
+  }, [index, queue, current, playAtIndex, replenishQueue, flushListenEvent, fetchAndAppendRelated]);
 
   const prev = useCallback(() => {
     if (!queue.length) return;
@@ -472,8 +528,8 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   const collapse = useCallback(() => setExpanded(false), []);
 
   const value = useMemo<PlayerCtx>(
-    () => ({ current, queue, index, isPlaying, mixMode, play, startMix, addToQueue, removeFromQueue, reorderQueue, jumpToQueueIndex, toggle, next, prev, close, expand }),
-    [current, queue, index, isPlaying, mixMode, play, startMix, addToQueue, removeFromQueue, reorderQueue, jumpToQueueIndex, toggle, next, prev, close, expand],
+    () => ({ current, queue, index, isPlaying, mixMode, isLoadingNext, play, startMix, addToQueue, removeFromQueue, reorderQueue, jumpToQueueIndex, toggle, next, prev, close, expand }),
+    [current, queue, index, isPlaying, mixMode, isLoadingNext, play, startMix, addToQueue, removeFromQueue, reorderQueue, jumpToQueueIndex, toggle, next, prev, close, expand],
   );
 
 

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { GripVertical, Trash2, X } from "lucide-react";
+import { GripVertical, Loader2, Trash2, X } from "lucide-react";
 import { usePlayer } from "@/components/VibePlayer";
 import {
   DndContext,
@@ -96,7 +96,7 @@ function SortableQueueItem({
 }
 
 export function QueueDrawer({ open, onClose }: Props) {
-  const { current, queue, index, removeFromQueue, reorderQueue, jumpToQueueIndex } =
+  const { current, queue, index, isLoadingNext, removeFromQueue, reorderQueue, jumpToQueueIndex } =
     usePlayer();
 
   const upNext: QueueRow[] = queue.slice(index + 1).map((t, i) => {
@@ -190,10 +190,18 @@ export function QueueDrawer({ open, onClose }: Props) {
                   Next in Queue
                 </p>
                 {upNext.length === 0 ? (
-                  <p className="mt-6 text-center text-sm text-white/40">
-                    Nothing in the queue. Add some vibes!
-                  </p>
+                  isLoadingNext ? (
+                    <div className="mt-6 flex items-center justify-center gap-2 text-sm text-white/60">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Finding related tracks…
+                    </div>
+                  ) : (
+                    <p className="mt-6 text-center text-sm text-white/40">
+                      Nothing in the queue. Add some vibes!
+                    </p>
+                  )
                 ) : (
+                  <>
                   <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
@@ -215,6 +223,13 @@ export function QueueDrawer({ open, onClose }: Props) {
                       </ul>
                     </SortableContext>
                   </DndContext>
+                  {isLoadingNext && (
+                    <div className="mt-3 flex items-center justify-center gap-2 text-xs text-white/50">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Finding related tracks…
+                    </div>
+                  )}
+                  </>
                 )}
               </section>
             </div>
