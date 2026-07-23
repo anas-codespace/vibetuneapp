@@ -35,6 +35,7 @@ import { Route as SettingsAudioRouteImport } from './routes/settings.audio'
 import { Route as LibraryDownloadedRouteImport } from './routes/library.downloaded'
 import { Route as LibraryIdRouteImport } from './routes/library.$id'
 import { Route as ApiAnalyzeMoodRouteImport } from './routes/api/analyze-mood'
+import { Route as AuthenticatedSpotifyLibraryRouteImport } from './routes/_authenticated/spotify-library'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as ApiPublicTrackCoverRouteImport } from './routes/api/public/track-cover'
@@ -173,6 +174,12 @@ const ApiAnalyzeMoodRoute = ApiAnalyzeMoodRouteImport.update({
   path: '/api/analyze-mood',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSpotifyLibraryRoute =
+  AuthenticatedSpotifyLibraryRouteImport.update({
+    id: '/_authenticated/spotify-library',
+    path: '/spotify-library',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const Char91DotwellKnownChar93OauthProtectedResourceRoute =
   Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
     id: '/.well-known/oauth-protected-resource',
@@ -230,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/verify': typeof VerifyRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/spotify-library': typeof AuthenticatedSpotifyLibraryRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/downloaded': typeof LibraryDownloadedRoute
@@ -265,6 +273,7 @@ export interface FileRoutesByTo {
   '/verify': typeof VerifyRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/spotify-library': typeof AuthenticatedSpotifyLibraryRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/downloaded': typeof LibraryDownloadedRoute
@@ -301,6 +310,7 @@ export interface FileRoutesById {
   '/verify': typeof VerifyRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/_authenticated/spotify-library': typeof AuthenticatedSpotifyLibraryRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/downloaded': typeof LibraryDownloadedRoute
@@ -338,6 +348,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/spotify-library'
     | '/api/analyze-mood'
     | '/library/$id'
     | '/library/downloaded'
@@ -373,6 +384,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/spotify-library'
     | '/api/analyze-mood'
     | '/library/$id'
     | '/library/downloaded'
@@ -408,6 +420,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/_authenticated/spotify-library'
     | '/api/analyze-mood'
     | '/library/$id'
     | '/library/downloaded'
@@ -444,6 +457,7 @@ export interface RootRouteChildren {
   VerifyRoute: typeof VerifyRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  AuthenticatedSpotifyLibraryRoute: typeof AuthenticatedSpotifyLibraryRoute
   ApiAnalyzeMoodRoute: typeof ApiAnalyzeMoodRoute
   SettingsAudioRoute: typeof SettingsAudioRoute
   SettingsHistoryRoute: typeof SettingsHistoryRoute
@@ -644,6 +658,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAnalyzeMoodRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/spotify-library': {
+      id: '/_authenticated/spotify-library'
+      path: '/spotify-library'
+      fullPath: '/spotify-library'
+      preLoaderRoute: typeof AuthenticatedSpotifyLibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.well-known/oauth-protected-resource': {
       id: '/.well-known/oauth-protected-resource'
       path: '/.well-known/oauth-protected-resource'
@@ -728,6 +749,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  AuthenticatedSpotifyLibraryRoute: AuthenticatedSpotifyLibraryRoute,
   ApiAnalyzeMoodRoute: ApiAnalyzeMoodRoute,
   SettingsAudioRoute: SettingsAudioRoute,
   SettingsHistoryRoute: SettingsHistoryRoute,
