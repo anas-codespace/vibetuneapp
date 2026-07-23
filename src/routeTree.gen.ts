@@ -38,6 +38,7 @@ import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]
 import { Route as ApiPublicTrackCoverRouteImport } from './routes/api/public/track-cover'
 import { Route as ApiPublicArtistImageRouteImport } from './routes/api/public/artist-image'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicHealthYoutubeRouteImport } from './routes/api/public/health.youtube'
 
 const VerifyRoute = VerifyRouteImport.update({
@@ -188,6 +189,11 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHealthYoutubeRoute = ApiPublicHealthYoutubeRouteImport.update({
   id: '/api/public/health/youtube',
   path: '/api/public/health/youtube',
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/settings/youtube': typeof SettingsYoutubeRoute
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/artist-image': typeof ApiPublicArtistImageRoute
   '/api/public/track-cover': typeof ApiPublicTrackCoverRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/settings/youtube': typeof SettingsYoutubeRoute
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/artist-image': typeof ApiPublicArtistImageRoute
   '/api/public/track-cover': typeof ApiPublicTrackCoverRoute
@@ -286,6 +294,7 @@ export interface FileRoutesById {
   '/settings/youtube': typeof SettingsYoutubeRoute
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/artist-image': typeof ApiPublicArtistImageRoute
   '/api/public/track-cover': typeof ApiPublicTrackCoverRoute
@@ -320,6 +329,7 @@ export interface FileRouteTypes {
     | '/settings/youtube'
     | '/songs/$id'
     | '/spotify/callback'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/artist-image'
     | '/api/public/track-cover'
@@ -352,6 +362,7 @@ export interface FileRouteTypes {
     | '/settings/youtube'
     | '/songs/$id'
     | '/spotify/callback'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/artist-image'
     | '/api/public/track-cover'
@@ -384,6 +395,7 @@ export interface FileRouteTypes {
     | '/settings/youtube'
     | '/songs/$id'
     | '/spotify/callback'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/artist-image'
     | '/api/public/track-cover'
@@ -415,6 +427,7 @@ export interface RootRouteChildren {
   SettingsYoutubeRoute: typeof SettingsYoutubeRoute
   SongsIdRoute: typeof SongsIdRoute
   SpotifyCallbackRoute: typeof SpotifyCallbackRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicArtistImageRoute: typeof ApiPublicArtistImageRoute
   ApiPublicTrackCoverRoute: typeof ApiPublicTrackCoverRoute
@@ -626,6 +639,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/health/youtube': {
       id: '/api/public/health/youtube'
       path: '/api/public/health/youtube'
@@ -675,6 +695,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsYoutubeRoute: SettingsYoutubeRoute,
   SongsIdRoute: SongsIdRoute,
   SpotifyCallbackRoute: SpotifyCallbackRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicArtistImageRoute: ApiPublicArtistImageRoute,
   ApiPublicTrackCoverRoute: ApiPublicTrackCoverRoute,
