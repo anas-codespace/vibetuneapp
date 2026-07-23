@@ -10,8 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyRouteImport } from './routes/verify'
+import { Route as SpotifyImplicitCallbackRouteImport } from './routes/spotify-implicit-callback'
 import { Route as SpotifyDashboardRouteImport } from './routes/spotify-dashboard'
-import { Route as SpotifyCallbackRouteImport } from './routes/spotify-callback'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SearchRouteImport } from './routes/search'
@@ -48,14 +48,14 @@ const VerifyRoute = VerifyRouteImport.update({
   path: '/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SpotifyImplicitCallbackRoute = SpotifyImplicitCallbackRouteImport.update({
+  id: '/spotify-implicit-callback',
+  path: '/spotify-implicit-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SpotifyDashboardRoute = SpotifyDashboardRouteImport.update({
   id: '/spotify-dashboard',
   path: '/spotify-dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SpotifyCallbackRoute = SpotifyCallbackRouteImport.update({
-  id: '/spotify-callback',
-  path: '/spotify-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -225,8 +225,8 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/spotify-callback': typeof SpotifyCallbackRoute
   '/spotify-dashboard': typeof SpotifyDashboardRoute
+  '/spotify-implicit-callback': typeof SpotifyImplicitCallbackRoute
   '/verify': typeof VerifyRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -260,8 +260,8 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/spotify-callback': typeof SpotifyCallbackRoute
   '/spotify-dashboard': typeof SpotifyDashboardRoute
+  '/spotify-implicit-callback': typeof SpotifyImplicitCallbackRoute
   '/verify': typeof VerifyRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -296,8 +296,8 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/spotify-callback': typeof SpotifyCallbackRoute
   '/spotify-dashboard': typeof SpotifyDashboardRoute
+  '/spotify-implicit-callback': typeof SpotifyImplicitCallbackRoute
   '/verify': typeof VerifyRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -333,8 +333,8 @@ export interface FileRouteTypes {
     | '/search'
     | '/signup'
     | '/sitemap.xml'
-    | '/spotify-callback'
     | '/spotify-dashboard'
+    | '/spotify-implicit-callback'
     | '/verify'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -368,8 +368,8 @@ export interface FileRouteTypes {
     | '/search'
     | '/signup'
     | '/sitemap.xml'
-    | '/spotify-callback'
     | '/spotify-dashboard'
+    | '/spotify-implicit-callback'
     | '/verify'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -403,8 +403,8 @@ export interface FileRouteTypes {
     | '/search'
     | '/signup'
     | '/sitemap.xml'
-    | '/spotify-callback'
     | '/spotify-dashboard'
+    | '/spotify-implicit-callback'
     | '/verify'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -439,8 +439,8 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  SpotifyCallbackRoute: typeof SpotifyCallbackRoute
   SpotifyDashboardRoute: typeof SpotifyDashboardRoute
+  SpotifyImplicitCallbackRoute: typeof SpotifyImplicitCallbackRoute
   VerifyRoute: typeof VerifyRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -469,18 +469,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/spotify-implicit-callback': {
+      id: '/spotify-implicit-callback'
+      path: '/spotify-implicit-callback'
+      fullPath: '/spotify-implicit-callback'
+      preLoaderRoute: typeof SpotifyImplicitCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/spotify-dashboard': {
       id: '/spotify-dashboard'
       path: '/spotify-dashboard'
       fullPath: '/spotify-dashboard'
       preLoaderRoute: typeof SpotifyDashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/spotify-callback': {
-      id: '/spotify-callback'
-      path: '/spotify-callback'
-      fullPath: '/spotify-callback'
-      preLoaderRoute: typeof SpotifyCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -722,8 +722,8 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  SpotifyCallbackRoute: SpotifyCallbackRoute,
   SpotifyDashboardRoute: SpotifyDashboardRoute,
+  SpotifyImplicitCallbackRoute: SpotifyImplicitCallbackRoute,
   VerifyRoute: VerifyRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:

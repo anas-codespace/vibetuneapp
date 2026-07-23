@@ -8,7 +8,7 @@ export const SPOTIFY_TOKEN_EXPIRES_KEY = "spotify_token_expires_at";
 
 export const getRedirectUri = (): string => {
   if (typeof window === "undefined") return "";
-  return `${window.location.protocol}//${window.location.host}/spotify-callback`;
+  return `${window.location.protocol}//${window.location.host}/spotify-implicit-callback`;
 };
 
 export const SPOTIFY_SCOPES = [

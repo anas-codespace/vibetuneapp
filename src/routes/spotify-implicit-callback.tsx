@@ -6,7 +6,7 @@ import {
   SPOTIFY_TOKEN_EXPIRES_KEY,
 } from "@/lib/spotifyAuth";
 
-export const Route = createFileRoute("/spotify-callback")({
+export const Route = createFileRoute("/spotify-implicit-callback")({
   head: () => ({ meta: [{ title: "Connecting Spotify · Vibetune" }] }),
   component: SpotifyCallback,
 });
