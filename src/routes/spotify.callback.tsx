@@ -47,6 +47,7 @@ function SpotifyCallback() {
   const autoSync = useServerFn(spotifyAutoSync);
   const [status, setStatus] = useState<"working" | "syncing" | "done" | "error">("working");
   const [msg, setMsg] = useState<string>("Linking your Spotify account…");
+  const [hint, setHint] = useState<string>("");
   const ran = useRef(false);
 
   useEffect(() => {
