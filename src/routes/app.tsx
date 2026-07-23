@@ -170,6 +170,32 @@ function AppHome() {
     retry: 2,
   });
 
+  // Playlist-Mapped trending: language → curated official playlist.
+  // Fires whenever the primary language chip changes, guaranteeing
+  // language-accurate hits instead of region-scoped aggregates.
+  const { data: languageTrending, isLoading: languageTrendingLoading } = useQuery({
+    queryKey: ["trending-language", primaryLang],
+    queryFn: async () => {
+      try {
+        const res = await languageTrendingFn({ data: { language: primaryLang, max: 25 } });
+        if (res.stale) {
+          console.warn(`[trending-language] serving stale cache for ${primaryLang}`, {
+            source: res.source,
+            playlistId: res.playlistId,
+          });
+        }
+        return res.tracks;
+      } catch (err) {
+        console.error(`[trending-language] failed for ${primaryLang}:`, err);
+        return [];
+      }
+    },
+    enabled: !!session,
+    staleTime: 1000 * 60 * 30,
+    retry: 1,
+  });
+
+
 
 
 
