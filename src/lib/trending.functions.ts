@@ -90,3 +90,84 @@ export const getTrendingNearYou = createServerFn({ method: "GET" })
       return { tracks: [], region, fetchedAt: now, stale: false, source: "empty" };
     }
   });
+
+/**
+ * Playlist-Mapped trending by language.
+ *
+ * Maps `language` → curated YouTube playlist ID and fetches `playlistItems`.
+ * This guarantees language-accurate hits, unlike country-scoped mostPopular
+ * which mixes languages within a region. Falls back to stale cache on error;
+ * returns empty on cold-miss so the UI can degrade to its search-based row.
+ */
+const LANG_CACHE = new Map<string, CacheEntry>();
+
+export interface LanguageTrendingResponse {
+  tracks: YTTrack[];
+  language: string;
+  playlistId: string;
+  fetchedAt: number;
+  stale: boolean;
+  source: "fresh" | "cache" | "stale-fallback" | "empty";
+}
+
+export const getLanguageTrending = createServerFn({ method: "GET" })
+  .inputValidator((d) =>
+    z
+      .object({
+        language: z.string().min(1).max(32),
+        max: z.number().int().min(1).max(50).optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }): Promise<LanguageTrendingResponse> => {
+    const language = data.language.toUpperCase();
+    const max = data.max ?? 25;
+    const playlistId = playlistIdForLanguage(language);
+    const cacheKey = `${language}:${playlistId}:${max}`;
+    const now = Date.now();
+
+    const cached = LANG_CACHE.get(cacheKey);
+    if (cached && now - cached.fetchedAt < FRESH_MS) {
+      return {
+        tracks: cached.tracks,
+        language,
+        playlistId,
+        fetchedAt: cached.fetchedAt,
+        stale: false,
+        source: "cache",
+      };
+    }
+
+    try {
+      const tracks = await fetchPlaylistTracks(playlistId, max);
+      if (tracks.length > 0) {
+        LANG_CACHE.set(cacheKey, { fetchedAt: now, region: language, tracks });
+        return { tracks, language, playlistId, fetchedAt: now, stale: false, source: "fresh" };
+      }
+      if (cached) {
+        return {
+          tracks: cached.tracks,
+          language,
+          playlistId,
+          fetchedAt: cached.fetchedAt,
+          stale: true,
+          source: "stale-fallback",
+        };
+      }
+      return { tracks: [], language, playlistId, fetchedAt: now, stale: false, source: "empty" };
+    } catch (err) {
+      console.error(`[trending-language] fetch failed for ${language} (${playlistId}):`, err);
+      if (cached) {
+        return {
+          tracks: cached.tracks,
+          language,
+          playlistId,
+          fetchedAt: cached.fetchedAt,
+          stale: true,
+          source: "stale-fallback",
+        };
+      }
+      return { tracks: [], language, playlistId, fetchedAt: now, stale: false, source: "empty" };
+    }
+  });
+
