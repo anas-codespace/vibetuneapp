@@ -206,7 +206,7 @@ function LoginPage() {
           {loading ? "Signing in…" : "Sign in"}
         </button>
         <p className="mt-6 text-center text-sm text-white/60">
-          New here? <Link to="/signup" className="text-white underline-offset-4 hover:underline">Create an account</Link>
+          New here? <Link to="/signup" search={next ? { next } : {}} className="text-white underline-offset-4 hover:underline">Create an account</Link>
         </p>
       </motion.form>
     </main>
