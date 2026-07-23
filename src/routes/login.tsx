@@ -13,9 +13,8 @@ function isSafeNext(v: unknown): v is string {
 }
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    next: isSafeNext(s.next) ? s.next : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { next?: string } =>
+    isSafeNext(s.next) ? { next: s.next } : {},
   head: () => ({
     meta: [
       { title: "Log in · Vibtune" },
