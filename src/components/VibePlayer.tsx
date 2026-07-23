@@ -107,6 +107,8 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   const [duration, setDuration] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [mixMode, setMixMode] = useState(false);
+  const [isLoadingNext, setIsLoadingNext] = useState(false);
+  const playedHistoryRef = useRef<Set<string>>(new Set());
 
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
