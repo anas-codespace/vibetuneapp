@@ -26,6 +26,13 @@ function classifyError(raw: string): { code: string; message: string; hint: stri
   if (m.includes("timed out") || m.includes("timeout")) return { code: "timeout", message: raw, hint: "Spotify or the network is slow. Check your connection and retry." };
   if (m.includes("invalid_grant")) return { code: "invalid_grant", message: "Authorization code expired or already used.", hint: "Retry the connect flow — codes are single-use." };
   if (m.includes("network") || m.includes("failed to fetch")) return { code: "network", message: "Network error while contacting Spotify.", hint: "Check your connection and retry." };
+  if (m.includes("development mode") || (m.includes("/me") && m.includes("403"))) {
+    return {
+      code: "spotify_dev_mode",
+      message: "Spotify blocked this account (403 on /me).",
+      hint: "Your Spotify app is in Development Mode. Open the Spotify Developer Dashboard → your app → Users and Access, and add the exact email of the Spotify account you're signing in with. Then retry.",
+    };
+  }
   return { code: "unknown", message: raw || "Failed to connect Spotify.", hint: "Retry from Spotify settings. If it keeps failing, disconnect and try again." };
 }
 
