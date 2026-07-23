@@ -23,6 +23,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SpotifyCallbackRouteImport } from './routes/spotify.callback'
 import { Route as SongsIdRouteImport } from './routes/songs.$id'
@@ -114,6 +115,10 @@ const AppRoute = AppRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -176,9 +181,9 @@ const ApiAnalyzeMoodRoute = ApiAnalyzeMoodRouteImport.update({
 } as any)
 const AuthenticatedSpotifyLibraryRoute =
   AuthenticatedSpotifyLibraryRouteImport.update({
-    id: '/_authenticated/spotify-library',
+    id: '/spotify-library',
     path: '/spotify-library',
-    getParentRoute: () => rootRouteImport,
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const Char91DotwellKnownChar93OauthProtectedResourceRoute =
   Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
@@ -294,6 +299,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/app': typeof AppRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/library': typeof LibraryRouteWithChildren
@@ -404,6 +410,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/app'
     | '/forgot-password'
     | '/library'
@@ -441,6 +448,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AppRoute: typeof AppRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LibraryRoute: typeof LibraryRouteWithChildren
@@ -457,7 +465,6 @@ export interface RootRouteChildren {
   VerifyRoute: typeof VerifyRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  AuthenticatedSpotifyLibraryRoute: typeof AuthenticatedSpotifyLibraryRoute
   ApiAnalyzeMoodRoute: typeof ApiAnalyzeMoodRoute
   SettingsAudioRoute: typeof SettingsAudioRoute
   SettingsHistoryRoute: typeof SettingsHistoryRoute
@@ -574,6 +581,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -663,7 +677,7 @@ declare module '@tanstack/react-router' {
       path: '/spotify-library'
       fullPath: '/spotify-library'
       preLoaderRoute: typeof AuthenticatedSpotifyLibraryRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/.well-known/oauth-protected-resource': {
       id: '/.well-known/oauth-protected-resource'
@@ -717,6 +731,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedSpotifyLibraryRoute: typeof AuthenticatedSpotifyLibraryRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedSpotifyLibraryRoute: AuthenticatedSpotifyLibraryRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 interface LibraryRouteChildren {
   LibraryIdRoute: typeof LibraryIdRoute
   LibraryDownloadedRoute: typeof LibraryDownloadedRoute
@@ -732,6 +757,7 @@ const LibraryRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AppRoute: AppRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LibraryRoute: LibraryRouteWithChildren,
@@ -749,7 +775,6 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
-  AuthenticatedSpotifyLibraryRoute: AuthenticatedSpotifyLibraryRoute,
   ApiAnalyzeMoodRoute: ApiAnalyzeMoodRoute,
   SettingsAudioRoute: SettingsAudioRoute,
   SettingsHistoryRoute: SettingsHistoryRoute,
