@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://aqkowkmfiybcjcpnltbw.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "vibtune-mcp",
+      "version": "0.1.0",
+      "title": "Vibtune MCP"
+    },
+    "tools": [
+      {
+        "name": "list_liked_songs",
+        "title": "List liked songs",
+        "description": "List the signed-in user's liked songs on Vibtune, newest first.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Max rows to return (default 25).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_playlists",
+        "title": "List playlists",
+        "description": "List the signed-in user's Vibtune playlists.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "includeTracks": {
+              "description": "If true, include each playlist's tracks (capped at 100).",
+              "type": "boolean"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_recent_listens",
+        "title": "Get recent listens",
+        "description": "Return the signed-in user's most recent Vibtune listening history.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Max rows (default 50).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_taste_profile",
+        "title": "Get taste profile",
+        "description": "Return the signed-in user's Vibtune taste profile (top artists, languages, genres, discovery openness).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "log_listen",
+        "title": "Log a listen",
+        "description": "Record that the signed-in user listened to a track on Vibtune. Use when the assistant is playing music on behalf of the user.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "youtubeId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "description": "YouTube video ID of the track."
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            },
+            "artist": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "youtubeId",
+            "title",
+            "artist"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

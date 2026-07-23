@@ -16,6 +16,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -32,8 +33,12 @@ import { Route as SettingsAudioRouteImport } from './routes/settings.audio'
 import { Route as LibraryDownloadedRouteImport } from './routes/library.downloaded'
 import { Route as LibraryIdRouteImport } from './routes/library.$id'
 import { Route as ApiAnalyzeMoodRouteImport } from './routes/api/analyze-mood'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as ApiPublicTrackCoverRouteImport } from './routes/api/public/track-cover'
 import { Route as ApiPublicArtistImageRouteImport } from './routes/api/public/artist-image'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicHealthYoutubeRouteImport } from './routes/api/public/health.youtube'
 
 const VerifyRoute = VerifyRouteImport.update({
@@ -69,6 +74,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -151,6 +161,18 @@ const ApiAnalyzeMoodRoute = ApiAnalyzeMoodRouteImport.update({
   path: '/api/analyze-mood',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicTrackCoverRoute = ApiPublicTrackCoverRouteImport.update({
   id: '/api/public/track-cover',
   path: '/api/public/track-cover',
@@ -159,6 +181,17 @@ const ApiPublicTrackCoverRoute = ApiPublicTrackCoverRouteImport.update({
 const ApiPublicArtistImageRoute = ApiPublicArtistImageRouteImport.update({
   id: '/api/public/artist-image',
   path: '/api/public/artist-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Char91DotmcpChar93InvokeToolToolRoute =
+  Char91DotmcpChar93InvokeToolToolRouteImport.update({
+    id: '/.mcp/invoke-tool/$tool',
+    path: '/.mcp/invoke-tool/$tool',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicHealthYoutubeRoute = ApiPublicHealthYoutubeRouteImport.update({
@@ -173,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/library': typeof LibraryRouteWithChildren
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -180,6 +214,8 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/verify': typeof VerifyRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/downloaded': typeof LibraryDownloadedRoute
@@ -191,6 +227,8 @@ export interface FileRoutesByFullPath {
   '/settings/youtube': typeof SettingsYoutubeRoute
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/artist-image': typeof ApiPublicArtistImageRoute
   '/api/public/track-cover': typeof ApiPublicTrackCoverRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
@@ -201,6 +239,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/library': typeof LibraryRouteWithChildren
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -208,6 +247,8 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/verify': typeof VerifyRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/downloaded': typeof LibraryDownloadedRoute
@@ -219,6 +260,8 @@ export interface FileRoutesByTo {
   '/settings/youtube': typeof SettingsYoutubeRoute
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/artist-image': typeof ApiPublicArtistImageRoute
   '/api/public/track-cover': typeof ApiPublicTrackCoverRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
@@ -230,6 +273,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/library': typeof LibraryRouteWithChildren
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/onboarding': typeof OnboardingRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -237,6 +281,8 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/verify': typeof VerifyRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/analyze-mood': typeof ApiAnalyzeMoodRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/downloaded': typeof LibraryDownloadedRoute
@@ -248,6 +294,8 @@ export interface FileRoutesById {
   '/settings/youtube': typeof SettingsYoutubeRoute
   '/songs/$id': typeof SongsIdRoute
   '/spotify/callback': typeof SpotifyCallbackRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/artist-image': typeof ApiPublicArtistImageRoute
   '/api/public/track-cover': typeof ApiPublicTrackCoverRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
@@ -260,6 +308,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/library'
     | '/login'
+    | '/mcp'
     | '/onboarding'
     | '/profile'
     | '/reset-password'
@@ -267,6 +316,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/verify'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/api/analyze-mood'
     | '/library/$id'
     | '/library/downloaded'
@@ -278,6 +329,8 @@ export interface FileRouteTypes {
     | '/settings/youtube'
     | '/songs/$id'
     | '/spotify/callback'
+    | '/.lovable/oauth/consent'
+    | '/.mcp/invoke-tool/$tool'
     | '/api/public/artist-image'
     | '/api/public/track-cover'
     | '/api/public/health/youtube'
@@ -288,6 +341,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/library'
     | '/login'
+    | '/mcp'
     | '/onboarding'
     | '/profile'
     | '/reset-password'
@@ -295,6 +349,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/verify'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/api/analyze-mood'
     | '/library/$id'
     | '/library/downloaded'
@@ -306,6 +362,8 @@ export interface FileRouteTypes {
     | '/settings/youtube'
     | '/songs/$id'
     | '/spotify/callback'
+    | '/.lovable/oauth/consent'
+    | '/.mcp/invoke-tool/$tool'
     | '/api/public/artist-image'
     | '/api/public/track-cover'
     | '/api/public/health/youtube'
@@ -316,6 +374,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/library'
     | '/login'
+    | '/mcp'
     | '/onboarding'
     | '/profile'
     | '/reset-password'
@@ -323,6 +382,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/verify'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/api/analyze-mood'
     | '/library/$id'
     | '/library/downloaded'
@@ -334,6 +395,8 @@ export interface FileRouteTypes {
     | '/settings/youtube'
     | '/songs/$id'
     | '/spotify/callback'
+    | '/.lovable/oauth/consent'
+    | '/.mcp/invoke-tool/$tool'
     | '/api/public/artist-image'
     | '/api/public/track-cover'
     | '/api/public/health/youtube'
@@ -345,6 +408,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LibraryRoute: typeof LibraryRouteWithChildren
   LoginRoute: typeof LoginRoute
+  McpRoute: typeof McpRoute
   OnboardingRoute: typeof OnboardingRoute
   ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -352,6 +416,8 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   VerifyRoute: typeof VerifyRoute
+  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApiAnalyzeMoodRoute: typeof ApiAnalyzeMoodRoute
   SettingsAudioRoute: typeof SettingsAudioRoute
   SettingsHistoryRoute: typeof SettingsHistoryRoute
@@ -361,6 +427,8 @@ export interface RootRouteChildren {
   SettingsYoutubeRoute: typeof SettingsYoutubeRoute
   SongsIdRoute: typeof SongsIdRoute
   SpotifyCallbackRoute: typeof SpotifyCallbackRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
+  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicArtistImageRoute: typeof ApiPublicArtistImageRoute
   ApiPublicTrackCoverRoute: typeof ApiPublicTrackCoverRoute
   ApiPublicHealthYoutubeRoute: typeof ApiPublicHealthYoutubeRoute
@@ -415,6 +483,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -529,6 +604,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAnalyzeMoodRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/list-tools': {
+      id: '/.mcp/list-tools'
+      path: '/.mcp/list-tools'
+      fullPath: '/.mcp/list-tools'
+      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/track-cover': {
       id: '/api/public/track-cover'
       path: '/api/public/track-cover'
@@ -541,6 +630,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/artist-image'
       fullPath: '/api/public/artist-image'
       preLoaderRoute: typeof ApiPublicArtistImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/invoke-tool/$tool': {
+      id: '/.mcp/invoke-tool/$tool'
+      path: '/.mcp/invoke-tool/$tool'
+      fullPath: '/.mcp/invoke-tool/$tool'
+      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/health/youtube': {
@@ -572,6 +675,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LibraryRoute: LibraryRouteWithChildren,
   LoginRoute: LoginRoute,
+  McpRoute: McpRoute,
   OnboardingRoute: OnboardingRoute,
   ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,
@@ -579,6 +683,9 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   VerifyRoute: VerifyRoute,
+  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApiAnalyzeMoodRoute: ApiAnalyzeMoodRoute,
   SettingsAudioRoute: SettingsAudioRoute,
   SettingsHistoryRoute: SettingsHistoryRoute,
@@ -588,6 +695,8 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsYoutubeRoute: SettingsYoutubeRoute,
   SongsIdRoute: SongsIdRoute,
   SpotifyCallbackRoute: SpotifyCallbackRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
+  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicArtistImageRoute: ApiPublicArtistImageRoute,
   ApiPublicTrackCoverRoute: ApiPublicTrackCoverRoute,
   ApiPublicHealthYoutubeRoute: ApiPublicHealthYoutubeRoute,
