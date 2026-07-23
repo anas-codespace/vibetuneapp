@@ -26,6 +26,13 @@ function classifyError(raw: string): { code: string; message: string; hint: stri
   if (m.includes("timed out") || m.includes("timeout")) return { code: "timeout", message: raw, hint: "Spotify or the network is slow. Check your connection and retry." };
   if (m.includes("invalid_grant")) return { code: "invalid_grant", message: "Authorization code expired or already used.", hint: "Retry the connect flow — codes are single-use." };
   if (m.includes("network") || m.includes("failed to fetch")) return { code: "network", message: "Network error while contacting Spotify.", hint: "Check your connection and retry." };
+  if (m.includes("development mode") || (m.includes("/me") && m.includes("403"))) {
+    return {
+      code: "spotify_dev_mode",
+      message: "Spotify blocked this account (403 on /me).",
+      hint: "Your Spotify app is in Development Mode. Open the Spotify Developer Dashboard → your app → Users and Access, and add the exact email of the Spotify account you're signing in with. Then retry.",
+    };
+  }
   return { code: "unknown", message: raw || "Failed to connect Spotify.", hint: "Retry from Spotify settings. If it keeps failing, disconnect and try again." };
 }
 
@@ -40,6 +47,7 @@ function SpotifyCallback() {
   const autoSync = useServerFn(spotifyAutoSync);
   const [status, setStatus] = useState<"working" | "syncing" | "done" | "error">("working");
   const [msg, setMsg] = useState<string>("Linking your Spotify account…");
+  const [hint, setHint] = useState<string>("");
   const ran = useRef(false);
 
   useEffect(() => {
@@ -128,6 +136,7 @@ function SpotifyCallback() {
         const raw = e instanceof Error ? e.message : "Failed to connect Spotify";
         const info = classifyError(raw);
         setMsg(info.message);
+        setHint(info.hint);
         setSyncStatus({ phase: "error", source: "spotify", message: info.message });
         try {
           sessionStorage.setItem(
@@ -146,6 +155,9 @@ function SpotifyCallback() {
         {status === "done" && <CheckCircle2 className="h-10 w-10 text-emerald-400" />}
         {status === "error" && <XCircle className="h-10 w-10 text-red-400" />}
         <p className="text-sm text-white/80">{msg}</p>
+        {status === "error" && hint && (
+          <p className="text-xs text-white/50">{hint}</p>
+        )}
         {status === "error" && (
           <button
             onClick={() => navigate({ to: "/settings/spotify" })}

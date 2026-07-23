@@ -372,7 +372,20 @@ export async function spotifyGet<T>(userToken: string, path: string): Promise<T>
   const res = await fetch(`https://api.spotify.com/v1${path}`, {
     headers: { Authorization: `Bearer ${userToken}` },
   });
-  if (!res.ok) throw new Error(`Spotify ${path} → ${res.status}`);
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    const reason = extractProviderReason(text);
+    console.error("[spotify] user request failed", { path, status: res.status, reason });
+    if (res.status === 403) {
+      throw new Error(
+        `Spotify ${path} → 403 Forbidden. Your Spotify app is in Development Mode — the signed-in Spotify account must be added under Dashboard → your app → Users and Access. (${reason})`,
+      );
+    }
+    if (res.status === 401) {
+      throw new Error(`Spotify ${path} → 401 Unauthorized. Reconnect Spotify to refresh your session. (${reason})`);
+    }
+    throw new Error(`Spotify ${path} → ${res.status} ${reason}`);
+  }
   return (await res.json()) as T;
 }
 
