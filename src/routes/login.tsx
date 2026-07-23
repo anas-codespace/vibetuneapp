@@ -8,7 +8,14 @@ import { lovable } from "@/integrations/lovable";
 import { VibtuneLogo } from "@/components/VibtuneLogo";
 import { useAuth } from "@/hooks/use-auth";
 
+function isSafeNext(v: unknown): v is string {
+  return typeof v === "string" && v.startsWith("/") && !v.startsWith("//");
+}
+
 export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: isSafeNext(s.next) ? s.next : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Log in · Vibtune" },
@@ -25,6 +32,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const { status } = useAuth();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -32,11 +40,28 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  function consumeNext(): string | null {
+    if (next) return next;
+    if (typeof window !== "undefined") {
+      const stashed = sessionStorage.getItem("post_login_next");
+      if (stashed && stashed.startsWith("/") && !stashed.startsWith("//")) {
+        sessionStorage.removeItem("post_login_next");
+        return stashed;
+      }
+    }
+    return null;
+  }
+
   // If already authenticated (fresh mount, OAuth completion, refresh), leave the login page.
   useEffect(() => {
-    if (status === "authenticated") {
+    if (status !== "authenticated") return;
+    const target = consumeNext();
+    if (target) {
+      window.location.replace(target);
+    } else {
       navigate({ to: "/app", replace: true });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -62,7 +87,9 @@ function LoginPage() {
       return;
     }
     toast.success("Welcome back.");
-    navigate({ to: "/app" });
+    const target = consumeNext();
+    if (target) window.location.replace(target);
+    else navigate({ to: "/app" });
   }
 
   useEffect(() => {
@@ -79,8 +106,12 @@ function LoginPage() {
 
   async function handleGoogle() {
     setGoogleLoading(true);
+    // Stash `next` so the post-OAuth landing on / or /login can consume it.
+    if (next && typeof window !== "undefined") {
+      sessionStorage.setItem("post_login_next", next);
+    }
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: window.location.origin + "/login",
     });
     if (result.error) {
       setGoogleLoading(false);
