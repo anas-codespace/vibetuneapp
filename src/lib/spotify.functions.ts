@@ -269,6 +269,23 @@ export const spotifyListPlaylists = createServerFn({ method: "GET" })
     return getMyPlaylistsList(token);
   });
 
+/** Raw read of the user's Spotify Liked Songs — no DB write, for the dashboard view. */
+export const spotifyListLiked = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const token = await getFreshUserToken(context.supabase, context.userId);
+    const items = await getMyLikedTracks(token, 100);
+    return items.map((t) => ({
+      spotifyId: t.id,
+      title: t.name,
+      artist: t.artists.join(", "),
+      album: t.album,
+      albumArt: t.albumArt,
+      durationMs: t.durationMs,
+    }));
+  });
+
+
 export const spotifyImportPlaylist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
