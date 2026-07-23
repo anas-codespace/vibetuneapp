@@ -66,6 +66,8 @@ function AppHome() {
   const feedFn = useServerFn(getPersonalizedFeed);
   const trendingFn = useServerFn(searchYouTubeOnly);
   const trendingNearFn = useServerFn(getTrendingNearYou);
+  const languageTrendingFn = useServerFn(getLanguageTrending);
+
   const { play, startMix } = usePlayer();
   
   const [moodOpen, setMoodOpen] = useState(false);
