@@ -99,6 +99,52 @@ async function writePersistentYoutubeCache(cacheKey: string, tracks: YTTrack[], 
 }
 
 /**
+ * Fuzzy fallback: when live providers are unavailable, scan the persistent
+ * youtube_search_cache for any previously-cached tracks whose title/artist
+ * contains the query terms. Used as a graceful degradation so users can still
+ * find popular content while YouTube/Spotify are throttled.
+ */
+export async function fallbackSearchFromCache(query: string, max = 24): Promise<YTTrack[]> {
+  const term = query.trim().toLowerCase();
+  if (term.length < 2) return [];
+  const tokens = term.split(/\s+/).filter((t) => t.length >= 2);
+  if (tokens.length === 0) return [];
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Pull recent cache rows whose stored query mentions any token, then scan
+    // their result arrays. Cap the row scan to avoid unbounded memory use.
+    const orExpr = tokens.map((t) => `query.ilike.%${t}%`).join(",");
+    const { data, error } = await supabaseAdmin
+      .from("youtube_search_cache")
+      .select("results, cached_at")
+      .or(orExpr)
+      .order("cached_at", { ascending: false })
+      .limit(30);
+    if (error || !data) return [];
+    const seen = new Set<string>();
+    const out: YTTrack[] = [];
+    for (const row of data) {
+      const rows = Array.isArray(row.results) ? (row.results as unknown as YTTrack[]) : [];
+      for (const t of rows) {
+        if (!t || !t.youtubeId || seen.has(t.youtubeId)) continue;
+        const hay = `${t.title ?? ""} ${t.artist ?? ""} ${t.album ?? ""}`.toLowerCase();
+        // Require at least one token to match title/artist/album — not just the
+        // stored query, so we don't return unrelated tracks that happened to be
+        // co-cached with a matching query.
+        if (!tokens.some((tok) => hay.includes(tok))) continue;
+        seen.add(t.youtubeId);
+        out.push(t);
+        if (out.length >= max) return out;
+      }
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+
+/**
  * Aggressively clean a YouTube video title:
  *  - strip bracketed tags like (Official Video), [Lyric Video], {4K}
  *  - strip trailing pipe segments like " | 4K", " | Full Song"

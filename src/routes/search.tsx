@@ -360,10 +360,20 @@ function SearchPage() {
           </div>
         )}
         {debounced && !isFetching && !error && results.length === 0 && searchUnavailable && (
-          <div className="text-white/60 text-center py-20 space-y-2" role="alert">
-            <div>Search is temporarily unavailable, please try again shortly.</div>
+          <div className="mt-12 text-center py-10 space-y-3" role="alert">
+            <div className="text-white/80 text-sm font-medium">Music services are busy right now</div>
+            <div className="text-white/50 text-xs max-w-xs mx-auto">
+              Our music providers have hit their daily limit. Please try again in a little while, or search for a track you've played before.
+            </div>
+            <button
+              onClick={() => setQ((v) => v + " ")}
+              className="mt-2 rounded-full border border-white/20 px-4 py-2 text-xs font-medium text-white/80 hover:bg-white/10"
+            >
+              Retry
+            </button>
           </div>
         )}
+
         {debounced && !isFetching && !error && results.length === 0 && !searchUnavailable && (
           <div className="text-white/60 text-center py-20 space-y-3">
             <div>No results found for &ldquo;{debounced}&rdquo;.</div>

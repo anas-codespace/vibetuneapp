@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { planSearchStages, evaluateStage, type SearchStage, type SearchResultLite } from "./search";
 import { searchTracks as spotifySearchTracks, type SpotifyPlayableResult } from "./spotify.server";
-import { searchMusicResult } from "./youtube.server";
+import { searchMusicResult, fallbackSearchFromCache } from "./youtube.server";
 import { isProviderError, providerOk, type ProviderName, type ProviderResult } from "./providerResult";
 
 const SEARCH_TRACE_QUERY = "jailer 2";
@@ -152,7 +152,26 @@ export const searchCascade = createServerFn({ method: "POST" })
       }
     }
 
-    const unavailable = bestResults.length === 0 && providerErrors.length > 0 && stagesWithProviderError === stages.length;
+    const allStagesErrored = bestResults.length === 0 && providerErrors.length > 0 && stagesWithProviderError === stages.length;
+    if (allStagesErrored) {
+      // Live providers are down (quota / auth). Try to salvage from the persistent cache.
+      const fallback = await fallbackSearchFromCache(data.query, max);
+      if (fallback.length > 0) {
+        const results: SpotifyPlayableResult[] = fallback.map((t) => ({
+          spotifyId: `yt:${t.youtubeId}`,
+          youtubeId: t.youtubeId,
+          title: t.title,
+          artist: t.artist,
+          album: t.album ?? "",
+          albumArt: t.thumbnailUrl ?? null,
+          durationSeconds: t.durationSeconds,
+        }));
+        if (trace) console.log("[search-trace][cascade] cache-fallback-hit", { count: results.length });
+        return { results, acceptedStage: null, broadResults: true, correction: null, unavailable: false, providerErrors };
+      }
+    }
+    const unavailable = allStagesErrored;
     if (trace) console.log("[search-trace][cascade] fallback-return-best", { acceptedStage: bestStage?.kind ?? null, broadResults: bestResults.length > 0, count: bestResults.length, unavailable, providerErrors, results: safeJsonForTrace(bestResults) });
     return { results: bestResults, acceptedStage: bestStage?.kind ?? null, broadResults: bestResults.length > 0, correction: bestStage?.kind === "typo_tolerant" ? bestStage.query : null, unavailable, providerErrors };
+
   });
