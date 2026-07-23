@@ -530,6 +530,8 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
       if (prefetchInFlightRef.current === seed.youtubeId) prefetchInFlightRef.current = null;
     }
   }, [fetchAndAppendRelated, warmThumbnail]);
+  const prefetchRelatedForRef = useRef(prefetchRelatedFor);
+  useEffect(() => { prefetchRelatedForRef.current = prefetchRelatedFor; }, [prefetchRelatedFor]);
 
   const triggerSmartAutoplay = useCallback(async () => {
     // Always read the freshest state from refs to avoid stale closures.
