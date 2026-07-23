@@ -147,8 +147,24 @@ function AppHome() {
   });
 
   const { data: trendingNear, isLoading: trendingNearLoading } = useQuery({
-    queryKey: ["trending-near-you", trendingRegion],
+    queryKey: ["trending-near-you", trendingRegion, trendingLangs],
     queryFn: async () => {
+      // When the user picks language(s), YouTube's mostPopular endpoint
+      // (which is region-only) can't honor that — switch to a search-based
+      // query so results actually reflect the selected language.
+      if (trendingLangs.length > 0) {
+        const langPart = trendingLangs
+          .map((c) => TRENDING_LANGUAGES.find((l) => l.code === c)?.label ?? c)
+          .join(" ");
+        const q = `top trending ${langPart} songs ${labelForRegion(trendingRegion)} official`;
+        try {
+          const res = await trendingFn({ data: { query: q, max: 25 } });
+          return res ?? [];
+        } catch (err) {
+          console.error("[trending-near-you] language search failed:", err);
+          return [];
+        }
+      }
       try {
         const res = await trendingNearFn({ data: { regionCode: trendingRegion, max: 25 } });
         if (res.stale) {
@@ -166,6 +182,7 @@ function AppHome() {
     enabled: !!session,
     staleTime: 1000 * 60 * 30,
     retry: 2,
+    placeholderData: undefined,
   });
 
 
