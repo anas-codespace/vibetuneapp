@@ -11,7 +11,7 @@ import { getMyProfile } from "@/lib/profile.functions";
 import { searchYouTubeOnly } from "@/lib/music.functions";
 import { getSmartMix } from "@/lib/mix.functions";
 import { getPersonalizedFeed } from "@/lib/personalized.functions";
-import { getTrendingNearYou } from "@/lib/trending.functions";
+import { getTrendingNearYou, getLanguageTrending } from "@/lib/trending.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
 import { FALLBACK_TRACKS } from "@/data/fallbackTracks";
@@ -66,6 +66,8 @@ function AppHome() {
   const feedFn = useServerFn(getPersonalizedFeed);
   const trendingFn = useServerFn(searchYouTubeOnly);
   const trendingNearFn = useServerFn(getTrendingNearYou);
+  const languageTrendingFn = useServerFn(getLanguageTrending);
+
   const { play, startMix } = usePlayer();
   
   const [moodOpen, setMoodOpen] = useState(false);
@@ -168,6 +170,32 @@ function AppHome() {
     retry: 2,
   });
 
+  // Playlist-Mapped trending: language → curated official playlist.
+  // Fires whenever the primary language chip changes, guaranteeing
+  // language-accurate hits instead of region-scoped aggregates.
+  const { data: languageTrending, isLoading: languageTrendingLoading } = useQuery({
+    queryKey: ["trending-language", primaryLang],
+    queryFn: async () => {
+      try {
+        const res = await languageTrendingFn({ data: { language: primaryLang, max: 25 } });
+        if (res.stale) {
+          console.warn(`[trending-language] serving stale cache for ${primaryLang}`, {
+            source: res.source,
+            playlistId: res.playlistId,
+          });
+        }
+        return res.tracks;
+      } catch (err) {
+        console.error(`[trending-language] failed for ${primaryLang}:`, err);
+        return [];
+      }
+    },
+    enabled: !!session,
+    staleTime: 1000 * 60 * 30,
+    retry: 1,
+  });
+
+
 
 
 
@@ -206,8 +234,15 @@ function AppHome() {
   const suggestedList: VibeTrack[] = (feed?.suggestedForYou ?? []).map(mapTrack);
   const topArtistList: VibeTrack[] = (feed?.topArtistMix ?? []).map(mapTrack);
   const dailyList: VibeTrack[] = (feed?.dailyMix ?? []).map(mapTrack);
-  const trendingList: VibeTrack[] = rankByLanguages((trending ?? []).map(mapTrack), trendingLangs);
+  const languageTrendingList: VibeTrack[] = (languageTrending ?? []).map(mapTrack);
+  // "Trending Now" prefers the Playlist-Mapped language feed (guaranteed
+  // language-accurate) and falls back to the search-based trending list.
+  const trendingList: VibeTrack[] = rankByLanguages(
+    languageTrendingList.length > 0 ? languageTrendingList : (trending ?? []).map(mapTrack),
+    trendingLangs,
+  );
   const trendingNearList: VibeTrack[] = rankByLanguages((trendingNear ?? []).map(mapTrack), trendingLangs);
+
 
   // For rows that lack real personalization, fall back to trending; if
   // trending is also empty, use static curated fallback.
@@ -367,7 +402,13 @@ function AppHome() {
 
         {/* Horizontal sections */}
         {renderCarousel("Suggested For You", suggestedForYou, (t) => `Mix • ${t.artist}`)}
-        {renderCarousel("Trending Now", trendingNow, (t) => t.artist || "Trending", trendingLoading)}
+        {renderCarousel(
+          `Trending in ${primaryLangLabel}`,
+          trendingNow,
+          (t) => t.artist || "Trending",
+          trendingLoading || languageTrendingLoading,
+        )}
+
         {renderCarousel(
           `Trending in ${labelForRegion(trendingRegion)}`,
           trendingNearList.length > 0 ? trendingNearList.slice(0, 20) : trendingNow,
