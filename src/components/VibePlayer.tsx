@@ -50,6 +50,7 @@ interface PlayerCtx {
   index: number;
   isPlaying: boolean;
   mixMode: boolean;
+  isLoadingNext: boolean;
   play: (track: VibeTrack, queue?: VibeTrack[]) => void;
   startMix: (tracks: VibeTrack[]) => void;
   addToQueue: (track: VibeTrack) => void;
