@@ -136,6 +136,7 @@ function SpotifyCallback() {
         const raw = e instanceof Error ? e.message : "Failed to connect Spotify";
         const info = classifyError(raw);
         setMsg(info.message);
+        setHint(info.hint);
         setSyncStatus({ phase: "error", source: "spotify", message: info.message });
         try {
           sessionStorage.setItem(
