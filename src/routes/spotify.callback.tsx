@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { spotifyExchangeCode, spotifyAutoSync, spotifyGetAuthUrl } from "@/lib/spotify.functions";
+import { spotifyExchangeCode, spotifyAutoSync, spotifyGetAuthUrl, spotifyCompleteLogin } from "@/lib/spotify.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { setSyncStatus } from "@/hooks/use-sync-status";
@@ -63,6 +63,7 @@ export const Route = createFileRoute("/spotify/callback")({
 function SpotifyCallback() {
   const navigate = useNavigate();
   const exchange = useServerFn(spotifyExchangeCode);
+  const completeLogin = useServerFn(spotifyCompleteLogin);
   const autoSync = useServerFn(spotifyAutoSync);
   const getAuthUrl = useServerFn(spotifyGetAuthUrl);
   const [status, setStatus] = useState<"working" | "syncing" | "done" | "error">("working");
@@ -206,14 +207,66 @@ function SpotifyCallback() {
         // doesn't have the value from the connect click (different tab/browser).
         const redirectUri = savedRedirect ?? SPOTIFY_REGISTERED_REDIRECT_URI;
 
+        const clearOAuthStorage = () => {
+          sessionStorage.removeItem(CALLBACK_AUTO_RETRY_KEY);
+          localStorage.removeItem("spotify_state");
+          localStorage.removeItem("spotify_redirect_uri");
+          localStorage.removeItem("spotify_return_uri");
+          sessionStorage.removeItem("spotify_state");
+          sessionStorage.removeItem("spotify_redirect_uri");
+          sessionStorage.removeItem("spotify_return_uri");
+        };
+
+        if (state.startsWith("login.")) {
+          const res = await withTimeout(
+            completeLogin({ data: { code, state, redirectUri } }),
+            CALLBACK_TIMEOUT_MS,
+            "Spotify login",
+          );
+          await supabase.auth.setSession(res.session);
+          clearOAuthStorage();
+
+          setStatus("syncing");
+          const who = res.displayName ?? "Spotify user";
+          setMsg(`Signed in as ${who} — syncing your library…`);
+          setSyncStatus({
+            phase: "syncing",
+            source: "spotify",
+            message: `Signed in as ${who} — syncing liked songs & playlists…`,
+            progress: 0.4,
+          });
+          try {
+            const result = await autoSync({});
+            const totals = {
+              likedAdded: result.likedAdded,
+              likedSkipped: result.likedSkipped,
+              playlistsCreated: result.playlistsCreated,
+              playlistsSkipped: result.playlistsSkipped,
+              tracksAdded: result.tracksAdded,
+            };
+            const summary = `Synced ${result.likedAdded} liked · ${result.playlistsCreated} playlist${result.playlistsCreated === 1 ? "" : "s"} · ${result.tracksAdded} tracks`;
+            setMsg(summary);
+            setSyncStatus({ phase: "done", source: "spotify", message: summary, progress: 1, totals });
+          } catch (syncErr) {
+            setMsg("Signed in. Library sync will finish in the background.");
+            setSyncStatus({
+              phase: "error",
+              source: "spotify",
+              message:
+                syncErr instanceof Error
+                  ? `Sync failed: ${syncErr.message}`
+                  : "Sync failed. You can retry from Spotify settings.",
+            });
+          }
+          setStatus("done");
+          const next = sessionStorage.getItem("post_login_next");
+          sessionStorage.removeItem("post_login_next");
+          setTimeout(() => window.location.replace(next && next.startsWith("/") && !next.startsWith("//") ? next : "/library"), 1200);
+          return;
+        }
+
         const res = await withTimeout(exchange({ data: { code, state, redirectUri } }), CALLBACK_TIMEOUT_MS, "Spotify token exchange");
-        sessionStorage.removeItem(CALLBACK_AUTO_RETRY_KEY);
-        localStorage.removeItem("spotify_state");
-        localStorage.removeItem("spotify_redirect_uri");
-        localStorage.removeItem("spotify_return_uri");
-        sessionStorage.removeItem("spotify_state");
-        sessionStorage.removeItem("spotify_redirect_uri");
-        sessionStorage.removeItem("spotify_return_uri");
+        clearOAuthStorage();
 
         setStatus("syncing");
         const who = res.displayName ?? "Spotify user";
