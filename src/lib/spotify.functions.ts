@@ -19,6 +19,8 @@ import {
   resolveToYoutube,
   checkSpotifyAvailability,
   buildSpotifyState,
+  buildSpotifyLoginState,
+  verifySpotifyLoginState,
   type FailureEntry,
   type SpotifyPlayableResult,
   type SpotifyAvailability,
@@ -42,6 +44,100 @@ export const spotifyGetAuthUrl = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const state = buildSpotifyState(context.userId, data.returnTo);
     return { url: buildAuthUrl(data.redirectUri, state), state };
+  });
+
+export const spotifyGetLoginAuthUrl = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ redirectUri: z.string().url(), returnTo: z.string().url().optional() }).parse(d))
+  .handler(async ({ data }) => {
+    const state = buildSpotifyLoginState(data.returnTo);
+    return { url: buildAuthUrl(data.redirectUri, state), state };
+  });
+
+export const spotifyCompleteLogin = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z
+      .object({
+        code: z.string().min(1),
+        redirectUri: z.string().url(),
+        state: z.string().min(1),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const loginState = verifySpotifyLoginState(data.state);
+    const tok = await exchangeAuthCode(data.code, data.redirectUri);
+    const profile = await getUserProfile(tok.access_token);
+    const email = profile.email?.trim().toLowerCase();
+    if (!email) {
+      throw new Error("Spotify did not share an email address. Allow email access and try again.");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const displayName = profile.display_name ?? email.split("@")[0] ?? "Spotify user";
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: {
+        data: {
+          display_name: displayName,
+          spotify_user_id: profile.id,
+        },
+      },
+    });
+    if (linkError) throw new Error(linkError.message);
+
+    const tokenHash = linkData.properties.hashed_token;
+    if (!tokenHash) throw new Error("Could not create app session from Spotify login.");
+    const { data: authData, error: authError } = await supabaseAdmin.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: "magiclink",
+    });
+    if (authError) throw new Error(authError.message);
+    if (!authData.session?.access_token || !authData.session.refresh_token || !authData.user?.id) {
+      throw new Error("Could not create app session from Spotify login.");
+    }
+
+    let refreshToken = tok.refresh_token;
+    if (!refreshToken) {
+      const { data: existing } = await supabaseAdmin
+        .from("spotify_tokens")
+        .select("refresh_token")
+        .eq("user_id", authData.user.id)
+        .maybeSingle();
+      refreshToken = existing?.refresh_token ?? undefined;
+    }
+    if (!refreshToken) {
+      throw new Error("Spotify did not issue a refresh token. Remove Vibetune from Spotify connected apps, then try again.");
+    }
+
+    const expiresAt = new Date(Date.now() + tok.expires_in * 1000).toISOString();
+    const { error: tokenError } = await supabaseAdmin.from("spotify_tokens").upsert(
+      {
+        user_id: authData.user.id,
+        access_token: tok.access_token,
+        refresh_token: refreshToken,
+        expires_at: expiresAt,
+        scope: tok.scope,
+        spotify_user_id: profile.id,
+        spotify_display_name: profile.display_name,
+      },
+      { onConflict: "user_id" },
+    );
+    if (tokenError) throw new Error(tokenError.message);
+
+    await supabaseAdmin
+      .from("profiles")
+      .upsert({ user_id: authData.user.id, display_name: displayName }, { onConflict: "user_id" });
+
+    return {
+      connected: true,
+      displayName: profile.display_name,
+      returnTo: loginState.returnTo,
+      session: {
+        access_token: authData.session.access_token,
+        refresh_token: authData.session.refresh_token,
+      },
+    };
   });
 
 export const spotifyExchangeCode = createServerFn({ method: "POST" })
