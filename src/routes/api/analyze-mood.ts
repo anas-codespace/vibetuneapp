@@ -107,6 +107,8 @@ export const Route = createFileRoute("/api/analyze-mood")({
         }
 
         // Update the Song record (admin-elevated; song rows are catalog-wide).
+        // Dynamic import keeps the service-role client out of any client bundle.
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { error } = await supabaseAdmin
           .from("songs")
           .update({ mood_tag: tag })
