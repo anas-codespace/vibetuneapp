@@ -35,6 +35,29 @@ export const Route = createFileRoute("/api/analyze-mood")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // Require authenticated caller — this endpoint writes to the shared
+        // songs catalog via the service-role client, so it must not be public.
+        const authHeader = request.headers.get("authorization") ?? "";
+        if (!authHeader.startsWith("Bearer ")) {
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const token = authHeader.slice("Bearer ".length).trim();
+        if (!token || token.split(".").length !== 3) {
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const SUPABASE_URL = process.env.SUPABASE_URL;
+        const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+        if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+          return Response.json({ error: "Server misconfigured" }, { status: 500 });
+        }
+        const authClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+        if (claimsError || !claimsData?.claims?.sub) {
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         // Validate input
         let body: unknown;
         try { body = await request.json(); }
