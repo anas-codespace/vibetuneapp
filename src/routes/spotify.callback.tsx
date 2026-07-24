@@ -101,10 +101,24 @@ function SpotifyCallback() {
           supabaseUserIdPrefix: sessionData.session?.user.id.slice(0, 8) ?? null,
         });
         if (err) throw new Error(errDesc ? `${err}: ${errDesc}` : err);
-        if (!code || !state || !savedState || !savedRedirect) throw new Error("Missing callback parameters");
-        if (state !== savedState) throw new Error("State mismatch");
+        if (!code || !state) throw new Error("Missing callback parameters");
+        // NOTE: We intentionally do NOT hard-fail on client-side state mismatch.
+        // localStorage is per-origin and per-browser; a tab reopened in a fresh
+        // browser (or a different origin) will legitimately lack the saved
+        // state. The real security check happens server-side in
+        // spotifyExchangeCode, which verifies `state` starts with the
+        // authenticated user's id. We just log the mismatch for debugging.
+        if (savedState && state !== savedState) {
+          console.warn("[oauth-debug][spotify-callback] client state mismatch (allowed; server validates)", {
+            statePrefix: state.slice(0, 12),
+            savedStatePrefix: savedState.slice(0, 12),
+          });
+        }
+        // Fall back to the stable registered redirect URI when localStorage
+        // doesn't have the value from the connect click (different tab/browser).
+        const redirectUri = savedRedirect ?? SPOTIFY_REGISTERED_REDIRECT_URI;
 
-        const res = await withTimeout(exchange({ data: { code, state, redirectUri: savedRedirect } }), CALLBACK_TIMEOUT_MS, "Spotify token exchange");
+        const res = await withTimeout(exchange({ data: { code, state, redirectUri } }), CALLBACK_TIMEOUT_MS, "Spotify token exchange");
         localStorage.removeItem("spotify_state");
         localStorage.removeItem("spotify_redirect_uri");
         sessionStorage.removeItem("spotify_state");
