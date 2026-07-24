@@ -5,6 +5,7 @@ import { spotifyExchangeCode, spotifyAutoSync } from "@/lib/spotify.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { setSyncStatus } from "@/hooks/use-sync-status";
+import { getSpotifyRedirectUri } from "@/lib/spotifyRedirect";
 
 const CALLBACK_TIMEOUT_MS = 20_000;
 
