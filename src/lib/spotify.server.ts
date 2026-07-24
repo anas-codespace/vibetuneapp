@@ -7,7 +7,6 @@ import {
   providerOk,
   type ProviderResult,
 } from "./providerResult";
-import { createHmac, timingSafeEqual } from "node:crypto";
 
 interface TokenCache {
   token: string;
@@ -291,16 +290,29 @@ function base64UrlDecode(value: string): string | null {
   }
 }
 
-function signSpotifyLoginState(unsignedState: string): string {
+async function signSpotifyLoginState(unsignedState: string): Promise<string> {
   const secret = process.env.SPOTIFY_CLIENT_SECRET;
   if (!secret) throw new Error("Spotify credentials not configured");
-  return createHmac("sha256", secret).update(unsignedState).digest("base64url");
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(unsignedState));
+  let binary = "";
+  new Uint8Array(signature).forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 function safeCompare(a: string, b: string): boolean {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  return left.length === right.length && timingSafeEqual(left, right);
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 export function buildSpotifyState(userId: string, returnTo?: string): string {
@@ -309,21 +321,21 @@ export function buildSpotifyState(userId: string, returnTo?: string): string {
   return safeReturn ? `${userId}.${nonce}.${base64UrlEncode(safeReturn)}` : `${userId}.${nonce}`;
 }
 
-export function buildSpotifyLoginState(returnTo?: string): string {
+export async function buildSpotifyLoginState(returnTo?: string): Promise<string> {
   const nonce = crypto.randomUUID();
   const encodedReturn = base64UrlEncode(returnTo?.trim() || "");
   const unsignedState = `login.${nonce}.${encodedReturn}`;
-  return `${unsignedState}.${signSpotifyLoginState(unsignedState)}`;
+  return `${unsignedState}.${await signSpotifyLoginState(unsignedState)}`;
 }
 
-export function verifySpotifyLoginState(state: string): { returnTo: string | null } {
+export async function verifySpotifyLoginState(state: string): Promise<{ returnTo: string | null }> {
   const parts = state.split(".");
   if (parts.length !== 4 || parts[0] !== "login") {
     throw new Error("Invalid Spotify login state");
   }
 
   const unsignedState = parts.slice(0, 3).join(".");
-  const expected = signSpotifyLoginState(unsignedState);
+  const expected = await signSpotifyLoginState(unsignedState);
   const actual = parts[3] ?? "";
   if (!safeCompare(actual, expected)) {
     throw new Error("Invalid Spotify login state");
