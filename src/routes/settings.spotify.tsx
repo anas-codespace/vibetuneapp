@@ -187,6 +187,8 @@ function SpotifySettings() {
 
   const connectMut = useMutation({
     mutationFn: async () => {
+      sessionStorage.removeItem("spotify_callback_auto_retry_count");
+      sessionStorage.removeItem("spotify_last_error");
       const redirectUri = getSpotifyRedirectUri();
       const returnTo = getSpotifyReturnUri();
       console.log("[spotify-oauth] redirect_uri", { redirectUri, returnTo, registeredRedirect: SPOTIFY_REGISTERED_REDIRECT_URI });

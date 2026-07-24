@@ -12,6 +12,7 @@ import {
 } from "@/lib/spotifyRedirect";
 
 const CALLBACK_TIMEOUT_MS = 20_000;
+const CALLBACK_AUTO_RETRY_KEY = "spotify_callback_auto_retry_count";
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -68,6 +69,23 @@ function SpotifyCallback() {
     if (ran.current) return;
     ran.current = true;
     (async () => {
+      const restartConnectFlow = (reason: string) => {
+        const rawAttempts = sessionStorage.getItem(CALLBACK_AUTO_RETRY_KEY);
+        const attempts = Number.parseInt(rawAttempts ?? "0", 10);
+        if (Number.isFinite(attempts) && attempts >= 1) return false;
+
+        sessionStorage.setItem(CALLBACK_AUTO_RETRY_KEY, String((Number.isFinite(attempts) ? attempts : 0) + 1));
+        sessionStorage.setItem("post_login_action", "connect_spotify");
+        sessionStorage.removeItem("spotify_last_error");
+        setStatus("working");
+        setMsg("Restarting Spotify connect…");
+        setHint("");
+        setSyncStatus({ phase: "connecting", source: "spotify", message: "Restarting Spotify connect…", progress: 0.05 });
+        console.warn("[oauth-debug][spotify-callback] restarting incomplete callback", { reason });
+        navigate({ to: "/settings/spotify" });
+        return true;
+      };
+
       try {
         const relayTarget = getSpotifyCallbackRelayTarget();
         if (relayTarget) {
@@ -86,6 +104,7 @@ function SpotifyCallback() {
         // opened /spotify/callback directly (or a stale tab). Send them back
         // to settings to restart cleanly instead of showing a scary error.
         if (!code && !state && !err) {
+          if (restartConnectFlow("empty-callback")) return;
           navigate({ to: "/settings/spotify" });
           return;
         }
@@ -114,9 +133,18 @@ function SpotifyCallback() {
           supabaseUserIdPrefix: sessionData.session?.user.id.slice(0, 8) ?? null,
         });
         if (err) throw new Error(errDesc ? `${err}: ${errDesc}` : err);
-        if (!code && !state) throw new Error("Missing callback parameters");
-        if (!code) throw new Error("Missing authorization code");
-        if (!state) throw new Error("Missing state");
+        if (!code && !state) {
+          if (restartConnectFlow("missing-code-and-state")) return;
+          throw new Error("Missing callback parameters");
+        }
+        if (!code) {
+          if (restartConnectFlow("missing-code")) return;
+          throw new Error("Missing authorization code");
+        }
+        if (!state) {
+          if (restartConnectFlow("missing-state")) return;
+          throw new Error("Missing state");
+        }
         // NOTE: We intentionally do NOT hard-fail on client-side state mismatch.
         // localStorage is per-origin and per-browser; a tab reopened in a fresh
         // browser (or a different origin) will legitimately lack the saved
@@ -134,6 +162,7 @@ function SpotifyCallback() {
         const redirectUri = savedRedirect ?? SPOTIFY_REGISTERED_REDIRECT_URI;
 
         const res = await withTimeout(exchange({ data: { code, state, redirectUri } }), CALLBACK_TIMEOUT_MS, "Spotify token exchange");
+        sessionStorage.removeItem(CALLBACK_AUTO_RETRY_KEY);
         localStorage.removeItem("spotify_state");
         localStorage.removeItem("spotify_redirect_uri");
         sessionStorage.removeItem("spotify_state");
