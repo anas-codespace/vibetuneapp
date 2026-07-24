@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { setSyncStatus } from "@/hooks/use-sync-status";
+import { useAuth } from "@/hooks/use-auth";
 import { getSpotifyRedirectUri, getSpotifyReturnUri, SPOTIFY_REGISTERED_REDIRECT_URI } from "@/lib/spotifyRedirect";
 
 
