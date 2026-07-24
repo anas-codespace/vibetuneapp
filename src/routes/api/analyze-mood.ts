@@ -11,7 +11,7 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createClient } from "@supabase/supabase-js";
 
 const RequestSchema = z.object({
   youtubeId: z.string().min(1).max(40),
