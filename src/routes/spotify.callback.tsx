@@ -1,7 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { spotifyExchangeCode, spotifyAutoSync, spotifyGetAuthUrl, spotifyCompleteLogin } from "@/lib/spotify.functions";
+import {
+  spotifyExchangeCode,
+  spotifyAutoSync,
+  spotifyGetAuthUrl,
+  spotifyGetLoginAuthUrl,
+  spotifyCompleteLogin,
+} from "@/lib/spotify.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { setSyncStatus } from "@/hooks/use-sync-status";
@@ -66,6 +72,7 @@ function SpotifyCallback() {
   const completeLogin = useServerFn(spotifyCompleteLogin);
   const autoSync = useServerFn(spotifyAutoSync);
   const getAuthUrl = useServerFn(spotifyGetAuthUrl);
+  const getLoginAuthUrl = useServerFn(spotifyGetLoginAuthUrl);
   const [status, setStatus] = useState<"working" | "syncing" | "done" | "error">("working");
   const [msg, setMsg] = useState<string>("Linking your Spotify account…");
   const [hint, setHint] = useState<string>("");
@@ -97,30 +104,48 @@ function SpotifyCallback() {
         const rawAttempts = sessionStorage.getItem(CALLBACK_AUTO_RETRY_KEY);
         const attempts = Number.parseInt(rawAttempts ?? "0", 10);
         const nextAttempts = (Number.isFinite(attempts) ? attempts : 0) + 1;
+        const storedState = localStorage.getItem("spotify_state") ?? sessionStorage.getItem("spotify_state");
+        const isLoginRestart = !!(state ?? storedState)?.startsWith("login.");
 
         sessionStorage.setItem(CALLBACK_AUTO_RETRY_KEY, String(nextAttempts));
-        sessionStorage.setItem("post_login_action", "connect_spotify");
+        if (!isLoginRestart) sessionStorage.setItem("post_login_action", "connect_spotify");
         sessionStorage.removeItem("spotify_last_error");
         setStatus("working");
-        setMsg("Restarting Spotify connect…");
+        setMsg(isLoginRestart ? "Restarting Spotify sign-in…" : "Restarting Spotify connect…");
         setHint("");
-        setSyncStatus({ phase: "connecting", source: "spotify", message: "Restarting Spotify connect…", progress: 0.05 });
+        setSyncStatus({
+          phase: "connecting",
+          source: "spotify",
+          message: isLoginRestart ? "Restarting Spotify sign-in…" : "Restarting Spotify connect…",
+          progress: 0.05,
+        });
         console.warn("[oauth-debug][spotify-callback] restarting incomplete callback", { reason });
 
         const returnUri = getSpotifyReturnUriFromState(state) ?? readStoredReturnUri() ?? getSpotifyReturnUri();
         if (nextAttempts > 3) {
+          if (isLoginRestart) {
+            window.location.replace("/login");
+            return true;
+          }
           restartViaSettings(returnUri);
           return true;
         }
 
         try {
+          const redirectUri = getSpotifyRedirectUri();
+          if (isLoginRestart) {
+            const { url, state: freshState } = await getLoginAuthUrl({ data: { redirectUri, returnTo: returnUri } });
+            persistOAuthState(freshState, redirectUri, returnUri);
+            window.location.replace(url);
+            return true;
+          }
+
           const { data: sess } = await supabase.auth.getSession();
           if (!sess.session) {
             // No Supabase session — can't call the auth-required server fn.
             restartViaSettings(returnUri);
             return true;
           }
-          const redirectUri = getSpotifyRedirectUri();
           const { url, state: freshState } = await getAuthUrl({ data: { redirectUri, returnTo: returnUri } });
           persistOAuthState(freshState, redirectUri, returnUri);
           window.location.replace(url);
@@ -330,7 +355,7 @@ function SpotifyCallback() {
         } catch { /* ignore */ }
       }
     })();
-  }, [exchange, autoSync, getAuthUrl, navigate]);
+  }, [exchange, completeLogin, autoSync, getAuthUrl, getLoginAuthUrl, navigate]);
 
   return (
     <main className="grid min-h-screen place-items-center bg-black px-6 text-white">
