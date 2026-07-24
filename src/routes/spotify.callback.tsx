@@ -5,7 +5,11 @@ import { spotifyExchangeCode, spotifyAutoSync } from "@/lib/spotify.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { setSyncStatus } from "@/hooks/use-sync-status";
-import { getSpotifyCallbackRelayTarget, SPOTIFY_REGISTERED_REDIRECT_URI } from "@/lib/spotifyRedirect";
+import {
+  getSpotifyCallbackParams,
+  getSpotifyCallbackRelayTarget,
+  SPOTIFY_REGISTERED_REDIRECT_URI,
+} from "@/lib/spotifyRedirect";
 
 const CALLBACK_TIMEOUT_MS = 20_000;
 
@@ -30,7 +34,9 @@ function classifyError(raw: string): { code: string; message: string; hint: stri
     };
   }
   if (m.includes("state mismatch")) return { code: "state_mismatch", message: "Security check failed (state mismatch).", hint: "This usually happens if the tab was reopened. Retry from Spotify settings." };
-  if (m.includes("missing callback")) return { code: "missing_params", message: "The callback link was incomplete.", hint: "Start the connect flow again from Spotify settings." };
+  if (m.includes("missing authorization code")) return { code: "missing_code", message: "Spotify did not include an authorization code.", hint: "Retry from Spotify settings. If it repeats, cancel any old Spotify authorization tabs and start a fresh connect." };
+  if (m.includes("missing state")) return { code: "missing_state", message: "Spotify did not include the security state.", hint: "Retry from Spotify settings. If it repeats, open the connect link in the same browser where you're signed in." };
+  if (m.includes("missing callback")) return { code: "missing_params", message: "Spotify returned without the required login details.", hint: "Retry from Spotify settings — the app will start a fresh secure connect flow." };
   if (m.includes("timed out") || m.includes("timeout")) return { code: "timeout", message: raw, hint: "Spotify or the network is slow. Check your connection and retry." };
   if (m.includes("invalid_grant")) return { code: "invalid_grant", message: "Authorization code expired or already used.", hint: "Retry the connect flow — codes are single-use." };
   if (m.includes("network") || m.includes("failed to fetch")) return { code: "network", message: "Network error while contacting Spotify.", hint: "Check your connection and retry." };
@@ -71,10 +77,7 @@ function SpotifyCallback() {
         }
 
         setSyncStatus({ phase: "connecting", source: "spotify", message: "Linking your Spotify account…", progress: 0.1 });
-        // Spotify uses query params, but tolerate params in the hash too in
-        // case an intermediate hop rewrote the URL.
-        const search = window.location.search || (window.location.hash.startsWith("#") ? `?${window.location.hash.slice(1)}` : "");
-        const params = new URLSearchParams(search);
+        const params = getSpotifyCallbackParams();
         const code = params.get("code");
         const state = params.get("state");
         const err = params.get("error");
@@ -111,7 +114,9 @@ function SpotifyCallback() {
           supabaseUserIdPrefix: sessionData.session?.user.id.slice(0, 8) ?? null,
         });
         if (err) throw new Error(errDesc ? `${err}: ${errDesc}` : err);
-        if (!code || !state) throw new Error("Missing callback parameters");
+        if (!code && !state) throw new Error("Missing callback parameters");
+        if (!code) throw new Error("Missing authorization code");
+        if (!state) throw new Error("Missing state");
         // NOTE: We intentionally do NOT hard-fail on client-side state mismatch.
         // localStorage is per-origin and per-browser; a tab reopened in a fresh
         // browser (or a different origin) will legitimately lack the saved
