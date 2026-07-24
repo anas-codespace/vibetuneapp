@@ -60,6 +60,37 @@ function base64UrlDecode(value: string): string | null {
   }
 }
 
+function appendParamsFromRaw(merged: URLSearchParams, raw: string) {
+  const trimmed = raw.trim().replace(/^[?#]+/, "");
+  if (!trimmed) return;
+
+  const candidates = new Set<string>([trimmed]);
+  const queryIndex = trimmed.indexOf("?");
+  if (queryIndex >= 0) candidates.add(trimmed.slice(queryIndex + 1));
+  const hashIndex = trimmed.indexOf("#");
+  if (hashIndex >= 0) candidates.add(trimmed.slice(hashIndex + 1));
+
+  for (const candidate of candidates) {
+    const normalized = candidate.replace(/^[?#]+/, "").split("#")[0];
+    if (!normalized.includes("=")) continue;
+    const params = new URLSearchParams(normalized);
+    params.forEach((value, key) => {
+      if (!merged.has(key)) merged.set(key, value);
+    });
+  }
+}
+
+export function getSpotifyCallbackParams(): URLSearchParams {
+  const merged = new URLSearchParams();
+  if (typeof window === "undefined") return merged;
+
+  appendParamsFromRaw(merged, window.location.search);
+  appendParamsFromRaw(merged, window.location.hash);
+  appendParamsFromRaw(merged, window.location.href);
+
+  return merged;
+}
+
 function isAllowedReturnOrigin(origin: string): boolean {
   try {
     const url = new URL(origin);
@@ -91,7 +122,8 @@ export function getSpotifyRedirectUri(): string {
 export function getSpotifyCallbackRelayTarget(): string | null {
   if (typeof window === "undefined") return null;
 
-  const state = new URLSearchParams(window.location.search).get("state");
+  const params = getSpotifyCallbackParams();
+  const state = params.get("state");
   const encodedReturnUri = state?.split(".")[2];
   if (!encodedReturnUri) return null;
 
@@ -104,7 +136,8 @@ export function getSpotifyCallbackRelayTarget(): string | null {
     if (target.origin === window.location.origin) return null;
     if (!isAllowedReturnOrigin(target.origin)) return null;
 
-    target.search = window.location.search;
+    const canonicalSearch = params.toString();
+    target.search = canonicalSearch ? `?${canonicalSearch}` : "";
     target.hash = "";
     return target.toString();
   } catch {
