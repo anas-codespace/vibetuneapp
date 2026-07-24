@@ -49,7 +49,7 @@ export const spotifyGetAuthUrl = createServerFn({ method: "POST" })
 export const spotifyGetLoginAuthUrl = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ redirectUri: z.string().url(), returnTo: z.string().url().optional() }).parse(d))
   .handler(async ({ data }) => {
-    const state = buildSpotifyLoginState(data.returnTo);
+    const state = await buildSpotifyLoginState(data.returnTo);
     return { url: buildAuthUrl(data.redirectUri, state), state };
   });
 
@@ -64,7 +64,7 @@ export const spotifyCompleteLogin = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const loginState = verifySpotifyLoginState(data.state);
+    const loginState = await verifySpotifyLoginState(data.state);
     const tok = await exchangeAuthCode(data.code, data.redirectUri);
     const profile = await getUserProfile(tok.access_token);
     const email = profile.email?.trim().toLowerCase();
