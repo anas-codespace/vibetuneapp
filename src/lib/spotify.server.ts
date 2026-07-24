@@ -7,6 +7,7 @@ import {
   providerOk,
   type ProviderResult,
 } from "./providerResult";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 interface TokenCache {
   token: string;
@@ -281,10 +282,55 @@ function base64UrlEncode(value: string): string {
   return btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
+function base64UrlDecode(value: string): string | null {
+  try {
+    const padded = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+    return atob(padded);
+  } catch {
+    return null;
+  }
+}
+
+function signSpotifyLoginState(unsignedState: string): string {
+  const secret = process.env.SPOTIFY_CLIENT_SECRET;
+  if (!secret) throw new Error("Spotify credentials not configured");
+  return createHmac("sha256", secret).update(unsignedState).digest("base64url");
+}
+
+function safeCompare(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
 export function buildSpotifyState(userId: string, returnTo?: string): string {
   const nonce = crypto.randomUUID();
   const safeReturn = returnTo?.trim();
   return safeReturn ? `${userId}.${nonce}.${base64UrlEncode(safeReturn)}` : `${userId}.${nonce}`;
+}
+
+export function buildSpotifyLoginState(returnTo?: string): string {
+  const nonce = crypto.randomUUID();
+  const encodedReturn = base64UrlEncode(returnTo?.trim() || "");
+  const unsignedState = `login.${nonce}.${encodedReturn}`;
+  return `${unsignedState}.${signSpotifyLoginState(unsignedState)}`;
+}
+
+export function verifySpotifyLoginState(state: string): { returnTo: string | null } {
+  const parts = state.split(".");
+  if (parts.length !== 4 || parts[0] !== "login") {
+    throw new Error("Invalid Spotify login state");
+  }
+
+  const unsignedState = parts.slice(0, 3).join(".");
+  const expected = signSpotifyLoginState(unsignedState);
+  const actual = parts[3] ?? "";
+  if (!safeCompare(actual, expected)) {
+    throw new Error("Invalid Spotify login state");
+  }
+
+  const decodedReturn = base64UrlDecode(parts[2] ?? "");
+  return { returnTo: decodedReturn && decodedReturn.length > 0 ? decodedReturn : null };
 }
 
 export function buildAuthUrl(redirectUri: string, state: string): string {
