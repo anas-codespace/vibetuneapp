@@ -121,15 +121,19 @@ function SpotifySettings() {
   const importPlaylist = useServerFn(spotifyImportPlaylist);
   const autoSync = useServerFn(spotifyAutoSync);
 
+  const { status: authStatus } = useAuth();
+  const isAuthed = authStatus === "authenticated";
+
   const connection = useQuery({
     queryKey: ["spotify-connection"],
     queryFn: () => getConnection(),
+    enabled: isAuthed,
   });
 
   const playlists = useQuery({
     queryKey: ["spotify-playlists"],
     queryFn: () => listPlaylists(),
-    enabled: !!connection.data,
+    enabled: isAuthed && !!connection.data,
   });
 
   const [importingId, setImportingId] = useState<string | null>(null);
