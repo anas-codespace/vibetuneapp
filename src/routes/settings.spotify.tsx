@@ -180,7 +180,7 @@ function SpotifySettings() {
     }
     if (!connection.data) connectMut.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connection.isLoading, connection.data]);
+  }, [isAuthed, connection.isLoading, connection.data]);
 
   const persistState = (state: string, redirectUri: string, returnUri: string) => {
     // Use localStorage so the value survives across tabs — Spotify auth may
