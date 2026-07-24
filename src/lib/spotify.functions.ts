@@ -18,6 +18,7 @@ import {
   getFreshUserToken,
   resolveToYoutube,
   checkSpotifyAvailability,
+  buildSpotifyState,
   type FailureEntry,
   type SpotifyPlayableResult,
   type SpotifyAvailability,
@@ -37,9 +38,9 @@ export const spotifyAvailability = createServerFn({ method: "POST" })
 
 export const spotifyGetAuthUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ redirectUri: z.string().url() }).parse(d))
+  .inputValidator((d) => z.object({ redirectUri: z.string().url(), returnTo: z.string().url().optional() }).parse(d))
   .handler(async ({ data, context }) => {
-    const state = `${context.userId}.${crypto.randomUUID()}`;
+    const state = buildSpotifyState(context.userId, data.returnTo);
     return { url: buildAuthUrl(data.redirectUri, state), state };
   });
 

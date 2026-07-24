@@ -6,7 +6,7 @@
 // read. Trying to gate this subtree server-side produces redirect loops or
 // false sign-out flashes on hard refresh.
 //
-// Public pages and `/auth` continue to SSR normally — they do not import this
+// Public pages and `/login` continue to SSR normally — they do not import this
 // layout and are not affected.
 //
 // Data fetching inside this subtree should call `createServerFn`s protected by
@@ -18,8 +18,7 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { supabase } from '@/integrations/supabase/client'
 
-// Lovable's Supabase auth scaffolds use `/auth`; change this if the app uses another sign-in route.
-const SIGN_IN_ROUTE = '/auth'
+const SIGN_IN_ROUTE = '/login'
 
 export const Route = createFileRoute('/_authenticated')({
   ssr: false,
