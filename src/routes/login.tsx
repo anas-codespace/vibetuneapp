@@ -7,6 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { VibtuneLogo } from "@/components/VibtuneLogo";
 import { useAuth } from "@/hooks/use-auth";
+import { useServerFn } from "@tanstack/react-start";
+import { spotifyGetLoginAuthUrl } from "@/lib/spotify.functions";
+import { getSpotifyRedirectUri, getSpotifyReturnUri } from "@/lib/spotifyRedirect";
 
 function isSafeNext(v: unknown): v is string {
   return typeof v === "string" && v.startsWith("/") && !v.startsWith("//");
@@ -35,9 +38,11 @@ function LoginPage() {
   const { status } = useAuth();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [spotifyLoading, setSpotifyLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const getSpotifyLoginAuthUrl = useServerFn(spotifyGetLoginAuthUrl);
 
   function consumeNext(): string | null {
     if (next) return next;
@@ -121,6 +126,28 @@ function LoginPage() {
     // Session set by helper; the `status === "authenticated"` effect above will navigate.
   }
 
+  async function handleSpotify() {
+    setSpotifyLoading(true);
+    try {
+      if (next && typeof window !== "undefined") {
+        sessionStorage.setItem("post_login_next", next);
+      }
+      const redirectUri = getSpotifyRedirectUri();
+      const returnTo = getSpotifyReturnUri();
+      const { url, state } = await getSpotifyLoginAuthUrl({ data: { redirectUri, returnTo } });
+      localStorage.setItem("spotify_state", state);
+      localStorage.setItem("spotify_redirect_uri", redirectUri);
+      localStorage.setItem("spotify_return_uri", returnTo);
+      sessionStorage.setItem("spotify_state", state);
+      sessionStorage.setItem("spotify_redirect_uri", redirectUri);
+      sessionStorage.setItem("spotify_return_uri", returnTo);
+      window.location.href = url;
+    } catch (error) {
+      setSpotifyLoading(false);
+      toast.error(error instanceof Error ? error.message : "Spotify sign-in failed.");
+    }
+  }
+
 
   return (
     <main className="flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-black p-4">
@@ -152,15 +179,12 @@ function LoginPage() {
 
         <button
           type="button"
-          onClick={() => {
-            sessionStorage.setItem("post_login_action", "connect_spotify");
-            navigate({ to: "/settings/spotify" });
-          }}
-          disabled={googleLoading || loading}
+          onClick={handleSpotify}
+          disabled={googleLoading || spotifyLoading || loading}
           className="mb-5 flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-white/5 py-3 font-medium text-white transition-all hover:bg-white/10 hover:scale-[1.02] disabled:opacity-60"
         >
           <SpotifyIcon />
-          Continue with Spotify
+          {spotifyLoading ? "Opening Spotify…" : "Continue with Spotify"}
         </button>
 
         <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-widest text-white/30">
@@ -200,7 +224,7 @@ function LoginPage() {
           </Link>
         </div>
 
-        <button type="submit" disabled={loading || googleLoading}
+        <button type="submit" disabled={loading || googleLoading || spotifyLoading}
           className="vibe-gradient-h mt-2 w-full rounded-full py-3.5 font-semibold text-white disabled:opacity-60">
           {loading ? "Signing in…" : "Sign in"}
         </button>

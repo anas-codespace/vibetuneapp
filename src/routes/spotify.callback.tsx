@@ -1,7 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { spotifyExchangeCode, spotifyAutoSync, spotifyGetAuthUrl } from "@/lib/spotify.functions";
+import {
+  spotifyExchangeCode,
+  spotifyAutoSync,
+  spotifyGetAuthUrl,
+  spotifyGetLoginAuthUrl,
+  spotifyCompleteLogin,
+} from "@/lib/spotify.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { setSyncStatus } from "@/hooks/use-sync-status";
@@ -63,8 +69,10 @@ export const Route = createFileRoute("/spotify/callback")({
 function SpotifyCallback() {
   const navigate = useNavigate();
   const exchange = useServerFn(spotifyExchangeCode);
+  const completeLogin = useServerFn(spotifyCompleteLogin);
   const autoSync = useServerFn(spotifyAutoSync);
   const getAuthUrl = useServerFn(spotifyGetAuthUrl);
+  const getLoginAuthUrl = useServerFn(spotifyGetLoginAuthUrl);
   const [status, setStatus] = useState<"working" | "syncing" | "done" | "error">("working");
   const [msg, setMsg] = useState<string>("Linking your Spotify account…");
   const [hint, setHint] = useState<string>("");
@@ -96,30 +104,48 @@ function SpotifyCallback() {
         const rawAttempts = sessionStorage.getItem(CALLBACK_AUTO_RETRY_KEY);
         const attempts = Number.parseInt(rawAttempts ?? "0", 10);
         const nextAttempts = (Number.isFinite(attempts) ? attempts : 0) + 1;
+        const storedState = localStorage.getItem("spotify_state") ?? sessionStorage.getItem("spotify_state");
+        const isLoginRestart = !!(state ?? storedState)?.startsWith("login.");
 
         sessionStorage.setItem(CALLBACK_AUTO_RETRY_KEY, String(nextAttempts));
-        sessionStorage.setItem("post_login_action", "connect_spotify");
+        if (!isLoginRestart) sessionStorage.setItem("post_login_action", "connect_spotify");
         sessionStorage.removeItem("spotify_last_error");
         setStatus("working");
-        setMsg("Restarting Spotify connect…");
+        setMsg(isLoginRestart ? "Restarting Spotify sign-in…" : "Restarting Spotify connect…");
         setHint("");
-        setSyncStatus({ phase: "connecting", source: "spotify", message: "Restarting Spotify connect…", progress: 0.05 });
+        setSyncStatus({
+          phase: "connecting",
+          source: "spotify",
+          message: isLoginRestart ? "Restarting Spotify sign-in…" : "Restarting Spotify connect…",
+          progress: 0.05,
+        });
         console.warn("[oauth-debug][spotify-callback] restarting incomplete callback", { reason });
 
         const returnUri = getSpotifyReturnUriFromState(state) ?? readStoredReturnUri() ?? getSpotifyReturnUri();
         if (nextAttempts > 3) {
+          if (isLoginRestart) {
+            window.location.replace("/login");
+            return true;
+          }
           restartViaSettings(returnUri);
           return true;
         }
 
         try {
+          const redirectUri = getSpotifyRedirectUri();
+          if (isLoginRestart) {
+            const { url, state: freshState } = await getLoginAuthUrl({ data: { redirectUri, returnTo: returnUri } });
+            persistOAuthState(freshState, redirectUri, returnUri);
+            window.location.replace(url);
+            return true;
+          }
+
           const { data: sess } = await supabase.auth.getSession();
           if (!sess.session) {
             // No Supabase session — can't call the auth-required server fn.
             restartViaSettings(returnUri);
             return true;
           }
-          const redirectUri = getSpotifyRedirectUri();
           const { url, state: freshState } = await getAuthUrl({ data: { redirectUri, returnTo: returnUri } });
           persistOAuthState(freshState, redirectUri, returnUri);
           window.location.replace(url);
@@ -206,14 +232,66 @@ function SpotifyCallback() {
         // doesn't have the value from the connect click (different tab/browser).
         const redirectUri = savedRedirect ?? SPOTIFY_REGISTERED_REDIRECT_URI;
 
+        const clearOAuthStorage = () => {
+          sessionStorage.removeItem(CALLBACK_AUTO_RETRY_KEY);
+          localStorage.removeItem("spotify_state");
+          localStorage.removeItem("spotify_redirect_uri");
+          localStorage.removeItem("spotify_return_uri");
+          sessionStorage.removeItem("spotify_state");
+          sessionStorage.removeItem("spotify_redirect_uri");
+          sessionStorage.removeItem("spotify_return_uri");
+        };
+
+        if (state.startsWith("login.")) {
+          const res = await withTimeout(
+            completeLogin({ data: { code, state, redirectUri } }),
+            CALLBACK_TIMEOUT_MS,
+            "Spotify login",
+          );
+          await supabase.auth.setSession(res.session);
+          clearOAuthStorage();
+
+          setStatus("syncing");
+          const who = res.displayName ?? "Spotify user";
+          setMsg(`Signed in as ${who} — syncing your library…`);
+          setSyncStatus({
+            phase: "syncing",
+            source: "spotify",
+            message: `Signed in as ${who} — syncing liked songs & playlists…`,
+            progress: 0.4,
+          });
+          try {
+            const result = await autoSync({});
+            const totals = {
+              likedAdded: result.likedAdded,
+              likedSkipped: result.likedSkipped,
+              playlistsCreated: result.playlistsCreated,
+              playlistsSkipped: result.playlistsSkipped,
+              tracksAdded: result.tracksAdded,
+            };
+            const summary = `Synced ${result.likedAdded} liked · ${result.playlistsCreated} playlist${result.playlistsCreated === 1 ? "" : "s"} · ${result.tracksAdded} tracks`;
+            setMsg(summary);
+            setSyncStatus({ phase: "done", source: "spotify", message: summary, progress: 1, totals });
+          } catch (syncErr) {
+            setMsg("Signed in. Library sync will finish in the background.");
+            setSyncStatus({
+              phase: "error",
+              source: "spotify",
+              message:
+                syncErr instanceof Error
+                  ? `Sync failed: ${syncErr.message}`
+                  : "Sync failed. You can retry from Spotify settings.",
+            });
+          }
+          setStatus("done");
+          const next = sessionStorage.getItem("post_login_next");
+          sessionStorage.removeItem("post_login_next");
+          setTimeout(() => window.location.replace(next && next.startsWith("/") && !next.startsWith("//") ? next : "/library"), 1200);
+          return;
+        }
+
         const res = await withTimeout(exchange({ data: { code, state, redirectUri } }), CALLBACK_TIMEOUT_MS, "Spotify token exchange");
-        sessionStorage.removeItem(CALLBACK_AUTO_RETRY_KEY);
-        localStorage.removeItem("spotify_state");
-        localStorage.removeItem("spotify_redirect_uri");
-        localStorage.removeItem("spotify_return_uri");
-        sessionStorage.removeItem("spotify_state");
-        sessionStorage.removeItem("spotify_redirect_uri");
-        sessionStorage.removeItem("spotify_return_uri");
+        clearOAuthStorage();
 
         setStatus("syncing");
         const who = res.displayName ?? "Spotify user";
@@ -277,7 +355,7 @@ function SpotifyCallback() {
         } catch { /* ignore */ }
       }
     })();
-  }, [exchange, autoSync, getAuthUrl, navigate]);
+  }, [exchange, completeLogin, autoSync, getAuthUrl, getLoginAuthUrl, navigate]);
 
   return (
     <main className="grid min-h-screen place-items-center bg-black px-6 text-white">
