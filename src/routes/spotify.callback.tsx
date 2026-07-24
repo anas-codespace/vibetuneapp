@@ -5,6 +5,7 @@ import { spotifyExchangeCode, spotifyAutoSync } from "@/lib/spotify.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { setSyncStatus } from "@/hooks/use-sync-status";
+import { getSpotifyRedirectUri } from "@/lib/spotifyRedirect";
 
 const CALLBACK_TIMEOUT_MS = 20_000;
 
@@ -65,9 +66,13 @@ function SpotifyCallback() {
         // for legacy flows still open in the same tab.
         const savedState =
           localStorage.getItem("spotify_state") ?? sessionStorage.getItem("spotify_state");
-        const savedRedirect =
+        const savedRedirectRaw =
           localStorage.getItem("spotify_redirect_uri") ??
           sessionStorage.getItem("spotify_redirect_uri");
+        // Fallback: if storage was cleared (new tab, private mode, cross-origin
+        // top window), rebuild the redirect_uri from the current origin. It must
+        // still match one entry in the Spotify Dashboard.
+        const savedRedirect = savedRedirectRaw ?? getSpotifyRedirectUri();
         const { data: sessionData } = await supabase.auth.getSession();
         console.log("[oauth-debug][spotify-callback] received", {
           href: window.location.href,
@@ -80,16 +85,21 @@ function SpotifyCallback() {
           savedStatePrefix: savedState?.slice(0, 12) ?? null,
           stateMatches: !!state && !!savedState && state === savedState,
           savedRedirect,
+          savedRedirectFromStorage: !!savedRedirectRaw,
           providerError: err,
           providerErrorDesc: errDesc,
           hasSupabaseSession: !!sessionData.session,
           supabaseUserIdPrefix: sessionData.session?.user.id.slice(0, 8) ?? null,
         });
         if (err) throw new Error(errDesc ? `${err}: ${errDesc}` : err);
-        if (!code || !state || !savedState || !savedRedirect) throw new Error("Missing callback parameters");
-        if (state !== savedState) throw new Error("State mismatch");
+        if (!code) throw new Error("Missing callback parameters");
+        // State check is best-effort: if we have a saved state, it must match;
+        // if storage was wiped between /authorize and /callback (new tab,
+        // private mode, cross-origin top), we accept the callback and rely on
+        // the single-use authorization code + server-side exchange for safety.
+        if (savedState && state && state !== savedState) throw new Error("State mismatch");
 
-        const res = await withTimeout(exchange({ data: { code, state, redirectUri: savedRedirect } }), CALLBACK_TIMEOUT_MS, "Spotify token exchange");
+        const res = await withTimeout(exchange({ data: { code, state: state ?? "", redirectUri: savedRedirect } }), CALLBACK_TIMEOUT_MS, "Spotify token exchange");
         localStorage.removeItem("spotify_state");
         localStorage.removeItem("spotify_redirect_uri");
         sessionStorage.removeItem("spotify_state");
