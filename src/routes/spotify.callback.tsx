@@ -113,6 +113,12 @@ function SpotifyCallback() {
         }
 
         try {
+          const { data: sess } = await supabase.auth.getSession();
+          if (!sess.session) {
+            // No Supabase session — can't call the auth-required server fn.
+            restartViaSettings(returnUri);
+            return true;
+          }
           const redirectUri = getSpotifyRedirectUri();
           const { url, state: freshState } = await getAuthUrl({ data: { redirectUri, returnTo: returnUri } });
           persistOAuthState(freshState, redirectUri, returnUri);
