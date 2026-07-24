@@ -476,8 +476,35 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
 
   // Prefetched "next batch" of related tracks — populated in the background
   // before the queue exhausts, so autoplay transitions are instant.
-  const prefetchedNextRef = useRef<{ seedId: string; tracks: VibeTrack[] } | null>(null);
+  const prefetchedNextRef = useRef<{ seedId: string; tracks: VibeTrack[]; readyAt: number } | null>(null);
   const prefetchInFlightRef = useRef<string | null>(null);
+  const prefetchStartRef = useRef<Map<string, number>>(new Map());
+  // Cache-hit metrics for autoplay transitions. Exposed on window.__vibePreloadStats.
+  const preloadStatsRef = useRef({
+    prefetchStarted: 0,
+    prefetchSucceeded: 0,
+    prefetchFailed: 0,
+    prefetchDurationsMs: [] as number[],
+    autoplayHits: 0,
+    autoplayMisses: 0,
+    autoplayStaleSeed: 0,
+    lastHitAt: 0,
+    lastMissAt: 0,
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as unknown as { __vibePreloadStats?: unknown }).__vibePreloadStats = preloadStatsRef.current;
+    }
+  }, []);
+  const logPreload = useCallback((event: string, data: Record<string, unknown>) => {
+    const s = preloadStatsRef.current;
+    const total = s.autoplayHits + s.autoplayMisses;
+    const hitRate = total > 0 ? Math.round((s.autoplayHits / total) * 100) : 0;
+    const avgMs = s.prefetchDurationsMs.length > 0
+      ? Math.round(s.prefetchDurationsMs.reduce((a, b) => a + b, 0) / s.prefetchDurationsMs.length)
+      : 0;
+    console.log(`[preload] ${event}`, { ...data, hitRate: `${hitRate}%`, avgPrefetchMs: avgMs, hits: s.autoplayHits, misses: s.autoplayMisses });
+  }, []);
 
   const fetchAndAppendRelated = useCallback(async (lastTrack: VibeTrack): Promise<VibeTrack[]> => {
     try {
@@ -520,16 +547,34 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     if (prefetchedNextRef.current?.seedId === seed.youtubeId) return;
     if (prefetchInFlightRef.current === seed.youtubeId) return;
     prefetchInFlightRef.current = seed.youtubeId;
+    const startedAt = performance.now();
+    prefetchStartRef.current.set(seed.youtubeId, startedAt);
+    preloadStatsRef.current.prefetchStarted += 1;
+    logPreload("prefetch:start", { seedId: seed.youtubeId, title: seed.title });
     try {
       const tracks = await fetchAndAppendRelated(seed);
-      if (tracks.length > 0) {
-        prefetchedNextRef.current = { seedId: seed.youtubeId, tracks };
-        warmThumbnail(tracks[0]?.thumbnailUrl);
+      const durationMs = Math.round(performance.now() - startedAt);
+      preloadStatsRef.current.prefetchDurationsMs.push(durationMs);
+      if (preloadStatsRef.current.prefetchDurationsMs.length > 20) {
+        preloadStatsRef.current.prefetchDurationsMs.shift();
       }
+      if (tracks.length > 0) {
+        prefetchedNextRef.current = { seedId: seed.youtubeId, tracks, readyAt: performance.now() };
+        warmThumbnail(tracks[0]?.thumbnailUrl);
+        preloadStatsRef.current.prefetchSucceeded += 1;
+        logPreload("prefetch:ready", { seedId: seed.youtubeId, count: tracks.length, durationMs, nextTitle: tracks[0]?.title });
+      } else {
+        preloadStatsRef.current.prefetchFailed += 1;
+        logPreload("prefetch:empty", { seedId: seed.youtubeId, durationMs });
+      }
+    } catch (err) {
+      preloadStatsRef.current.prefetchFailed += 1;
+      logPreload("prefetch:error", { seedId: seed.youtubeId, error: String(err) });
     } finally {
+      prefetchStartRef.current.delete(seed.youtubeId);
       if (prefetchInFlightRef.current === seed.youtubeId) prefetchInFlightRef.current = null;
     }
-  }, [fetchAndAppendRelated, warmThumbnail]);
+  }, [fetchAndAppendRelated, warmThumbnail, logPreload]);
   const prefetchRelatedForRef = useRef(prefetchRelatedFor);
   useEffect(() => { prefetchRelatedForRef.current = prefetchRelatedFor; }, [prefetchRelatedFor]);
 
@@ -540,13 +585,30 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     const lastTrack = curQueue[curIndex] ?? currentRef.current;
     if (!lastTrack) return;
 
+    const autoplayStartedAt = performance.now();
     // Fast path: use prefetched batch if it matches the current seed.
     let newTracks: VibeTrack[] = [];
     const cached = prefetchedNextRef.current;
+    const inflight = prefetchInFlightRef.current === lastTrack.youtubeId;
     if (cached && cached.seedId === lastTrack.youtubeId && cached.tracks.length > 0) {
       newTracks = cached.tracks;
       prefetchedNextRef.current = null;
+      preloadStatsRef.current.autoplayHits += 1;
+      preloadStatsRef.current.lastHitAt = Date.now();
+      const ageMs = Math.round(performance.now() - cached.readyAt);
+      logPreload("autoplay:hit", { seedId: lastTrack.youtubeId, cacheAgeMs: ageMs, count: newTracks.length });
     } else {
+      preloadStatsRef.current.autoplayMisses += 1;
+      preloadStatsRef.current.lastMissAt = Date.now();
+      if (cached && cached.seedId !== lastTrack.youtubeId) {
+        preloadStatsRef.current.autoplayStaleSeed += 1;
+        logPreload("autoplay:miss", { reason: "stale-seed", seedId: lastTrack.youtubeId, cachedSeed: cached.seedId });
+      } else if (inflight) {
+        const startedAt = prefetchStartRef.current.get(lastTrack.youtubeId) ?? autoplayStartedAt;
+        logPreload("autoplay:miss", { reason: "inflight", seedId: lastTrack.youtubeId, waitingMs: Math.round(performance.now() - startedAt) });
+      } else {
+        logPreload("autoplay:miss", { reason: "no-prefetch", seedId: lastTrack.youtubeId });
+      }
       setIsLoadingNext(true);
       try {
         newTracks = await fetchAndAppendRelated(lastTrack);
@@ -556,6 +618,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     }
 
     if (newTracks.length === 0) {
+      logPreload("autoplay:end", { seedId: lastTrack.youtubeId, reason: "no-tracks", totalMs: Math.round(performance.now() - autoplayStartedAt) });
       playerRef.current?.pauseVideo?.();
       setIsPlaying(false);
       return;
@@ -569,7 +632,8 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     playAtIndex(ni, merged);
     const remaining = merged.length - ni - 1;
     replenishQueue(remaining);
-  }, [fetchAndAppendRelated, playAtIndex, replenishQueue]);
+    logPreload("autoplay:transition", { seedId: lastTrack.youtubeId, nextTitle: newTracks[0]?.title, totalMs: Math.round(performance.now() - autoplayStartedAt) });
+  }, [fetchAndAppendRelated, playAtIndex, replenishQueue, logPreload]);
 
 
   const next = useCallback(() => {
