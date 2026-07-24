@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
  * the Authorization header that actually reached the middleware).
  */
 export const unauthorizedLogger = createMiddleware({ type: "function" })
-  .client(async ({ next, functionId }) => {
+  .client(async ({ next }) => {
     try {
       return await next();
     } catch (error) {
@@ -33,7 +33,7 @@ export const unauthorizedLogger = createMiddleware({ type: "function" })
         }
         console.error("[unauthorized][client]", {
           scope: "client",
-          functionId,
+          
           message,
           sessionPresent,
           tokenPresent,
@@ -48,7 +48,7 @@ export const unauthorizedLogger = createMiddleware({ type: "function" })
       throw error;
     }
   })
-  .server(async ({ next, functionId }) => {
+  .server(async ({ next }) => {
     try {
       return await next();
     } catch (error) {
@@ -76,7 +76,7 @@ export const unauthorizedLogger = createMiddleware({ type: "function" })
         }
         console.error("[unauthorized][server]", {
           scope: "server",
-          functionId,
+          
           message,
           hasAuthHeader,
           authScheme,
