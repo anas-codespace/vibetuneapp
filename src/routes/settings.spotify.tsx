@@ -170,6 +170,7 @@ function SpotifySettings() {
       sessionStorage.getItem("post_login_action") === "connect_spotify" ||
       searchParams.get("connect_spotify") === "1";
     if (!shouldConnect) return;
+    if (!isAuthed) return;
     if (connection.isLoading) return;
     sessionStorage.removeItem("post_login_action");
     if (searchParams.has("connect_spotify")) {
