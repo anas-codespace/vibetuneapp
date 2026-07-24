@@ -54,8 +54,9 @@ function classifyError(raw: string): { code: string; message: string; hint: stri
   if (m.includes("development mode") || (m.includes("/me") && m.includes("403"))) {
     return {
       code: "spotify_dev_mode",
-      message: "Spotify blocked this account (403 on /me).",
-      hint: "Your Spotify app is in Development Mode. Open the Spotify Developer Dashboard → your app → Users and Access, and add the exact email of the Spotify account you're signing in with. Then retry.",
+      message: "Spotify returned 403 on /me.",
+      hint:
+        "Even if you added the user, 403 usually means one of: (1) The Spotify account you signed in with is NOT the exact email/username on the app's Users and Access list — sign out of spotify.com in this browser, then retry and pick the allowlisted account. (2) Spotify apps created after Nov 27, 2024 are in restricted mode and cannot call /me until you request Extended Quota Mode in the Developer Dashboard. (3) The allowlisted user hasn't accepted the invite yet — check that Spotify account's email inbox. (4) Wrong Client ID/Secret pair — the app you added the user to must match the SPOTIFY_CLIENT_ID configured here.",
     };
   }
   return { code: "unknown", message: raw || "Failed to connect Spotify.", hint: "Retry from Spotify settings. If it keeps failing, disconnect and try again." };

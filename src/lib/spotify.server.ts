@@ -443,10 +443,17 @@ export async function spotifyGet<T>(userToken: string, path: string): Promise<T>
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     const reason = extractProviderReason(text);
-    console.error("[spotify] user request failed", { path, status: res.status, reason });
+    const cid = process.env.SPOTIFY_CLIENT_ID ?? "";
+    console.error("[spotify] user request failed", {
+      path,
+      status: res.status,
+      reason,
+      body: text.slice(0, 300),
+      clientIdPrefix: cid ? `${cid.slice(0, 6)}…(len=${cid.length})` : "MISSING",
+    });
     if (res.status === 403) {
       throw new Error(
-        `Spotify ${path} → 403 Forbidden. Your Spotify app is in Development Mode — the signed-in Spotify account must be added under Dashboard → your app → Users and Access. (${reason})`,
+        `Spotify ${path} → 403 Forbidden. The signed-in Spotify account must be on Users and Access for the app with Client ID starting "${cid.slice(0, 6)}…". If your app was created after Nov 27, 2024, also request Extended Quota Mode. (${reason})`,
       );
     }
     if (res.status === 401) {
