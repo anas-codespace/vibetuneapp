@@ -170,6 +170,7 @@ function SpotifySettings() {
       sessionStorage.getItem("post_login_action") === "connect_spotify" ||
       searchParams.get("connect_spotify") === "1";
     if (!shouldConnect) return;
+    if (!isAuthed) return;
     if (connection.isLoading) return;
     sessionStorage.removeItem("post_login_action");
     if (searchParams.has("connect_spotify")) {
@@ -179,7 +180,7 @@ function SpotifySettings() {
     }
     if (!connection.data) connectMut.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connection.isLoading, connection.data]);
+  }, [isAuthed, connection.isLoading, connection.data]);
 
   const persistState = (state: string, redirectUri: string, returnUri: string) => {
     // Use localStorage so the value survives across tabs — Spotify auth may
