@@ -160,25 +160,37 @@ function SpotifySettings() {
   // Auto-trigger connect when arriving from the login "Continue with Spotify" button
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (sessionStorage.getItem("post_login_action") !== "connect_spotify") return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const shouldConnect =
+      sessionStorage.getItem("post_login_action") === "connect_spotify" ||
+      searchParams.get("connect_spotify") === "1";
+    if (!shouldConnect) return;
     if (connection.isLoading) return;
     sessionStorage.removeItem("post_login_action");
+    if (searchParams.has("connect_spotify")) {
+      searchParams.delete("connect_spotify");
+      const cleanSearch = searchParams.toString();
+      window.history.replaceState(null, "", `${window.location.pathname}${cleanSearch ? `?${cleanSearch}` : ""}${window.location.hash}`);
+    }
     if (!connection.data) connectMut.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection.isLoading, connection.data]);
 
-  const persistState = (state: string, redirectUri: string) => {
+  const persistState = (state: string, redirectUri: string, returnUri: string) => {
     // Use localStorage so the value survives across tabs — Spotify auth may
     // open in a new tab (popup / iframe escape), and sessionStorage is per-tab.
     localStorage.setItem("spotify_state", state);
     localStorage.setItem("spotify_redirect_uri", redirectUri);
+    localStorage.setItem("spotify_return_uri", returnUri);
     // Legacy sessionStorage write for older callback builds still open in this tab.
     sessionStorage.setItem("spotify_state", state);
     sessionStorage.setItem("spotify_redirect_uri", redirectUri);
+    sessionStorage.setItem("spotify_return_uri", returnUri);
     try {
       if (window.top && window.top !== window.self) {
         window.top.localStorage.setItem("spotify_state", state);
         window.top.localStorage.setItem("spotify_redirect_uri", redirectUri);
+        window.top.localStorage.setItem("spotify_return_uri", returnUri);
       }
     } catch {
       /* cross-origin top; ignore */
@@ -193,7 +205,7 @@ function SpotifySettings() {
       const returnTo = getSpotifyReturnUri();
       console.log("[spotify-oauth] redirect_uri", { redirectUri, returnTo, registeredRedirect: SPOTIFY_REGISTERED_REDIRECT_URI });
       const { url, state } = await getAuthUrl({ data: { redirectUri, returnTo } });
-      persistState(state, redirectUri);
+      persistState(state, redirectUri, returnTo);
       setPendingAuthUrl(url);
 
 

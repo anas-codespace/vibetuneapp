@@ -60,8 +60,22 @@ function base64UrlDecode(value: string): string | null {
   }
 }
 
+function decodeLoose(raw: string): string {
+  let value = raw;
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const decoded = decodeURIComponent(value);
+      if (decoded === value) break;
+      value = decoded;
+    } catch {
+      break;
+    }
+  }
+  return value;
+}
+
 function appendParamsFromRaw(merged: URLSearchParams, raw: string) {
-  const trimmed = raw.trim().replace(/^[?#]+/, "");
+  const trimmed = decodeLoose(raw.trim()).replace(/^[?#]+/, "");
   if (!trimmed) return;
 
   const candidates = new Set<string>([trimmed]);
@@ -69,6 +83,12 @@ function appendParamsFromRaw(merged: URLSearchParams, raw: string) {
   if (queryIndex >= 0) candidates.add(trimmed.slice(queryIndex + 1));
   const hashIndex = trimmed.indexOf("#");
   if (hashIndex >= 0) candidates.add(trimmed.slice(hashIndex + 1));
+  const codeIndex = trimmed.indexOf("code=");
+  if (codeIndex >= 0) candidates.add(trimmed.slice(codeIndex));
+  const stateIndex = trimmed.indexOf("state=");
+  if (stateIndex >= 0) candidates.add(trimmed.slice(stateIndex));
+  const errorIndex = trimmed.indexOf("error=");
+  if (errorIndex >= 0) candidates.add(trimmed.slice(errorIndex));
 
   for (const candidate of candidates) {
     const normalized = candidate.replace(/^[?#]+/, "").split("#")[0];
@@ -105,6 +125,38 @@ function isAllowedReturnOrigin(origin: string): boolean {
   }
 }
 
+export function getSpotifyReturnUriFromState(state: string | null | undefined): string | null {
+  const encodedReturnUri = state?.split(".")[2];
+  if (!encodedReturnUri) return null;
+
+  const decoded = base64UrlDecode(encodedReturnUri);
+  if (!decoded) return null;
+
+  try {
+    const target = new URL(decoded);
+    if (target.pathname !== SPOTIFY_CALLBACK_PATH) return null;
+    if (!isAllowedReturnOrigin(target.origin)) return null;
+    return target.toString();
+  } catch {
+    return null;
+  }
+}
+
+export function getSpotifySettingsRestartTarget(returnUri: string | null | undefined): string | null {
+  if (!returnUri) return null;
+  try {
+    const target = new URL(returnUri);
+    if (!isAllowedReturnOrigin(target.origin)) return null;
+    target.pathname = "/settings/spotify";
+    target.search = "";
+    target.searchParams.set("connect_spotify", "1");
+    target.hash = "";
+    return target.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function getSpotifyReturnUri(): string {
   return `${currentOrigin()}${SPOTIFY_CALLBACK_PATH}`;
 }
@@ -124,17 +176,12 @@ export function getSpotifyCallbackRelayTarget(): string | null {
 
   const params = getSpotifyCallbackParams();
   const state = params.get("state");
-  const encodedReturnUri = state?.split(".")[2];
-  if (!encodedReturnUri) return null;
-
-  const decoded = base64UrlDecode(encodedReturnUri);
+  const decoded = getSpotifyReturnUriFromState(state);
   if (!decoded) return null;
 
   try {
     const target = new URL(decoded);
-    if (target.pathname !== SPOTIFY_CALLBACK_PATH) return null;
     if (target.origin === window.location.origin) return null;
-    if (!isAllowedReturnOrigin(target.origin)) return null;
 
     const canonicalSearch = params.toString();
     target.search = canonicalSearch ? `?${canonicalSearch}` : "";
