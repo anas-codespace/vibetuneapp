@@ -141,7 +141,18 @@ function LoginPage() {
       sessionStorage.setItem("spotify_state", state);
       sessionStorage.setItem("spotify_redirect_uri", redirectUri);
       sessionStorage.setItem("spotify_return_uri", returnTo);
-      window.location.href = url;
+      // Spotify's auth page refuses to load in iframes (X-Frame-Options: DENY).
+      // Break out to the top window, and if that's blocked (cross-origin parent),
+      // open in a new tab so the preview doesn't show "refused to connect".
+      try {
+        if (window.top && window.top !== window.self) {
+          window.top.location.href = url;
+        } else {
+          window.location.href = url;
+        }
+      } catch {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     } catch (error) {
       setSpotifyLoading(false);
       toast.error(error instanceof Error ? error.message : "Spotify sign-in failed.");
