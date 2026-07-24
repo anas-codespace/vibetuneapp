@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -28,6 +28,7 @@ import {
 import { toast } from "sonner";
 import { setSyncStatus } from "@/hooks/use-sync-status";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { getSpotifyRedirectUri, getSpotifyReturnUri, SPOTIFY_REGISTERED_REDIRECT_URI } from "@/lib/spotifyRedirect";
 
 
@@ -114,6 +115,7 @@ function ResultCard({ result, onDismiss }: { result: ImportResult; onDismiss: ()
 
 function SpotifySettings() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const getAuthUrl = useServerFn(spotifyGetAuthUrl);
   const getConnection = useServerFn(spotifyGetConnection);
   const disconnect = useServerFn(spotifyDisconnect);
@@ -124,6 +126,13 @@ function SpotifySettings() {
 
   const { status: authStatus } = useAuth();
   const isAuthed = authStatus === "authenticated";
+
+  const sendToLoginForSpotify = () => {
+    const next = "/settings/spotify?connect_spotify=1";
+    sessionStorage.setItem("post_login_action", "connect_spotify");
+    sessionStorage.setItem("post_login_next", next);
+    navigate({ to: "/login", search: { next }, replace: true });
+  };
 
   const connection = useQuery({
     queryKey: ["spotify-connection"],
@@ -170,6 +179,11 @@ function SpotifySettings() {
       sessionStorage.getItem("post_login_action") === "connect_spotify" ||
       searchParams.get("connect_spotify") === "1";
     if (!shouldConnect) return;
+    if (authStatus === "loading") return;
+    if (!isAuthed) {
+      sendToLoginForSpotify();
+      return;
+    }
     if (!isAuthed) return;
     if (connection.isLoading) return;
     sessionStorage.removeItem("post_login_action");
@@ -180,7 +194,7 @@ function SpotifySettings() {
     }
     if (!connection.data) connectMut.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthed, connection.isLoading, connection.data]);
+  }, [authStatus, isAuthed, connection.isLoading, connection.data, navigate]);
 
   const persistState = (state: string, redirectUri: string, returnUri: string) => {
     // Use localStorage so the value survives across tabs — Spotify auth may
@@ -205,6 +219,11 @@ function SpotifySettings() {
 
   const connectMut = useMutation({
     mutationFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session?.access_token) {
+        sendToLoginForSpotify();
+        throw new Error("Sign in before connecting Spotify.");
+      }
       sessionStorage.removeItem("spotify_callback_auto_retry_count");
       sessionStorage.removeItem("spotify_last_error");
       const redirectUri = getSpotifyRedirectUri();
@@ -403,12 +422,18 @@ function SpotifySettings() {
               </button>
             ) : (
               <button
-                onClick={() => connectMut.mutate()}
-                disabled={connectMut.isPending}
+                onClick={() => {
+                  if (!isAuthed) {
+                    sendToLoginForSpotify();
+                    return;
+                  }
+                  connectMut.mutate();
+                }}
+                disabled={connectMut.isPending || authStatus === "loading"}
                 className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#1DB954] px-3.5 py-1.5 text-xs font-semibold text-black hover:brightness-110"
               >
                 {connectMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
-                Connect
+                {authStatus === "loading" ? "Checking" : isAuthed ? "Connect" : "Sign in"}
               </button>
             )}
           </div>
@@ -426,8 +451,15 @@ function SpotifySettings() {
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
-                      onClick={() => { dismissCallbackError(); connectMut.mutate(); }}
-                      disabled={connectMut.isPending}
+                      onClick={() => {
+                        dismissCallbackError();
+                        if (!isAuthed) {
+                          sendToLoginForSpotify();
+                          return;
+                        }
+                        connectMut.mutate();
+                      }}
+                      disabled={connectMut.isPending || authStatus === "loading"}
                       className="inline-flex items-center gap-1.5 rounded-full bg-[#1DB954] px-3 py-1.5 text-[11px] font-semibold text-black hover:brightness-110 disabled:opacity-60"
                     >
                       {connectMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
