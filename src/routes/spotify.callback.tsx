@@ -174,15 +174,15 @@ function SpotifyCallback() {
         if (err) throw new Error(errDesc ? `${err}: ${errDesc}` : err);
         if (!code && !state) {
           await restartConnectFlow("missing-code-and-state", state);
-          throw new Error("Missing callback parameters");
+          return;
         }
         if (!code) {
           await restartConnectFlow("missing-code", state);
-          throw new Error("Missing authorization code");
+          return;
         }
         if (!state) {
           await restartConnectFlow("missing-state", state);
-          throw new Error("Missing state");
+          return;
         }
         // NOTE: We intentionally do NOT hard-fail on client-side state mismatch.
         // localStorage is per-origin and per-browser; a tab reopened in a fresh
@@ -271,7 +271,7 @@ function SpotifyCallback() {
         } catch { /* ignore */ }
       }
     })();
-  }, [exchange, autoSync, navigate]);
+  }, [exchange, autoSync, getAuthUrl, navigate]);
 
   return (
     <main className="grid min-h-screen place-items-center bg-black px-6 text-white">
