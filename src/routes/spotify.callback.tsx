@@ -5,6 +5,7 @@ import { spotifyExchangeCode, spotifyAutoSync } from "@/lib/spotify.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { setSyncStatus } from "@/hooks/use-sync-status";
+import { getSpotifyCallbackRelayTarget, SPOTIFY_REGISTERED_REDIRECT_URI } from "@/lib/spotifyRedirect";
 
 const CALLBACK_TIMEOUT_MS = 20_000;
 
@@ -21,6 +22,13 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 function classifyError(raw: string): { code: string; message: string; hint: string } {
   const m = raw.toLowerCase();
   if (m.includes("access_denied")) return { code: "access_denied", message: "You cancelled the Spotify sign-in.", hint: "Tap Retry to try connecting again." };
+  if (m.includes("redirect_uri") || m.includes("redirect uri") || m.includes("invalid redirect")) {
+    return {
+      code: "redirect_uri_mismatch",
+      message: "Spotify rejected the callback URL.",
+      hint: `Add this exact Redirect URI in your Spotify app settings, then retry: ${SPOTIFY_REGISTERED_REDIRECT_URI}`,
+    };
+  }
   if (m.includes("state mismatch")) return { code: "state_mismatch", message: "Security check failed (state mismatch).", hint: "This usually happens if the tab was reopened. Retry from Spotify settings." };
   if (m.includes("missing callback")) return { code: "missing_params", message: "The callback link was incomplete.", hint: "Start the connect flow again from Spotify settings." };
   if (m.includes("timed out") || m.includes("timeout")) return { code: "timeout", message: raw, hint: "Spotify or the network is slow. Check your connection and retry." };
@@ -55,6 +63,13 @@ function SpotifyCallback() {
     ran.current = true;
     (async () => {
       try {
+        const relayTarget = getSpotifyCallbackRelayTarget();
+        if (relayTarget) {
+          setMsg("Returning to the app…");
+          window.location.replace(relayTarget);
+          return;
+        }
+
         setSyncStatus({ phase: "connecting", source: "spotify", message: "Linking your Spotify account…", progress: 0.1 });
         const params = new URLSearchParams(window.location.search);
         const code = params.get("code");

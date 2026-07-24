@@ -1,8 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Music2, Heart, ListMusic, Link2, LogOut } from "lucide-react";
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth";
-import { getSpotifyLoginUrl } from "@/lib/spotifyAuth";
 import {
   fetchLikedSongs,
   fetchPlaylists,
@@ -30,13 +29,13 @@ function ConnectPrompt() {
         <p className="mt-1 text-sm text-white/60">
           Sign in with your Spotify account to view your Liked Songs and playlists.
         </p>
-        <a
-          href={getSpotifyLoginUrl()}
+        <Link
+          to="/settings/spotify"
           className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#1DB954] px-5 py-2 text-sm font-semibold text-black hover:brightness-110"
         >
           <Link2 className="h-4 w-4" />
           Connect Spotify
-        </a>
+        </Link>
       </div>
     </main>
   );
@@ -72,12 +71,12 @@ function SpotifyDashboard() {
       <main className="grid min-h-screen place-items-center bg-black px-6 text-white">
         <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-center">
           <p className="text-sm text-white/80">Your Spotify session expired.</p>
-          <a
-            href={getSpotifyLoginUrl()}
+          <Link
+            to="/settings/spotify"
             className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#1DB954] px-5 py-2 text-sm font-semibold text-black"
           >
             <Link2 className="h-4 w-4" /> Reconnect
-          </a>
+          </Link>
         </div>
       </main>
     );

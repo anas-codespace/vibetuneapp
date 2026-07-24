@@ -277,6 +277,16 @@ export const SPOTIFY_SCOPES = [
   "user-read-playback-state",
 ].join(" ");
 
+function base64UrlEncode(value: string): string {
+  return btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+export function buildSpotifyState(userId: string, returnTo?: string): string {
+  const nonce = crypto.randomUUID();
+  const safeReturn = returnTo?.trim();
+  return safeReturn ? `${userId}.${nonce}.${base64UrlEncode(safeReturn)}` : `${userId}.${nonce}`;
+}
+
 export function buildAuthUrl(redirectUri: string, state: string): string {
   const id = process.env.SPOTIFY_CLIENT_ID!;
   const params = new URLSearchParams({

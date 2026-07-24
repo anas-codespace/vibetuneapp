@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { setSyncStatus } from "@/hooks/use-sync-status";
-import { getSpotifyRedirectUri } from "@/lib/spotifyRedirect";
+import { getSpotifyRedirectUri, getSpotifyReturnUri, SPOTIFY_REGISTERED_REDIRECT_URI } from "@/lib/spotifyRedirect";
 
 
 
@@ -188,12 +188,9 @@ function SpotifySettings() {
   const connectMut = useMutation({
     mutationFn: async () => {
       const redirectUri = getSpotifyRedirectUri();
-      // TEMP DEBUG: verify this EXACTLY matches your Spotify Dashboard entry.
-      // Compare character-by-character (trailing slash, http vs https, subdomain).
-      console.log("[spotify-oauth] redirect_uri being sent to Spotify:", JSON.stringify(redirectUri));
-      console.log("[spotify-oauth] window.location.origin:", window.location.origin);
-      console.log("[spotify-oauth] VITE_SPOTIFY_REDIRECT_URI env:", import.meta.env.VITE_SPOTIFY_REDIRECT_URI ?? "(not set — using origin fallback)");
-      const { url, state } = await getAuthUrl({ data: { redirectUri } });
+      const returnTo = getSpotifyReturnUri();
+      console.log("[spotify-oauth] redirect_uri", { redirectUri, returnTo, registeredRedirect: SPOTIFY_REGISTERED_REDIRECT_URI });
+      const { url, state } = await getAuthUrl({ data: { redirectUri, returnTo } });
       persistState(state, redirectUri);
       setPendingAuthUrl(url);
 
@@ -441,6 +438,9 @@ function SpotifySettings() {
                     Spotify's login page refuses to load inside embedded frames (like the
                     in-app preview) for security. If nothing opened, use the link below to
                     finish signing in — it'll come back here automatically.
+                  </p>
+                  <p className="mt-2 text-[11px] text-amber-100/55">
+                    Registered callback: {SPOTIFY_REGISTERED_REDIRECT_URI}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
