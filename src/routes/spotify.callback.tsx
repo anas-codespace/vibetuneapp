@@ -71,11 +71,21 @@ function SpotifyCallback() {
         }
 
         setSyncStatus({ phase: "connecting", source: "spotify", message: "Linking your Spotify account…", progress: 0.1 });
-        const params = new URLSearchParams(window.location.search);
+        // Spotify uses query params, but tolerate params in the hash too in
+        // case an intermediate hop rewrote the URL.
+        const search = window.location.search || (window.location.hash.startsWith("#") ? `?${window.location.hash.slice(1)}` : "");
+        const params = new URLSearchParams(search);
         const code = params.get("code");
         const state = params.get("state");
         const err = params.get("error");
         const errDesc = params.get("error_description");
+        // If the callback URL has no OAuth params at all, the user probably
+        // opened /spotify/callback directly (or a stale tab). Send them back
+        // to settings to restart cleanly instead of showing a scary error.
+        if (!code && !state && !err) {
+          navigate({ to: "/settings/spotify" });
+          return;
+        }
         // Prefer localStorage (shared across tabs); fall back to sessionStorage
         // for legacy flows still open in the same tab.
         const savedState =
