@@ -1,13 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { spotifyExchangeCode, spotifyAutoSync } from "@/lib/spotify.functions";
+import { spotifyExchangeCode, spotifyAutoSync, spotifyGetAuthUrl } from "@/lib/spotify.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { setSyncStatus } from "@/hooks/use-sync-status";
 import {
   getSpotifyCallbackParams,
   getSpotifyCallbackRelayTarget,
+  getSpotifyRedirectUri,
+  getSpotifyReturnUri,
+  getSpotifyReturnUriFromState,
+  getSpotifySettingsRestartTarget,
   SPOTIFY_REGISTERED_REDIRECT_URI,
 } from "@/lib/spotifyRedirect";
 
@@ -60,6 +64,7 @@ function SpotifyCallback() {
   const navigate = useNavigate();
   const exchange = useServerFn(spotifyExchangeCode);
   const autoSync = useServerFn(spotifyAutoSync);
+  const getAuthUrl = useServerFn(spotifyGetAuthUrl);
   const [status, setStatus] = useState<"working" | "syncing" | "done" | "error">("working");
   const [msg, setMsg] = useState<string>("Linking your Spotify account…");
   const [hint, setHint] = useState<string>("");
@@ -69,12 +74,30 @@ function SpotifyCallback() {
     if (ran.current) return;
     ran.current = true;
     (async () => {
-      const restartConnectFlow = (reason: string) => {
+      const readStoredReturnUri = () =>
+        localStorage.getItem("spotify_return_uri") ?? sessionStorage.getItem("spotify_return_uri");
+
+      const persistOAuthState = (state: string, redirectUri: string, returnUri: string) => {
+        localStorage.setItem("spotify_state", state);
+        localStorage.setItem("spotify_redirect_uri", redirectUri);
+        localStorage.setItem("spotify_return_uri", returnUri);
+        sessionStorage.setItem("spotify_state", state);
+        sessionStorage.setItem("spotify_redirect_uri", redirectUri);
+        sessionStorage.setItem("spotify_return_uri", returnUri);
+      };
+
+      const restartViaSettings = (returnUri?: string | null) => {
+        sessionStorage.setItem("post_login_action", "connect_spotify");
+        const target = getSpotifySettingsRestartTarget(returnUri) ?? "/settings/spotify?connect_spotify=1";
+        window.location.replace(target);
+      };
+
+      const restartConnectFlow = async (reason: string, state?: string | null) => {
         const rawAttempts = sessionStorage.getItem(CALLBACK_AUTO_RETRY_KEY);
         const attempts = Number.parseInt(rawAttempts ?? "0", 10);
-        if (Number.isFinite(attempts) && attempts >= 1) return false;
+        const nextAttempts = (Number.isFinite(attempts) ? attempts : 0) + 1;
 
-        sessionStorage.setItem(CALLBACK_AUTO_RETRY_KEY, String((Number.isFinite(attempts) ? attempts : 0) + 1));
+        sessionStorage.setItem(CALLBACK_AUTO_RETRY_KEY, String(nextAttempts));
         sessionStorage.setItem("post_login_action", "connect_spotify");
         sessionStorage.removeItem("spotify_last_error");
         setStatus("working");
@@ -82,7 +105,24 @@ function SpotifyCallback() {
         setHint("");
         setSyncStatus({ phase: "connecting", source: "spotify", message: "Restarting Spotify connect…", progress: 0.05 });
         console.warn("[oauth-debug][spotify-callback] restarting incomplete callback", { reason });
-        navigate({ to: "/settings/spotify" });
+
+        const returnUri = getSpotifyReturnUriFromState(state) ?? readStoredReturnUri() ?? getSpotifyReturnUri();
+        if (nextAttempts > 3) {
+          restartViaSettings(returnUri);
+          return true;
+        }
+
+        try {
+          const redirectUri = getSpotifyRedirectUri();
+          const { url, state: freshState } = await getAuthUrl({ data: { redirectUri, returnTo: returnUri } });
+          persistOAuthState(freshState, redirectUri, returnUri);
+          window.location.replace(url);
+        } catch (restartError) {
+          console.warn("[oauth-debug][spotify-callback] direct restart failed; sending to settings", {
+            message: restartError instanceof Error ? restartError.message : String(restartError),
+          });
+          restartViaSettings(returnUri);
+        }
         return true;
       };
 
@@ -104,8 +144,7 @@ function SpotifyCallback() {
         // opened /spotify/callback directly (or a stale tab). Send them back
         // to settings to restart cleanly instead of showing a scary error.
         if (!code && !state && !err) {
-          if (restartConnectFlow("empty-callback")) return;
-          navigate({ to: "/settings/spotify" });
+          await restartConnectFlow("empty-callback", state);
           return;
         }
         // Prefer localStorage (shared across tabs); fall back to sessionStorage
@@ -134,16 +173,16 @@ function SpotifyCallback() {
         });
         if (err) throw new Error(errDesc ? `${err}: ${errDesc}` : err);
         if (!code && !state) {
-          if (restartConnectFlow("missing-code-and-state")) return;
-          throw new Error("Missing callback parameters");
+          await restartConnectFlow("missing-code-and-state", state);
+          return;
         }
         if (!code) {
-          if (restartConnectFlow("missing-code")) return;
-          throw new Error("Missing authorization code");
+          await restartConnectFlow("missing-code", state);
+          return;
         }
         if (!state) {
-          if (restartConnectFlow("missing-state")) return;
-          throw new Error("Missing state");
+          await restartConnectFlow("missing-state", state);
+          return;
         }
         // NOTE: We intentionally do NOT hard-fail on client-side state mismatch.
         // localStorage is per-origin and per-browser; a tab reopened in a fresh
@@ -165,8 +204,10 @@ function SpotifyCallback() {
         sessionStorage.removeItem(CALLBACK_AUTO_RETRY_KEY);
         localStorage.removeItem("spotify_state");
         localStorage.removeItem("spotify_redirect_uri");
+        localStorage.removeItem("spotify_return_uri");
         sessionStorage.removeItem("spotify_state");
         sessionStorage.removeItem("spotify_redirect_uri");
+        sessionStorage.removeItem("spotify_return_uri");
 
         setStatus("syncing");
         const who = res.displayName ?? "Spotify user";
@@ -212,9 +253,13 @@ function SpotifyCallback() {
         setStatus("done");
         setTimeout(() => navigate({ to: "/library" }), 1200);
       } catch (e) {
-        setStatus("error");
         const raw = e instanceof Error ? e.message : "Failed to connect Spotify";
         const info = classifyError(raw);
+        if (info.code === "missing_params" || info.code === "missing_code" || info.code === "missing_state") {
+          await restartConnectFlow(info.code);
+          return;
+        }
+        setStatus("error");
         setMsg(info.message);
         setHint(info.hint);
         setSyncStatus({ phase: "error", source: "spotify", message: info.message });
@@ -226,7 +271,7 @@ function SpotifyCallback() {
         } catch { /* ignore */ }
       }
     })();
-  }, [exchange, autoSync, navigate]);
+  }, [exchange, autoSync, getAuthUrl, navigate]);
 
   return (
     <main className="grid min-h-screen place-items-center bg-black px-6 text-white">
