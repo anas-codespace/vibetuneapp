@@ -66,6 +66,8 @@ function isAllowedReturnOrigin(origin: string): boolean {
     if (url.origin === currentOrigin()) return true;
     if (url.origin === normalizeUri(envValue("VITE_SPOTIFY_REDIRECT_ORIGIN") ?? DEFAULT_SPOTIFY_REDIRECT_ORIGIN)) return true;
     if (url.origin === configuredPreviewOrigin()) return true;
+    // Trust any lovable.app subdomain (previews, project--*, custom lovable hosts).
+    if (url.protocol === "https:" && (url.hostname === "lovable.app" || url.hostname.endsWith(".lovable.app"))) return true;
     return url.hostname === "localhost" || url.hostname === "127.0.0.1";
   } catch {
     return false;
