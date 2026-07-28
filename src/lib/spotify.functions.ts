@@ -11,6 +11,8 @@ import {
   buildAuthUrl,
   exchangeAuthCode,
   getUserProfile,
+  getUserProfileIfAvailable,
+  SpotifyUserRequestError,
   getMyLikedTracks,
   getMyPlaylistsList,
   getPlaylistTracks,
@@ -24,6 +26,7 @@ import {
   type FailureEntry,
   type SpotifyPlayableResult,
   type SpotifyAvailability,
+  type SpotifyProfile,
 } from "./spotify.server";
 import { searchMusic } from "./youtube.server";
 import { isProviderError } from "./providerResult";
@@ -66,7 +69,17 @@ export const spotifyCompleteLogin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const loginState = await verifySpotifyLoginState(data.state);
     const tok = await exchangeAuthCode(data.code, data.redirectUri);
-    const profile = await getUserProfile(tok.access_token);
+    let profile: SpotifyProfile;
+    try {
+      profile = await getUserProfile(tok.access_token);
+    } catch (error) {
+      if (error instanceof SpotifyUserRequestError && error.path === "/me" && error.status === 403) {
+        throw new Error(
+          "Spotify login could not create your Vibetune account because Spotify blocked the required profile/email endpoint (403). Sign in with Google or email first, then connect Spotify from Settings. Also confirm the Spotify app owner has Premium and this Spotify account accepted the app invite.",
+        );
+      }
+      throw error;
+    }
     const email = profile.email?.trim().toLowerCase();
     if (!email) {
       throw new Error("Spotify did not share an email address. Allow email access and try again.");
@@ -168,8 +181,22 @@ export const spotifyExchangeCode = createServerFn({ method: "POST" })
       throw new Error("Invalid state");
     }
     const tok = await exchangeAuthCode(data.code, data.redirectUri);
-    const profile = await getUserProfile(tok.access_token);
+    const { profile, warning } = await getUserProfileIfAvailable(tok.access_token);
     const expiresAt = new Date(Date.now() + tok.expires_in * 1000).toISOString();
+
+    let refreshToken = tok.refresh_token;
+    if (!refreshToken) {
+      const { data: existing } = await context.supabase
+        .from("spotify_tokens")
+        .select("refresh_token")
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      refreshToken = existing?.refresh_token ?? undefined;
+    }
+
+    if (!refreshToken) {
+      throw new Error("Spotify did not issue a refresh token. Remove Vibetune from Spotify connected apps, then try again.");
+    }
 
     const { error } = await context.supabase
       .from("spotify_tokens")
@@ -177,11 +204,11 @@ export const spotifyExchangeCode = createServerFn({ method: "POST" })
         {
           user_id: context.userId,
           access_token: tok.access_token,
-          refresh_token: tok.refresh_token!,
+          refresh_token: refreshToken,
           expires_at: expiresAt,
           scope: tok.scope,
-          spotify_user_id: profile.id,
-          spotify_display_name: profile.display_name,
+          spotify_user_id: profile?.id ?? null,
+          spotify_display_name: profile?.display_name ?? null,
         },
         { onConflict: "user_id" },
       );
@@ -190,11 +217,12 @@ export const spotifyExchangeCode = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
     console.log("[oauth-debug][spotify] exchange complete", {
-      spotifyUserId: profile.id,
-      displayName: profile.display_name,
+      spotifyUserId: profile?.id ?? null,
+      displayName: profile?.display_name ?? null,
       expiresAt,
+      profileWarning: warning,
     });
-    return { connected: true, displayName: profile.display_name };
+    return { connected: true, displayName: profile?.display_name ?? null, warning };
   });
 
 export const spotifyGetConnection = createServerFn({ method: "GET" })
