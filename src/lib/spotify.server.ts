@@ -373,6 +373,18 @@ interface TokenResp {
   token_type: string;
 }
 
+export class SpotifyUserRequestError extends Error {
+  constructor(
+    public readonly path: string,
+    public readonly status: number,
+    public readonly reason: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "SpotifyUserRequestError";
+  }
+}
+
 async function tokenExchange(body: URLSearchParams, label: string): Promise<TokenResp> {
   const id = process.env.SPOTIFY_CLIENT_ID!;
   const secret = process.env.SPOTIFY_CLIENT_SECRET!;
@@ -452,14 +464,22 @@ export async function spotifyGet<T>(userToken: string, path: string): Promise<T>
       clientIdPrefix: cid ? `${cid.slice(0, 6)}…(len=${cid.length})` : "MISSING",
     });
     if (res.status === 403) {
-      throw new Error(
-        `Spotify ${path} → 403 Forbidden. The signed-in Spotify account must be on Users and Access for the app with Client ID starting "${cid.slice(0, 6)}…". If your app was created after Nov 27, 2024, also request Extended Quota Mode. (${reason})`,
+      throw new SpotifyUserRequestError(
+        path,
+        res.status,
+        reason,
+        `Spotify ${path} → 403 Forbidden. Spotify blocked this user endpoint for the current account/app. Client ID starts "${cid.slice(0, 6)}…". (${reason})`,
       );
     }
     if (res.status === 401) {
-      throw new Error(`Spotify ${path} → 401 Unauthorized. Reconnect Spotify to refresh your session. (${reason})`);
+      throw new SpotifyUserRequestError(
+        path,
+        res.status,
+        reason,
+        `Spotify ${path} → 401 Unauthorized. Reconnect Spotify to refresh your session. (${reason})`,
+      );
     }
-    throw new Error(`Spotify ${path} → ${res.status} ${reason}`);
+    throw new SpotifyUserRequestError(path, res.status, reason, `Spotify ${path} → ${res.status} ${reason}`);
   }
   return (await res.json()) as T;
 }
@@ -473,6 +493,26 @@ export interface SpotifyProfile {
 
 export async function getUserProfile(userToken: string): Promise<SpotifyProfile> {
   return spotifyGet<SpotifyProfile>(userToken, "/me");
+}
+
+export async function getUserProfileIfAvailable(
+  userToken: string,
+): Promise<{ profile: SpotifyProfile | null; warning: string | null }> {
+  try {
+    return { profile: await getUserProfile(userToken), warning: null };
+  } catch (error) {
+    if (error instanceof SpotifyUserRequestError && error.path === "/me" && error.status === 403) {
+      console.warn("[oauth-debug][spotify] /me blocked; continuing without profile", {
+        status: error.status,
+        reason: error.reason,
+      });
+      return {
+        profile: null,
+        warning: "Spotify connected, but Spotify blocked profile lookup for this account/app.",
+      };
+    }
+    throw error;
+  }
 }
 
 export async function getMyLikedTracks(userToken: string, max = 200): Promise<SpotifyTrackMeta[]> {
