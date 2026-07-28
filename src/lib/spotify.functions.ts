@@ -26,6 +26,7 @@ import {
   type FailureEntry,
   type SpotifyPlayableResult,
   type SpotifyAvailability,
+  type SpotifyProfile,
 } from "./spotify.server";
 import { searchMusic } from "./youtube.server";
 import { isProviderError } from "./providerResult";
@@ -68,7 +69,7 @@ export const spotifyCompleteLogin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const loginState = await verifySpotifyLoginState(data.state);
     const tok = await exchangeAuthCode(data.code, data.redirectUri);
-    let profile;
+    let profile: SpotifyProfile;
     try {
       profile = await getUserProfile(tok.access_token);
     } catch (error) {
