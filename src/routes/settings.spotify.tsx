@@ -400,7 +400,7 @@ function SpotifySettings() {
               </div>
               {connected ? (
                 <p className="mt-1 truncate text-base font-semibold text-white">
-                  {connection.data?.spotify_display_name ?? connection.data?.spotify_user_id}
+                  {connection.data?.spotify_display_name ?? connection.data?.spotify_user_id ?? "Spotify connected"}
                 </p>
               ) : (
                 <p className="mt-1 text-xs text-white/50">

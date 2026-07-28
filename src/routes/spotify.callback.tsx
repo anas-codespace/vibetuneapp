@@ -296,11 +296,13 @@ function SpotifyCallback() {
 
         setStatus("syncing");
         const who = res.displayName ?? "Spotify user";
-        setMsg(`Connected as ${who} — syncing your library…`);
+        setMsg(res.warning ? "Spotify connected — syncing your library…" : `Connected as ${who} — syncing your library…`);
         setSyncStatus({
           phase: "syncing",
           source: "spotify",
-          message: `Connected as ${who} — syncing liked songs & playlists…`,
+          message: res.warning
+            ? "Spotify connected — syncing liked songs & playlists…"
+            : `Connected as ${who} — syncing liked songs & playlists…`,
           progress: 0.4,
         });
         try {
