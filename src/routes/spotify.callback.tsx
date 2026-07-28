@@ -51,12 +51,19 @@ function classifyError(raw: string): { code: string; message: string; hint: stri
   if (m.includes("timed out") || m.includes("timeout")) return { code: "timeout", message: raw, hint: "Spotify or the network is slow. Check your connection and retry." };
   if (m.includes("invalid_grant")) return { code: "invalid_grant", message: "Authorization code expired or already used.", hint: "Retry the connect flow — codes are single-use." };
   if (m.includes("network") || m.includes("failed to fetch")) return { code: "network", message: "Network error while contacting Spotify.", hint: "Check your connection and retry." };
+  if (m.includes("could not create your vibtune account") && m.includes("spotify blocked")) {
+    return {
+      code: "spotify_profile_blocked",
+      message: "Spotify login needs profile access first.",
+      hint: "Sign in with Google or email, then connect Spotify from Settings. Also confirm the Spotify app owner has Premium and this Spotify account accepted the tester invite.",
+    };
+  }
   if (m.includes("development mode") || (m.includes("/me") && m.includes("403"))) {
     return {
       code: "spotify_dev_mode",
-      message: "Spotify returned 403 on /me.",
+      message: "Spotify returned 403 on a user endpoint.",
       hint:
-        "Even if you added the user, 403 usually means one of: (1) The Spotify account you signed in with is NOT the exact email/username on the app's Users and Access list — sign out of spotify.com in this browser, then retry and pick the allowlisted account. (2) Spotify apps created after Nov 27, 2024 are in restricted mode and cannot call /me until you request Extended Quota Mode in the Developer Dashboard. (3) The allowlisted user hasn't accepted the invite yet — check that Spotify account's email inbox. (4) Wrong Client ID/Secret pair — the app you added the user to must match the SPOTIFY_CLIENT_ID configured here.",
+        "Even if you added the user, 403 usually means one of: (1) the Spotify app owner does not have Premium, which Spotify requires for development-mode apps; (2) the signed-in Spotify account is not the exact allowlisted email/username; (3) the invite was not accepted from that email inbox; (4) the configured Client ID/Secret is for a different Spotify app.",
     };
   }
   return { code: "unknown", message: raw || "Failed to connect Spotify.", hint: "Retry from Spotify settings. If it keeps failing, disconnect and try again." };

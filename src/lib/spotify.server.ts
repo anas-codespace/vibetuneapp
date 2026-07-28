@@ -468,7 +468,7 @@ export async function spotifyGet<T>(userToken: string, path: string): Promise<T>
         path,
         res.status,
         reason,
-        `Spotify ${path} → 403 Forbidden. Spotify blocked this user endpoint for the current account/app. Client ID starts "${cid.slice(0, 6)}…". (${reason})`,
+        `Spotify ${path} → 403 Forbidden. Spotify blocked this user endpoint for the current account/app. Client ID starts "${cid.slice(0, 6)}…". In Spotify development mode, the app owner must have Premium and every tester must be allowlisted and have accepted the invite. (${reason})`,
       );
     }
     if (res.status === 401) {

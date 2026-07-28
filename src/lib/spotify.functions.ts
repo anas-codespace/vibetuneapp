@@ -12,6 +12,7 @@ import {
   exchangeAuthCode,
   getUserProfile,
   getUserProfileIfAvailable,
+  SpotifyUserRequestError,
   getMyLikedTracks,
   getMyPlaylistsList,
   getPlaylistTracks,
@@ -67,7 +68,17 @@ export const spotifyCompleteLogin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const loginState = await verifySpotifyLoginState(data.state);
     const tok = await exchangeAuthCode(data.code, data.redirectUri);
-    const profile = await getUserProfile(tok.access_token);
+    let profile;
+    try {
+      profile = await getUserProfile(tok.access_token);
+    } catch (error) {
+      if (error instanceof SpotifyUserRequestError && error.path === "/me" && error.status === 403) {
+        throw new Error(
+          "Spotify login could not create your Vibetune account because Spotify blocked the required profile/email endpoint (403). Sign in with Google or email first, then connect Spotify from Settings. Also confirm the Spotify app owner has Premium and this Spotify account accepted the app invite.",
+        );
+      }
+      throw error;
+    }
     const email = profile.email?.trim().toLowerCase();
     if (!email) {
       throw new Error("Spotify did not share an email address. Allow email access and try again.");
