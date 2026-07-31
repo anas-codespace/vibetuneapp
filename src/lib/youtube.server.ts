@@ -143,6 +143,45 @@ export async function fallbackSearchFromCache(query: string, max = 24): Promise<
   }
 }
 
+/**
+ * Quota/outage salvage: search YouTube Music's public endpoint (no Data API
+ * quota) and cache the result so the app keeps working when v3 returns 429.
+ */
+async function quotaFallbackSearch(
+  query: string,
+  maxResults: number,
+  isPolitical: boolean,
+  cacheKey: string,
+  trace: boolean,
+): Promise<ProviderResult<YTTrack[]> | null> {
+  try {
+    const { searchYouTubeMusicFallback } = await import("./ytmusic.server");
+    const found = await searchYouTubeMusicFallback(query, maxResults, {
+      minSeconds: isPolitical ? 45 : 60,
+      maxSeconds: isPolitical ? 600 : 720,
+    });
+    if (found.length === 0) return null;
+    const tracks: YTTrack[] = found.map((t) => ({
+      youtubeId: t.youtubeId,
+      title: cleanTitle(t.title),
+      artist: t.artist,
+      album: t.album,
+      thumbnailUrl: t.thumbnailUrl,
+      durationSeconds: t.durationSeconds,
+      isEmbeddable: true,
+    }));
+    console.warn("[youtube] served results from keyless fallback provider", { query, count: tracks.length });
+    if (trace) console.log("[search-trace][youtube.once] ytmusic-fallback", { query, count: tracks.length });
+    SEARCH_CACHE.set(cacheKey, tracks);
+    await writePersistentYoutubeCache(cacheKey, tracks, trace);
+    return providerOk(tracks);
+  } catch (err) {
+    if (trace) console.warn("[search-trace][youtube.once] ytmusic-fallback-failed", err);
+    return null;
+  }
+}
+
+
 
 /**
  * Aggressively clean a YouTube video title:
