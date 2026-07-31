@@ -358,7 +358,13 @@ function SpotifyCallback() {
           sessionStorage.setItem("post_login_action", "connect_spotify");
           sessionStorage.setItem("post_login_next", next);
           sessionStorage.removeItem("spotify_last_error");
-          clearOAuthStorage();
+          sessionStorage.removeItem(CALLBACK_AUTO_RETRY_KEY);
+          localStorage.removeItem("spotify_state");
+          localStorage.removeItem("spotify_redirect_uri");
+          localStorage.removeItem("spotify_return_uri");
+          sessionStorage.removeItem("spotify_state");
+          sessionStorage.removeItem("spotify_redirect_uri");
+          sessionStorage.removeItem("spotify_return_uri");
           setStatus("working");
           setMsg("Spotify approved. Finish signing in to link it…");
           setHint("");
