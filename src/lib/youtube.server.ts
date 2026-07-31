@@ -678,7 +678,10 @@ async function searchMusicOnce(
   }
 
   const breaker = youtubeBreakerResult<YTTrack[]>();
-  if (breaker) return breaker;
+  if (breaker) {
+    const salvage = await quotaFallbackSearch(rawUserTerm, maxResults, isPolitical, cacheKey, trace);
+    return salvage ?? breaker;
+  }
 
   let searchRes: Response;
   try {
@@ -687,7 +690,8 @@ async function searchMusicOnce(
     const reason = e instanceof Error ? e.message : String(e);
     console.error("[youtube] network error", { httpStatus: 0, reason });
     if (trace) console.error("[search-trace][youtube.once] swallowed-network-error", e);
-    return providerError("youtube", reason, 0);
+    const salvage = await quotaFallbackSearch(rawUserTerm, maxResults, isPolitical, cacheKey, trace);
+    return salvage ?? providerError("youtube", reason, 0);
   }
 
   const rawSearchText = await searchRes.text();
@@ -697,8 +701,10 @@ async function searchMusicOnce(
     if (trace) {
       console.error("[search-trace][youtube.once] provider-error", { status: searchRes.status, body: rawSearchText, reason });
     }
-    return providerError("youtube", reason, searchRes.status);
+    const salvage = await quotaFallbackSearch(rawUserTerm, maxResults, isPolitical, cacheKey, trace);
+    return salvage ?? providerError("youtube", reason, searchRes.status);
   }
+
   if (trace) {
     console.log("[search-trace][youtube.once] search-response", {
       status: searchRes.status,
