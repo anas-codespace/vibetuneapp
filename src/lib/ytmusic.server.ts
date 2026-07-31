@@ -128,7 +128,15 @@ export async function searchYouTubeMusicFallback(
     const durationSeconds = parseDurationText(durationText);
     if (durationSeconds && (durationSeconds < minSeconds || durationSeconds > maxSeconds)) continue;
 
-    const nonDuration = metaRuns.filter((t) => t !== durationText && !/^song$/i.test(t) && !/^\d+(\.\d+)?[MK]? plays$/i.test(t));
+    const nonDuration = metaRuns.filter(
+      (t) =>
+        t !== durationText &&
+        !/^song$/i.test(t) &&
+        !/^\d+(\.\d+)?[MK]? plays$/i.test(t) &&
+        /[\p{L}\p{N}]/u.test(t) &&
+        t.length > 1,
+    );
+
     const artist = nonDuration[0] ?? "Unknown artist";
     const album = nonDuration.length > 1 ? nonDuration[1] : "";
 
