@@ -54,8 +54,8 @@ function classifyError(raw: string): { code: string; message: string; hint: stri
   if (m.includes("could not create your vibtune account") && m.includes("spotify blocked")) {
     return {
       code: "spotify_profile_blocked",
-      message: "Spotify login needs profile access first.",
-      hint: "Sign in with Google or email, then connect Spotify from Settings. Also confirm the Spotify app owner has Premium and this Spotify account accepted the tester invite.",
+      message: "Finish signing in, then Spotify will reconnect automatically.",
+      hint: "Spotify did not provide the identity details needed to create an account. Use Google or email once; your Spotify connection will resume afterward.",
     };
   }
   if (m.includes("development mode") || (m.includes("/me") && m.includes("403"))) {
@@ -351,6 +351,26 @@ function SpotifyCallback() {
         const info = classifyError(raw);
         if (info.code === "missing_params" || info.code === "missing_code" || info.code === "missing_state") {
           await restartConnectFlow(info.code);
+          return;
+        }
+        if (info.code === "spotify_profile_blocked") {
+          const next = "/settings/spotify?connect_spotify=1";
+          sessionStorage.setItem("post_login_action", "connect_spotify");
+          sessionStorage.setItem("post_login_next", next);
+          sessionStorage.removeItem("spotify_last_error");
+          clearOAuthStorage();
+          setStatus("working");
+          setMsg("Spotify approved. Finish signing in to link it…");
+          setHint("");
+          setSyncStatus({
+            phase: "connecting",
+            source: "spotify",
+            message: "Finish signing in, then Spotify will reconnect automatically.",
+            progress: 0.2,
+          });
+          setTimeout(() => {
+            window.location.replace(`/login?next=${encodeURIComponent(next)}`);
+          }, 700);
           return;
         }
         setStatus("error");
