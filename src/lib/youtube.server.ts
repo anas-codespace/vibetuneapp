@@ -143,6 +143,45 @@ export async function fallbackSearchFromCache(query: string, max = 24): Promise<
   }
 }
 
+/**
+ * Quota/outage salvage: search YouTube Music's public endpoint (no Data API
+ * quota) and cache the result so the app keeps working when v3 returns 429.
+ */
+async function quotaFallbackSearch(
+  query: string,
+  maxResults: number,
+  isPolitical: boolean,
+  cacheKey: string,
+  trace: boolean,
+): Promise<ProviderResult<YTTrack[]> | null> {
+  try {
+    const { searchYouTubeMusicFallback } = await import("./ytmusic.server");
+    const found = await searchYouTubeMusicFallback(query, maxResults, {
+      minSeconds: isPolitical ? 45 : 60,
+      maxSeconds: isPolitical ? 600 : 720,
+    });
+    if (found.length === 0) return null;
+    const tracks: YTTrack[] = found.map((t) => ({
+      youtubeId: t.youtubeId,
+      title: cleanTitle(t.title),
+      artist: t.artist,
+      album: t.album,
+      thumbnailUrl: t.thumbnailUrl,
+      durationSeconds: t.durationSeconds,
+      isEmbeddable: true,
+    }));
+    console.warn("[youtube] served results from keyless fallback provider", { query, count: tracks.length });
+    if (trace) console.log("[search-trace][youtube.once] ytmusic-fallback", { query, count: tracks.length });
+    SEARCH_CACHE.set(cacheKey, tracks);
+    await writePersistentYoutubeCache(cacheKey, tracks, trace);
+    return providerOk(tracks);
+  } catch (err) {
+    if (trace) console.warn("[search-trace][youtube.once] ytmusic-fallback-failed", err);
+    return null;
+  }
+}
+
+
 
 /**
  * Aggressively clean a YouTube video title:
@@ -678,7 +717,10 @@ async function searchMusicOnce(
   }
 
   const breaker = youtubeBreakerResult<YTTrack[]>();
-  if (breaker) return breaker;
+  if (breaker) {
+    const salvage = await quotaFallbackSearch(rawUserTerm, maxResults, isPolitical, cacheKey, trace);
+    return salvage ?? breaker;
+  }
 
   let searchRes: Response;
   try {
@@ -687,7 +729,8 @@ async function searchMusicOnce(
     const reason = e instanceof Error ? e.message : String(e);
     console.error("[youtube] network error", { httpStatus: 0, reason });
     if (trace) console.error("[search-trace][youtube.once] swallowed-network-error", e);
-    return providerError("youtube", reason, 0);
+    const salvage = await quotaFallbackSearch(rawUserTerm, maxResults, isPolitical, cacheKey, trace);
+    return salvage ?? providerError("youtube", reason, 0);
   }
 
   const rawSearchText = await searchRes.text();
@@ -697,8 +740,10 @@ async function searchMusicOnce(
     if (trace) {
       console.error("[search-trace][youtube.once] provider-error", { status: searchRes.status, body: rawSearchText, reason });
     }
-    return providerError("youtube", reason, searchRes.status);
+    const salvage = await quotaFallbackSearch(rawUserTerm, maxResults, isPolitical, cacheKey, trace);
+    return salvage ?? providerError("youtube", reason, searchRes.status);
   }
+
   if (trace) {
     console.log("[search-trace][youtube.once] search-response", {
       status: searchRes.status,
