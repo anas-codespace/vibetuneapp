@@ -272,6 +272,8 @@ function AppHome() {
   );
   const popularRadios = ensureFilled(topArtistList.slice(0, 20));
   const newReleases = ensureFilled(dailyList.slice(0, 20));
+  const featured = suggestedForYou[0] ?? trendingNow[0] ?? null;
+
 
 
   const renderCarousel = (
