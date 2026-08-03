@@ -128,7 +128,7 @@ function ResetPasswordPage() {
             {linkError || "This password reset link can't be used. Reset links expire after a short time and can only be used once."}
           </p>
           <div className="flex flex-col gap-2">
-            <Link to="/forgot-password" className="vibe-gradient-h w-full rounded-full py-3 font-semibold text-white">
+            <Link to="/forgot-password" className="vibe-gradient-h w-full rounded-full py-3 font-semibold text-[#050b14]">
               Request a new link
             </Link>
             <Link to="/login" className="text-sm text-white/70 hover:text-white">Back to sign in</Link>
@@ -196,7 +196,7 @@ function ResetPasswordPage() {
           </ul>
 
           <button type="submit" disabled={loading}
-            className="vibe-gradient-h mt-2 w-full rounded-full py-3.5 font-semibold text-white disabled:opacity-60">
+            className="vibe-gradient-h mt-2 w-full rounded-full py-3.5 font-semibold text-[#050b14] disabled:opacity-60">
             {loading ? "Saving…" : "Update password"}
           </button>
 

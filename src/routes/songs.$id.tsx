@@ -115,7 +115,7 @@ function SongPage() {
                 thumbnailUrl: thumb,
               })
             }
-            className="vibe-gradient flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-white"
+            className="vibe-gradient flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-[#050b14]"
           >
             <Play className="h-4 w-4" fill="currentColor" /> Play
           </button>

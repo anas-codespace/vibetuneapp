@@ -124,7 +124,7 @@ function PlaylistPage() {
           <button
             onClick={() => queue.length && play(queue[0], queue)}
             disabled={queue.length === 0}
-            className="vibe-gradient flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-white shadow-[0_0_20px_-4px_rgba(127,216,232,0.6)] disabled:opacity-40"
+            className="vibe-gradient flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-[#050b14] shadow-[0_0_20px_-4px_rgba(127,216,232,0.6)] disabled:opacity-40"
           >
             <Play className="h-4 w-4" fill="currentColor" /> Play
           </button>

@@ -333,7 +333,7 @@ function LibraryPage() {
               </p>
               <button
                 onClick={() => setBulkOpen(true)}
-                className="vibe-gradient flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold text-white shadow-[0_0_18px_-4px_rgba(127,216,232,0.7)]"
+                className="vibe-gradient flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold text-[#050b14] shadow-[0_0_18px_-4px_rgba(127,216,232,0.7)]"
               >
                 <ListPlus className="h-4 w-4" /> Add to playlist
               </button>
@@ -378,7 +378,7 @@ function LibraryPage() {
               <button
                 onClick={() => name.trim() && create.mutate(name.trim())}
                 disabled={!name.trim() || create.isPending}
-                className="vibe-gradient mt-4 w-full rounded-full py-3 text-sm font-semibold text-white shadow-[0_0_20px_-4px_rgba(127,216,232,0.6)] disabled:opacity-40"
+                className="vibe-gradient mt-4 w-full rounded-full py-3 text-sm font-semibold text-[#050b14] shadow-[0_0_20px_-4px_rgba(127,216,232,0.6)] disabled:opacity-40"
               >
                 Create
               </button>

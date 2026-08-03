@@ -161,7 +161,7 @@ export function SummaryStep({
           className={cn(
             "rounded-full px-8 py-3 text-sm font-semibold transition-all",
             !saving
-              ? "vibe-gradient-h text-white shadow-[0_0_40px_-10px_rgba(127,216,232,0.7)] hover:scale-105"
+              ? "vibe-gradient-h text-[#050b14] shadow-[0_0_40px_-10px_rgba(127,216,232,0.7)] hover:scale-105"
               : "cursor-not-allowed bg-white/5 text-white/30",
           )}
         >

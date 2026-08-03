@@ -1025,7 +1025,7 @@ function FullPlayer(p: FullProps) {
                 <button
                   onClick={p.onToggle}
                   aria-label={p.isPlaying ? "Pause" : "Play"}
-                  className="vibe-gradient mx-2 grid h-20 w-20 place-items-center rounded-full text-white shadow-[0_0_40px_-6px_rgba(127,216,232,0.75)] transition active:scale-95"
+                  className="vibe-gradient mx-2 grid h-20 w-20 place-items-center rounded-full text-[#050b14] shadow-[0_0_40px_-6px_rgba(127,216,232,0.75)] transition active:scale-95"
                 >
                   {p.isPlaying ? <Pause className="h-9 w-9" fill="currentColor" /> : <Play className="h-9 w-9 translate-x-0.5" fill="currentColor" />}
                 </button>
@@ -1087,7 +1087,7 @@ function FullPlayer(p: FullProps) {
                 <button
                   onClick={p.onToggle}
                   aria-label={p.isPlaying ? "Pause" : "Play"}
-                  className="vibe-gradient grid h-14 w-14 place-items-center rounded-full text-white shadow-[0_0_24px_-4px_rgba(127,216,232,0.7)] active:scale-95"
+                  className="vibe-gradient grid h-14 w-14 place-items-center rounded-full text-[#050b14] shadow-[0_0_24px_-4px_rgba(127,216,232,0.7)] active:scale-95"
                 >
                   {p.isPlaying ? <Pause className="h-6 w-6" fill="currentColor" /> : <Play className="h-6 w-6 translate-x-0.5" fill="currentColor" />}
                 </button>

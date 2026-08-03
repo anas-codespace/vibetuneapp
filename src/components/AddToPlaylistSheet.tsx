@@ -95,7 +95,7 @@ export function AddToPlaylistSheet({ open, onClose, track }: Props) {
                 <button
                   onClick={handleCreate}
                   disabled={!newName.trim() || creating}
-                  className="vibe-gradient grid h-11 w-11 place-items-center rounded-full text-white shadow-[0_0_20px_-4px_rgba(127,216,232,0.6)] disabled:opacity-40"
+                  className="vibe-gradient grid h-11 w-11 place-items-center rounded-full text-[#050b14] shadow-[0_0_20px_-4px_rgba(127,216,232,0.6)] disabled:opacity-40"
                 >
                   <Plus className="h-5 w-5" />
                 </button>

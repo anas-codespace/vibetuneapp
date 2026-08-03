@@ -66,7 +66,7 @@ function ForgotPasswordPage() {
 
         {!sent && (
           <button type="submit" disabled={loading}
-            className="vibe-gradient-h mt-4 w-full rounded-full py-3.5 font-semibold text-white disabled:opacity-60">
+            className="vibe-gradient-h mt-4 w-full rounded-full py-3.5 font-semibold text-[#050b14] disabled:opacity-60">
             {loading ? "Sending…" : "Send reset link"}
           </button>
         )}

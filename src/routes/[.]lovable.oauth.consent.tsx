@@ -97,7 +97,7 @@ function ConsentPage() {
           <button
             disabled={busy}
             onClick={() => decide(true)}
-            className="vibe-gradient-h flex-1 rounded-full py-3 font-semibold text-white disabled:opacity-60"
+            className="vibe-gradient-h flex-1 rounded-full py-3 font-semibold text-[#050b14] disabled:opacity-60"
           >
             {busy ? "Working…" : "Approve"}
           </button>

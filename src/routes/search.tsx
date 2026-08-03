@@ -461,7 +461,7 @@ function SearchPage() {
                     <p className="mt-1 text-xs text-white/40">{formatDuration(top.durationSeconds)}</p>
                   )}
                 </div>
-                <div className="vibe-gradient grid h-12 w-12 shrink-0 place-items-center rounded-full text-white opacity-0 shadow-[0_0_20px_-4px_rgba(127,216,232,0.7)] transition-opacity group-hover:opacity-100">
+                <div className="vibe-gradient grid h-12 w-12 shrink-0 place-items-center rounded-full text-[#050b14] opacity-0 shadow-[0_0_20px_-4px_rgba(127,216,232,0.7)] transition-opacity group-hover:opacity-100">
                   <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />
                 </div>
               </button>
