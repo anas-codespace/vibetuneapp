@@ -5,10 +5,11 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * VIBETUNE — Deep Obsidian Noir + Vibe Wave Gradient
- * Strict palette: #000000 / Violet #7D3FF3 → Magenta #EC008C → Coral #FF4500
- * Glassmorphism, breathing glow, gradient borders.
+ * VIBETUNE — Aurora Cool
+ * Ink-blue base #050b14 / #0d1b2a, teal #2d8a9e + violet #a78bfa aurora accents.
+ * Type: Clash Display (display) + Satoshi (body). Glass, aurora bloom, hairline rules.
  */
+
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
