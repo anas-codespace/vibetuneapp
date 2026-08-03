@@ -76,7 +76,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Vibtune — Feel the Vibe" },
       { name: "description", content: "A luxury music streaming experience. Discover artists, ride the vibe wave." },
-      { name: "theme-color", content: "#000000" },
+      { name: "theme-color", content: "#050b14" },
       { property: "og:title", content: "Vibtune — Feel the Vibe" },
       { property: "og:description", content: "A luxury music streaming experience. Discover artists, ride the vibe wave." },
       { property: "og:type", content: "website" },
