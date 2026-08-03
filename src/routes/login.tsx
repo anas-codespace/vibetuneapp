@@ -172,7 +172,7 @@ function LoginPage() {
           <Link to="/" aria-label="Vibtune home" className="mb-3 sm:mb-4">
             <VibtuneLogo className="h-12 w-12 sm:h-14 sm:w-14" />
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold text-center">Welcome <span className="vibe-text">back</span></h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-center">Welcome&nbsp;<span className="vibe-text">back</span></h1>
           <p className="mt-1.5 text-sm text-white/60 text-center">
             Sign in with Google, or use your email and password.
           </p>
@@ -236,7 +236,7 @@ function LoginPage() {
         </div>
 
         <button type="submit" disabled={loading || googleLoading || spotifyLoading}
-          className="vibe-gradient-h mt-2 w-full rounded-full py-3.5 font-semibold text-white disabled:opacity-60">
+          className="vibe-gradient-h mt-2 w-full rounded-full py-3.5 font-semibold text-[#050b14] disabled:opacity-60">
           {loading ? "Signing in…" : "Sign in"}
         </button>
         <p className="mt-6 text-center text-sm text-white/60">

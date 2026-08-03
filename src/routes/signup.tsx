@@ -161,7 +161,7 @@ function SignupPage() {
 
         <button
           type="submit" disabled={loading || googleLoading}
-          className="vibe-gradient-h mt-6 w-full rounded-full py-3.5 font-semibold text-white disabled:opacity-60"
+          className="vibe-gradient-h mt-6 w-full rounded-full py-3.5 font-semibold text-[#050b14] disabled:opacity-60"
         >
           {loading ? "Creating…" : "Create account"}
         </button>
