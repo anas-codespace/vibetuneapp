@@ -325,7 +325,7 @@ function ProfilePage() {
             const inner = (
               <>
                 <div className="flex items-center gap-4">
-                  <div className="rounded-lg bg-white/5 p-2 text-white/70 transition-colors group-hover:bg-fuchsia-500/20 group-hover:text-fuchsia-400">
+                  <div className="rounded-lg bg-white/5 p-2 text-white/70 transition-colors group-hover:bg-violet-400/20 group-hover:text-violet-300">
                     <item.icon size={20} />
                   </div>
                   <span className="font-medium text-white/90">{item.label}</span>

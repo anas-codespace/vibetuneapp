@@ -70,7 +70,7 @@ const FLAVOR_OPTIONS: FlavorOption[] = [
     key: "trending",
     emoji: "📈",
     label: "Current Trending",
-    gradient: "from-pink-500/40 via-fuchsia-700/30 to-violet-900/40",
+    gradient: "from-cyan-300/40 via-violet-700/30 to-violet-900/40",
   },
   {
     key: "nostalgia",
@@ -255,7 +255,7 @@ export function VibeCheck({
                   initial={false}
                   animate={{ width: `${(progress / 3) * 100}%` }}
                   transition={spring}
-                  className="h-full bg-gradient-to-r from-fuchsia-500 via-pink-500 to-rose-500"
+                  className="h-full bg-gradient-to-r from-violet-400 via-cyan-300 to-sky-400"
                 />
               </div>
               <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-white/40">
@@ -268,7 +268,7 @@ export function VibeCheck({
                 animate="visible"
                 className="mt-1 text-[22px] font-bold leading-tight text-white"
               >
-                Hey <span className="text-pink-500">{userName}</span>, let's tune your vibe.
+                Hey <span className="text-cyan-300">{userName}</span>, let's tune your vibe.
               </motion.h2>
             </div>
 
@@ -302,7 +302,7 @@ export function VibeCheck({
                             className={cn(
                               "aspect-square rounded-2xl border p-4 text-left transition",
                               active
-                                ? "border-pink-500 bg-pink-500/10 shadow-[0_0_24px_-6px_rgba(127,216,232,0.7)]"
+                                ? "border-cyan-300 bg-cyan-300/10 shadow-[0_0_24px_-6px_rgba(127,216,232,0.7)]"
                                 : "border-white/5 bg-white/5 hover:bg-white/[0.07]",
                             )}
                           >
@@ -310,7 +310,7 @@ export function VibeCheck({
                               <Icon
                                 className={cn(
                                   "h-9 w-9",
-                                  active ? "text-pink-500" : "text-white/80",
+                                  active ? "text-cyan-300" : "text-white/80",
                                 )}
                                 strokeWidth={1.5}
                               />
@@ -350,7 +350,7 @@ export function VibeCheck({
                             className={cn(
                               "flex w-full items-center gap-3 rounded-full border px-5 py-4 text-left transition",
                               active
-                                ? "border-pink-500 bg-pink-500/10 shadow-[0_0_24px_-6px_rgba(127,216,232,0.7)]"
+                                ? "border-cyan-300 bg-cyan-300/10 shadow-[0_0_24px_-6px_rgba(127,216,232,0.7)]"
                                 : "border-white/5 bg-white/5 hover:bg-white/[0.07]",
                             )}
                           >
@@ -424,12 +424,12 @@ export function VibeCheck({
                       <motion.div
                         animate={{ scale: [1, 1.15, 1], opacity: [0.6, 0.2, 0.6] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                        className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 blur-2xl"
+                        className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500 via-violet-400 to-cyan-300 blur-2xl"
                       />
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-                        className="absolute inset-2 rounded-full bg-gradient-to-tr from-violet-600 via-fuchsia-500 to-pink-500 shadow-[0_0_60px_-10px_rgba(127,216,232,0.8)]"
+                        className="absolute inset-2 rounded-full bg-gradient-to-tr from-violet-600 via-violet-400 to-cyan-300 shadow-[0_0_60px_-10px_rgba(127,216,232,0.8)]"
                       />
                       <motion.div
                         animate={{ scale: [0.95, 1.05, 0.95] }}

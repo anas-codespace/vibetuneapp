@@ -168,7 +168,7 @@ function LibraryPage() {
       <section className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-4">
         <button
           onClick={playLiked}
-          className="group relative flex h-28 flex-col justify-end overflow-hidden rounded-lg bg-gradient-to-br from-fuchsia-600 to-pink-500 p-4 text-left shadow-lg active:scale-[0.98]"
+          className="group relative flex h-28 flex-col justify-end overflow-hidden rounded-lg bg-gradient-to-br from-violet-500 to-cyan-300 p-4 text-left shadow-lg active:scale-[0.98]"
         >
           <Heart
             className="absolute -bottom-4 -right-4 h-20 w-20 rotate-12 text-white/20 transition-transform group-hover:scale-110"

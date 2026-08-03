@@ -109,7 +109,7 @@ function ResetPasswordPage() {
           initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           className="glass-strong w-full max-w-md rounded-3xl p-8 text-center"
         >
-          <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-pink-400" />
+          <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-cyan-300" />
           <h1 className="mb-2 text-2xl font-bold">Verifying your link…</h1>
           <p className="text-sm text-white/60">Confirming the secure recovery token from your email.</p>
         </motion.div>
@@ -167,7 +167,7 @@ function ResetPasswordPage() {
               <input
                 type={show ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password" required
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-pink-500/60"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-cyan-300/60"
               />
               <button type="button" onClick={() => setShow((v) => !v)}
                 aria-label={show ? "Hide password" : "Show password"}
@@ -182,7 +182,7 @@ function ResetPasswordPage() {
             <input
               type={show ? "text" : "password"} value={confirm} onChange={(e) => setConfirm(e.target.value)}
               autoComplete="new-password" required
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500/60"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300/60"
             />
           </label>
 

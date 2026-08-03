@@ -48,7 +48,7 @@ export function BottomNav() {
               aria-label={label}
               className={cn(
                 "flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
-                active ? "text-pink-500" : "text-gray-500 hover:text-gray-300",
+                active ? "text-cyan-300" : "text-gray-500 hover:text-gray-300",
               )}
             >
               <Icon

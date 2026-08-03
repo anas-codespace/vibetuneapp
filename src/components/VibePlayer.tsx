@@ -798,14 +798,14 @@ function MiniPlayer(p: MiniProps) {
           <button
             onClick={(e) => { e.stopPropagation(); likeMut.mutate(); }}
             aria-label={isLiked ? "Unlike" : "Like"}
-            className={`shrink-0 transition ${isLiked ? "text-pink-500" : "text-white/60 hover:text-white"}`}
+            className={`shrink-0 transition ${isLiked ? "text-cyan-300" : "text-white/60 hover:text-white"}`}
           >
             <Heart className="h-5 w-5" fill={isLiked ? "currentColor" : "none"} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); p.onToggle(); }}
             aria-label={p.isPlaying ? "Pause" : "Play"}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-pink-500 text-white shadow-[0_0_20px_-4px_rgba(127,216,232,0.8)] active:scale-95"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-cyan-300 text-white shadow-[0_0_20px_-4px_rgba(127,216,232,0.8)] active:scale-95"
           >
             {p.isPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />}
           </button>
@@ -932,7 +932,7 @@ function FullPlayer(p: FullProps) {
                   className={cn(
                     "rounded-full px-4 py-1.5 text-xs font-semibold capitalize transition",
                     active
-                      ? "bg-gradient-to-r from-fuchsia-600 to-pink-500 text-white shadow-[0_0_18px_-4px_rgba(127,216,232,0.6)]"
+                      ? "bg-gradient-to-r from-violet-500 to-cyan-300 text-white shadow-[0_0_18px_-4px_rgba(127,216,232,0.6)]"
                       : "bg-white/5 text-white/50 hover:text-white",
                   )}
                 >

@@ -208,7 +208,7 @@ function LoginPage() {
           <span className="mb-1.5 block text-xs uppercase tracking-wider text-white/50">Email</span>
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email"
             placeholder="you@example.com"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500/60" />
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300/60" />
         </label>
         <label className="mb-2 block">
           <span className="mb-1.5 block text-xs uppercase tracking-wider text-white/50">Password</span>
@@ -217,7 +217,7 @@ function LoginPage() {
               type={showPassword ? "text" : "password"} required value={password}
               onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
               placeholder="Your password"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-pink-500/60"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-cyan-300/60"
             />
             <button
               type="button" onClick={() => setShowPassword((v) => !v)}

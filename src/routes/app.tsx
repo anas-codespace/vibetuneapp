@@ -258,11 +258,11 @@ function AppHome() {
 
   type QuickPick = { title: string; art: string | undefined; icon: typeof Heart; gradient: string; list: VibeTrack[] };
   const quickPicks: QuickPick[] = [
-    { title: "Liked Songs", art: likedList[0]?.thumbnailUrl, icon: Heart, gradient: "from-pink-500 to-violet-500", list: likedList },
-    { title: `${primaryLangLabel} Top`, art: suggestedList[0]?.thumbnailUrl, icon: Disc3, gradient: "from-orange-500 to-pink-500", list: suggestedList },
-    { title: artistTileTitle, art: topArtistList[0]?.thumbnailUrl, icon: Sparkles, gradient: "from-violet-500 to-fuchsia-500", list: topArtistList.length ? topArtistList : suggestedList },
+    { title: "Liked Songs", art: likedList[0]?.thumbnailUrl, icon: Heart, gradient: "from-cyan-300 to-violet-500", list: likedList },
+    { title: `${primaryLangLabel} Top`, art: suggestedList[0]?.thumbnailUrl, icon: Disc3, gradient: "from-teal-500 to-cyan-300", list: suggestedList },
+    { title: artistTileTitle, art: topArtistList[0]?.thumbnailUrl, icon: Sparkles, gradient: "from-violet-500 to-violet-400", list: topArtistList.length ? topArtistList : suggestedList },
     { title: coldStart ? "Discover Mix" : "Daily Mix 1", art: dailyList[0]?.thumbnailUrl, icon: Sparkles, gradient: "from-emerald-500 to-cyan-500", list: dailyList },
-    { title: "Recently Played", art: recentList[0]?.thumbnailUrl, icon: Play, gradient: "from-rose-500 to-orange-500", list: recentList },
+    { title: "Recently Played", art: recentList[0]?.thumbnailUrl, icon: Play, gradient: "from-sky-400 to-teal-500", list: recentList },
     { title: "Late Night Lo-Fi", art: suggestedList[3]?.thumbnailUrl, icon: Radio, gradient: "from-indigo-500 to-purple-500", list: suggestedList },
   ];
 

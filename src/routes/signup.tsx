@@ -134,7 +134,7 @@ function SignupPage() {
                 type={showPassword ? "text" : "password"} value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 autoComplete="new-password" required placeholder="Create a password"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 text-white outline-none focus:ring-2 focus:ring-pink-500/60"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 text-white outline-none focus:ring-2 focus:ring-cyan-300/60"
               />
               <button
                 type="button" onClick={() => setShowPassword((v) => !v)}
@@ -182,7 +182,7 @@ function Field({ label, value, onChange, type = "text", autoComplete, placeholde
       <span className="mb-1.5 block text-xs uppercase tracking-wider text-white/50">{label}</span>
       <input
         type={type} value={value} onChange={(e) => onChange(e.target.value)} autoComplete={autoComplete} required placeholder={placeholder}
-        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-transparent focus:ring-2 focus:ring-pink-500/60"
+        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-transparent focus:ring-2 focus:ring-cyan-300/60"
       />
     </label>
   );
