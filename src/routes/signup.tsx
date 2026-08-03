@@ -75,8 +75,8 @@ function SignupPage() {
     });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Check your inbox for the 6-digit code.");
-    navigate({ to: "/verify", search: { email: parsed.data.email } });
+    toast.success("Welcome to Vibtune — your account is ready.");
+    navigate({ to: "/onboarding" });
   }
 
   async function handleGoogle() {
@@ -156,7 +156,7 @@ function SignupPage() {
         </div>
 
         <p className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/60">
-          After creating your account you'll get a 6-digit code by email. Enter it on the next screen to verify your address, then finish onboarding.
+          No code to enter — you're signed in right away and we'll email you a quick welcome. Next up: a short onboarding to tune your feed.
         </p>
 
         <button
