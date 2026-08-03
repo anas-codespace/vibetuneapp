@@ -338,9 +338,9 @@ function AppHome() {
 
 
   return (
-    <main className="relative min-h-screen bg-[#000000] pb-[140px]">
+    <main className="relative min-h-screen bg-background pb-[140px]">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#000000]/80 px-6 pb-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-md flex items-center justify-center">
+      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/80 px-6 pb-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-md flex items-center justify-center">
         <h1 className="text-base font-bold tracking-tight text-white">
           <span aria-hidden="true">Vibe<span className="text-pink-500">tune</span></span>
           <span className="sr-only">Vibtune — Personalized Music Player</span>

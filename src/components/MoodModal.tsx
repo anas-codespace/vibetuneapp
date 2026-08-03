@@ -233,7 +233,7 @@ export function MoodModal({ open, onClose, userName, onResult }: Props) {
                     transition={{ duration: 0.3, ease: "easeOut" }}
                     className="grid place-items-center py-10 text-center"
                   >
-                    <div className="vibe-gradient grid h-16 w-16 place-items-center rounded-full text-2xl shadow-[0_0_30px_-4px_rgba(236,0,140,0.7)]">
+                    <div className="vibe-gradient grid h-16 w-16 place-items-center rounded-full text-2xl shadow-[0_0_30px_-4px_rgba(127,216,232,0.7)]">
                       {mood?.emoji}
                     </div>
                     <p className="mt-4 text-xs font-bold uppercase tracking-[0.25em] text-white/50">

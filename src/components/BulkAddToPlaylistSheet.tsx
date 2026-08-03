@@ -110,7 +110,7 @@ export function BulkAddToPlaylistSheet({ open, onClose, tracks, onDone }: Props)
                 <button
                   onClick={handleCreate}
                   disabled={!newName.trim() || busy}
-                  className="vibe-gradient grid h-11 w-11 place-items-center rounded-full text-white shadow-[0_0_20px_-4px_rgba(236,0,140,0.6)] disabled:opacity-40"
+                  className="vibe-gradient grid h-11 w-11 place-items-center rounded-full text-white shadow-[0_0_20px_-4px_rgba(127,216,232,0.6)] disabled:opacity-40"
                 >
                   <Plus className="h-5 w-5" />
                 </button>

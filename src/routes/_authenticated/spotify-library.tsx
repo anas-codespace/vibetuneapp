@@ -41,7 +41,7 @@ function SpotifyLibrary() {
   });
 
   return (
-    <main className="min-h-screen bg-black pb-24 pt-[calc(env(safe-area-inset-top)+1rem)] text-white">
+    <main className="min-h-screen bg-background pb-24 pt-[calc(env(safe-area-inset-top)+1rem)] text-white">
       <div className="mx-auto max-w-2xl px-5">
         <header className="flex items-center gap-3">
           <Link to="/app" className="grid h-9 w-9 place-items-center rounded-full bg-white/5 hover:bg-white/10">

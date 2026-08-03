@@ -74,7 +74,7 @@ export function SummaryStep({
                         scale: { duration: 0.2 },
                       }}
                       onClick={() => onToggleLang(lang)}
-                      className="group inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#7D3FF3]/20 to-[#EC008C]/20 px-3.5 py-1.5 text-sm font-medium text-white/90 ring-1 ring-white/10 transition hover:from-[#7D3FF3]/30 hover:to-[#EC008C]/30 hover:ring-white/20"
+                      className="group inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#a78bfa]/20 to-[#7fd8e8]/20 px-3.5 py-1.5 text-sm font-medium text-white/90 ring-1 ring-white/10 transition hover:from-[#a78bfa]/30 hover:to-[#7fd8e8]/30 hover:ring-white/20"
                     >
                       {lang}
                       <X className="h-3.5 w-3.5 text-white/40 transition group-hover:text-white" />
@@ -161,7 +161,7 @@ export function SummaryStep({
           className={cn(
             "rounded-full px-8 py-3 text-sm font-semibold transition-all",
             !saving
-              ? "vibe-gradient-h text-white shadow-[0_0_40px_-10px_rgba(236,0,140,0.7)] hover:scale-105"
+              ? "vibe-gradient-h text-white shadow-[0_0_40px_-10px_rgba(127,216,232,0.7)] hover:scale-105"
               : "cursor-not-allowed bg-white/5 text-white/30",
           )}
         >

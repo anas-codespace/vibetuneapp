@@ -161,7 +161,7 @@ function LoginPage() {
 
 
   return (
-    <main className="flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-black p-4">
+    <main className="flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-background p-4">
       <motion.form
         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
         onSubmit={handleSubmit}

@@ -355,7 +355,7 @@ function SpotifySettings() {
   const connected = !!connection.data;
 
   return (
-    <main className="min-h-screen bg-black pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] text-white">
+    <main className="min-h-screen bg-background pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] text-white">
       <div className="mx-auto max-w-md px-5">
         <div className="flex items-center gap-3">
           <Link to="/profile" className="grid h-9 w-9 place-items-center rounded-full bg-white/5 hover:bg-white/10">

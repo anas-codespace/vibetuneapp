@@ -93,7 +93,7 @@ function YouTubeSettingsPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-black text-white pb-24">
+    <div className="min-h-[100dvh] bg-background text-white pb-24">
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-white/10 bg-black/80 px-4 py-4 backdrop-blur">
         <Link to="/profile" className="rounded-full p-2 hover:bg-white/10" aria-label="Back">
           <ChevronLeft className="h-5 w-5" />

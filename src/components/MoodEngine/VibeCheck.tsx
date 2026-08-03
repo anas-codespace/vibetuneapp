@@ -236,7 +236,7 @@ export function VibeCheck({
             exit={{ y: 40, opacity: 0, scale: 0.98 }}
             transition={spring}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md overflow-hidden rounded-3xl border border-[#222] bg-[#000000] p-5 pt-4 shadow-[0_20px_80px_-20px_rgba(255,0,127,0.4)]"
+            className="relative w-full max-w-md overflow-hidden rounded-3xl border border-[#222] bg-background p-5 pt-4 shadow-[0_20px_80px_-20px_rgba(127,216,232,0.4)]"
           >
             {/* Close */}
             <button
@@ -302,7 +302,7 @@ export function VibeCheck({
                             className={cn(
                               "aspect-square rounded-2xl border p-4 text-left transition",
                               active
-                                ? "border-pink-500 bg-pink-500/10 shadow-[0_0_24px_-6px_rgba(255,0,127,0.7)]"
+                                ? "border-pink-500 bg-pink-500/10 shadow-[0_0_24px_-6px_rgba(127,216,232,0.7)]"
                                 : "border-white/5 bg-white/5 hover:bg-white/[0.07]",
                             )}
                           >
@@ -350,7 +350,7 @@ export function VibeCheck({
                             className={cn(
                               "flex w-full items-center gap-3 rounded-full border px-5 py-4 text-left transition",
                               active
-                                ? "border-pink-500 bg-pink-500/10 shadow-[0_0_24px_-6px_rgba(255,0,127,0.7)]"
+                                ? "border-pink-500 bg-pink-500/10 shadow-[0_0_24px_-6px_rgba(127,216,232,0.7)]"
                                 : "border-white/5 bg-white/5 hover:bg-white/[0.07]",
                             )}
                           >
@@ -384,7 +384,7 @@ export function VibeCheck({
                           animate="visible"
                           whileTap={{ scale: 0.97 }}
                           onClick={() => pickFlavor(opt)}
-                          className="relative h-56 w-44 shrink-0 overflow-hidden rounded-2xl border border-white/5 bg-black text-left"
+                          className="relative h-56 w-44 shrink-0 overflow-hidden rounded-2xl border border-white/5 bg-background text-left"
                         >
                           <div
                             className={cn(
@@ -429,12 +429,12 @@ export function VibeCheck({
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-                        className="absolute inset-2 rounded-full bg-gradient-to-tr from-violet-600 via-fuchsia-500 to-pink-500 shadow-[0_0_60px_-10px_rgba(255,0,127,0.8)]"
+                        className="absolute inset-2 rounded-full bg-gradient-to-tr from-violet-600 via-fuchsia-500 to-pink-500 shadow-[0_0_60px_-10px_rgba(127,216,232,0.8)]"
                       />
                       <motion.div
                         animate={{ scale: [0.95, 1.05, 0.95] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                        className="absolute inset-6 rounded-full bg-[#000000]/60 backdrop-blur-md"
+                        className="absolute inset-6 rounded-full bg-background/60 backdrop-blur-md"
                       />
                     </div>
                     <p className="text-base font-semibold text-white">
