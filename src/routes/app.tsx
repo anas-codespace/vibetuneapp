@@ -339,27 +339,51 @@ function AppHome() {
 
 
   return (
-    <main className="relative min-h-screen bg-background pb-[140px]">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/80 px-6 pb-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-md flex items-center justify-center">
-        <h1 className="text-base font-bold tracking-tight text-white">
-          <span aria-hidden="true">Vibe<span className="text-pink-500">tune</span></span>
-          <span className="sr-only">Vibtune — Personalized Music Player</span>
-        </h1>
+    <main className="relative min-h-screen pb-[140px]">
+      {/* Masthead */}
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/75 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+1.25rem)] backdrop-blur-xl">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+          <h1 className="font-display text-lg font-semibold tracking-tight text-white">
+            <span aria-hidden="true">Vibe<span className="vibe-text">tune</span></span>
+            <span className="sr-only">Vibtune — Personalized Music Player</span>
+          </h1>
+          <span className="eyebrow">{greeting}</span>
+        </div>
       </header>
 
-      <section className="mx-auto mt-6 max-w-md px-5">
-        {/* Greeting */}
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/40 min-h-[1em]">
-          {greeting}
-        </p>
-        <h2 className="mt-1 text-2xl font-bold text-white">
-          {displayName}
-          <span className="vibe-text">.</span>
-        </h2>
+      <section className="mx-auto mt-7 max-w-md px-5">
+        {/* Featured block */}
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+          <div className="min-w-0">
+            <p className="eyebrow">Today's rotation</p>
+            <h2 className="mt-2 font-display text-[2.6rem] leading-[0.95] font-semibold tracking-tight text-white">
+              {displayName}
+              <span className="vibe-text">.</span>
+            </h2>
+            <p className="mt-2 max-w-[24ch] text-sm text-white/55">
+              Picked from what you played, where you are, and the languages you love.
+            </p>
+          </div>
+          {featured ? (
+            <button
+              onClick={() => play(featured, suggestedForYou)}
+              className="group h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-white/10 shadow-[var(--shadow-vibe)] transition-transform active:scale-[0.97]"
+              aria-label={`Play ${featured.title}`}
+            >
+              <CleanArt
+                mode="track"
+                artist={featured.artist}
+                title={featured.title}
+                fallbackSrc={featured.thumbnailUrl}
+                alt={featured.title}
+              />
+            </button>
+          ) : null}
+        </div>
 
         {/* Quick Picks 2-col grid */}
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        <div className="mt-7 grid grid-cols-2 gap-3">
+
           {quickPicks.map((qp, i) => {
             const Icon = qp.icon;
             return (
