@@ -180,7 +180,7 @@ function Toggle({
       </div>
       <span
         className={`relative h-6 w-11 rounded-full transition-colors ${
-          value ? "bg-fuchsia-500" : "bg-white/15"
+          value ? "bg-violet-400" : "bg-white/15"
         }`}
       >
         <span

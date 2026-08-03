@@ -97,7 +97,7 @@ function SignupPage() {
   }
 
   return (
-    <main className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-black p-4">
+    <main className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-background p-4">
       <motion.form
         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
         onSubmit={handleSubmit}
@@ -134,7 +134,7 @@ function SignupPage() {
                 type={showPassword ? "text" : "password"} value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 autoComplete="new-password" required placeholder="Create a password"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 text-white outline-none focus:ring-2 focus:ring-pink-500/60"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 text-white outline-none focus:ring-2 focus:ring-cyan-300/60"
               />
               <button
                 type="button" onClick={() => setShowPassword((v) => !v)}
@@ -161,7 +161,7 @@ function SignupPage() {
 
         <button
           type="submit" disabled={loading || googleLoading}
-          className="vibe-gradient-h mt-6 w-full rounded-full py-3.5 font-semibold text-white disabled:opacity-60"
+          className="vibe-gradient-h mt-6 w-full rounded-full py-3.5 font-semibold text-[#050b14] disabled:opacity-60"
         >
           {loading ? "Creating…" : "Create account"}
         </button>
@@ -182,7 +182,7 @@ function Field({ label, value, onChange, type = "text", autoComplete, placeholde
       <span className="mb-1.5 block text-xs uppercase tracking-wider text-white/50">{label}</span>
       <input
         type={type} value={value} onChange={(e) => onChange(e.target.value)} autoComplete={autoComplete} required placeholder={placeholder}
-        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-transparent focus:ring-2 focus:ring-pink-500/60"
+        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-transparent focus:ring-2 focus:ring-cyan-300/60"
       />
     </label>
   );

@@ -258,11 +258,11 @@ function AppHome() {
 
   type QuickPick = { title: string; art: string | undefined; icon: typeof Heart; gradient: string; list: VibeTrack[] };
   const quickPicks: QuickPick[] = [
-    { title: "Liked Songs", art: likedList[0]?.thumbnailUrl, icon: Heart, gradient: "from-pink-500 to-violet-500", list: likedList },
-    { title: `${primaryLangLabel} Top`, art: suggestedList[0]?.thumbnailUrl, icon: Disc3, gradient: "from-orange-500 to-pink-500", list: suggestedList },
-    { title: artistTileTitle, art: topArtistList[0]?.thumbnailUrl, icon: Sparkles, gradient: "from-violet-500 to-fuchsia-500", list: topArtistList.length ? topArtistList : suggestedList },
+    { title: "Liked Songs", art: likedList[0]?.thumbnailUrl, icon: Heart, gradient: "from-cyan-300 to-violet-500", list: likedList },
+    { title: `${primaryLangLabel} Top`, art: suggestedList[0]?.thumbnailUrl, icon: Disc3, gradient: "from-teal-500 to-cyan-300", list: suggestedList },
+    { title: artistTileTitle, art: topArtistList[0]?.thumbnailUrl, icon: Sparkles, gradient: "from-violet-500 to-violet-400", list: topArtistList.length ? topArtistList : suggestedList },
     { title: coldStart ? "Discover Mix" : "Daily Mix 1", art: dailyList[0]?.thumbnailUrl, icon: Sparkles, gradient: "from-emerald-500 to-cyan-500", list: dailyList },
-    { title: "Recently Played", art: recentList[0]?.thumbnailUrl, icon: Play, gradient: "from-rose-500 to-orange-500", list: recentList },
+    { title: "Recently Played", art: recentList[0]?.thumbnailUrl, icon: Play, gradient: "from-sky-400 to-teal-500", list: recentList },
     { title: "Late Night Lo-Fi", art: suggestedList[3]?.thumbnailUrl, icon: Radio, gradient: "from-indigo-500 to-purple-500", list: suggestedList },
   ];
 
@@ -272,6 +272,8 @@ function AppHome() {
   );
   const popularRadios = ensureFilled(topArtistList.slice(0, 20));
   const newReleases = ensureFilled(dailyList.slice(0, 20));
+  const featured = suggestedForYou[0] ?? trendingNow[0] ?? null;
+
 
 
   const renderCarousel = (
@@ -285,17 +287,18 @@ function AppHome() {
     artistArt = false,
   ) => (
 
-    <div className="mt-8">
+    <div className="mt-9 rule-hair pt-4">
       <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-base font-bold text-white">{title}</h3>
+        <h3 className="font-display text-xl font-semibold tracking-tight text-white">{title}</h3>
         {trailing ? (
           trailing
         ) : (
-          <button className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40 hover:text-white">
+          <button className="eyebrow shrink-0 whitespace-nowrap transition-colors hover:text-white">
             See all
           </button>
         )}
       </div>
+
 
       <div className="-mx-5 mt-3 flex snap-x snap-mandatory scroll-px-5 gap-x-5 overflow-x-auto px-5 pb-6 hide-scrollbar [&>*]:snap-always">
         {(isLoading || sectionLoading) &&
@@ -338,27 +341,51 @@ function AppHome() {
 
 
   return (
-    <main className="relative min-h-screen bg-[#000000] pb-[140px]">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#000000]/80 px-6 pb-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] backdrop-blur-md flex items-center justify-center">
-        <h1 className="text-base font-bold tracking-tight text-white">
-          <span aria-hidden="true">Vibe<span className="text-pink-500">tune</span></span>
-          <span className="sr-only">Vibtune — Personalized Music Player</span>
-        </h1>
+    <main className="relative min-h-screen pb-[140px]">
+      {/* Masthead */}
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/75 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+1.25rem)] backdrop-blur-xl">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+          <h1 className="font-display text-lg font-semibold tracking-tight text-white">
+            <span aria-hidden="true">Vibe<span className="vibe-text">tune</span></span>
+            <span className="sr-only">Vibtune — Personalized Music Player</span>
+          </h1>
+          <span className="eyebrow">{greeting}</span>
+        </div>
       </header>
 
-      <section className="mx-auto mt-6 max-w-md px-5">
-        {/* Greeting */}
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/40 min-h-[1em]">
-          {greeting}
-        </p>
-        <h2 className="mt-1 text-2xl font-bold text-white">
-          {displayName}
-          <span className="vibe-text">.</span>
-        </h2>
+      <section className="mx-auto mt-7 max-w-md px-5">
+        {/* Featured block */}
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+          <div className="min-w-0">
+            <p className="eyebrow">Today's rotation</p>
+            <h2 className="mt-2 font-display text-[2.6rem] leading-[0.95] font-semibold tracking-tight text-white">
+              {displayName}
+              <span className="vibe-text">.</span>
+            </h2>
+            <p className="mt-2 max-w-[24ch] text-sm text-white/55">
+              Picked from what you played, where you are, and the languages you love.
+            </p>
+          </div>
+          {featured ? (
+            <button
+              onClick={() => play(featured, suggestedForYou)}
+              className="group h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-white/10 shadow-[var(--shadow-vibe)] transition-transform active:scale-[0.97]"
+              aria-label={`Play ${featured.title}`}
+            >
+              <CleanArt
+                mode="track"
+                artist={featured.artist}
+                title={featured.title}
+                fallbackSrc={featured.thumbnailUrl}
+                alt={featured.title}
+              />
+            </button>
+          ) : null}
+        </div>
 
         {/* Quick Picks 2-col grid */}
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        <div className="mt-7 grid grid-cols-2 gap-3">
+
           {quickPicks.map((qp, i) => {
             const Icon = qp.icon;
             return (

@@ -80,9 +80,9 @@ function toArtistInfo(name: string): SpotifyArtistInfo {
 }
 
 const AVATAR_COLORS = [
-  "bg-pink-500", "bg-purple-500", "bg-indigo-500",
+  "bg-cyan-300", "bg-purple-500", "bg-indigo-500",
   "bg-blue-500", "bg-teal-500", "bg-emerald-500",
-  "bg-orange-500", "bg-rose-500",
+  "bg-orange-500", "bg-sky-400",
 ];
 
 function getInitials(name: string) {
@@ -145,7 +145,7 @@ function ArtistCard({
         className={cn(
           "relative rounded-full p-1 transition-all",
           isSelected
-            ? "scale-105 bg-gradient-to-tr from-pink-500 to-purple-500"
+            ? "scale-105 bg-gradient-to-tr from-cyan-300 to-purple-500"
             : "bg-transparent group-hover:bg-white/10",
         )}
       >
@@ -227,7 +227,7 @@ export function ArtistStep({ languages, selected, onToggle, onBack, onFinish, sa
           placeholder={`Search ${activeLanguage} artists...`}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-full border border-white/10 bg-neutral-900/70 px-12 py-3 text-white placeholder:text-white/40 focus:border-pink-500 focus:outline-none"
+          className="w-full rounded-full border border-white/10 bg-neutral-900/70 px-12 py-3 text-white placeholder:text-white/40 focus:border-cyan-300 focus:outline-none"
         />
       </div>
 

@@ -161,7 +161,7 @@ function LoginPage() {
 
 
   return (
-    <main className="flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-black p-4">
+    <main className="flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-background p-4">
       <motion.form
         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
         onSubmit={handleSubmit}
@@ -172,7 +172,7 @@ function LoginPage() {
           <Link to="/" aria-label="Vibtune home" className="mb-3 sm:mb-4">
             <VibtuneLogo className="h-12 w-12 sm:h-14 sm:w-14" />
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold text-center">Welcome <span className="vibe-text">back</span></h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-center">Welcome&nbsp;<span className="vibe-text">back</span></h1>
           <p className="mt-1.5 text-sm text-white/60 text-center">
             Sign in with Google, or use your email and password.
           </p>
@@ -208,7 +208,7 @@ function LoginPage() {
           <span className="mb-1.5 block text-xs uppercase tracking-wider text-white/50">Email</span>
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email"
             placeholder="you@example.com"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500/60" />
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300/60" />
         </label>
         <label className="mb-2 block">
           <span className="mb-1.5 block text-xs uppercase tracking-wider text-white/50">Password</span>
@@ -217,7 +217,7 @@ function LoginPage() {
               type={showPassword ? "text" : "password"} required value={password}
               onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
               placeholder="Your password"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-pink-500/60"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-cyan-300/60"
             />
             <button
               type="button" onClick={() => setShowPassword((v) => !v)}
@@ -236,7 +236,7 @@ function LoginPage() {
         </div>
 
         <button type="submit" disabled={loading || googleLoading || spotifyLoading}
-          className="vibe-gradient-h mt-2 w-full rounded-full py-3.5 font-semibold text-white disabled:opacity-60">
+          className="vibe-gradient-h mt-2 w-full rounded-full py-3.5 font-semibold text-[#050b14] disabled:opacity-60">
           {loading ? "Signing in…" : "Sign in"}
         </button>
         <p className="mt-6 text-center text-sm text-white/60">

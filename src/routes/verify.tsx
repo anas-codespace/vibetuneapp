@@ -63,16 +63,16 @@ function VerifyPage() {
 
         {!initialEmail && (
           <input type="email" placeholder="Email" required value={email} onChange={(e) => setEmail(e.target.value)}
-            className="mb-4 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500/60" />
+            className="mb-4 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300/60" />
         )}
         <input
           inputMode="numeric" maxLength={6} required value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           placeholder="000000"
-          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-center font-mono text-3xl tracking-[0.5em] outline-none focus:ring-2 focus:ring-pink-500/60"
+          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-center font-mono text-3xl tracking-[0.5em] outline-none focus:ring-2 focus:ring-cyan-300/60"
         />
         <button type="submit" disabled={loading}
-          className="vibe-gradient-h mt-6 w-full rounded-full py-3.5 font-semibold text-white disabled:opacity-60">
+          className="vibe-gradient-h mt-6 w-full rounded-full py-3.5 font-semibold text-[#050b14] disabled:opacity-60">
           {loading ? "Verifying…" : "Verify & continue"}
         </button>
         <button type="button" onClick={resend} className="mt-4 text-sm text-white/60 hover:text-white">

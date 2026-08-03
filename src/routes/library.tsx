@@ -168,7 +168,7 @@ function LibraryPage() {
       <section className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-4">
         <button
           onClick={playLiked}
-          className="group relative flex h-28 flex-col justify-end overflow-hidden rounded-lg bg-gradient-to-br from-fuchsia-600 to-pink-500 p-4 text-left shadow-lg active:scale-[0.98]"
+          className="group relative flex h-28 flex-col justify-end overflow-hidden rounded-lg bg-gradient-to-br from-violet-500 to-cyan-300 p-4 text-left shadow-lg active:scale-[0.98]"
         >
           <Heart
             className="absolute -bottom-4 -right-4 h-20 w-20 rotate-12 text-white/20 transition-transform group-hover:scale-110"
@@ -333,7 +333,7 @@ function LibraryPage() {
               </p>
               <button
                 onClick={() => setBulkOpen(true)}
-                className="vibe-gradient flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold text-white shadow-[0_0_18px_-4px_rgba(236,0,140,0.7)]"
+                className="vibe-gradient flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold text-[#050b14] shadow-[0_0_18px_-4px_rgba(127,216,232,0.7)]"
               >
                 <ListPlus className="h-4 w-4" /> Add to playlist
               </button>
@@ -378,7 +378,7 @@ function LibraryPage() {
               <button
                 onClick={() => name.trim() && create.mutate(name.trim())}
                 disabled={!name.trim() || create.isPending}
-                className="vibe-gradient mt-4 w-full rounded-full py-3 text-sm font-semibold text-white shadow-[0_0_20px_-4px_rgba(236,0,140,0.6)] disabled:opacity-40"
+                className="vibe-gradient mt-4 w-full rounded-full py-3 text-sm font-semibold text-[#050b14] shadow-[0_0_20px_-4px_rgba(127,216,232,0.6)] disabled:opacity-40"
               >
                 Create
               </button>

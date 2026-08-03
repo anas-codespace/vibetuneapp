@@ -394,7 +394,7 @@ function SpotifyCallback() {
   }, [exchange, completeLogin, autoSync, getAuthUrl, getLoginAuthUrl, navigate]);
 
   return (
-    <main className="grid min-h-screen place-items-center bg-black px-6 text-white">
+    <main className="grid min-h-screen place-items-center bg-background px-6 text-white">
       <div className="flex max-w-sm flex-col items-center gap-3 text-center">
         {(status === "working" || status === "syncing") && <Loader2 className="h-8 w-8 animate-spin text-white/70" />}
         {status === "done" && <CheckCircle2 className="h-10 w-10 text-emerald-400" />}

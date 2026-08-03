@@ -225,7 +225,7 @@ function ProfilePage() {
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/80 text-white backdrop-blur-xl transition hover:bg-black disabled:opacity-50"
+              className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/80 text-white backdrop-blur-xl transition hover:bg-background disabled:opacity-50"
               aria-label="Change avatar"
             >
               <Camera className="h-4 w-4" />
@@ -325,7 +325,7 @@ function ProfilePage() {
             const inner = (
               <>
                 <div className="flex items-center gap-4">
-                  <div className="rounded-lg bg-white/5 p-2 text-white/70 transition-colors group-hover:bg-fuchsia-500/20 group-hover:text-fuchsia-400">
+                  <div className="rounded-lg bg-white/5 p-2 text-white/70 transition-colors group-hover:bg-violet-400/20 group-hover:text-violet-300">
                     <item.icon size={20} />
                   </div>
                   <span className="font-medium text-white/90">{item.label}</span>

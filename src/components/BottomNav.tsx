@@ -36,7 +36,7 @@ export function BottomNav() {
     <nav
       ref={navRef}
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 h-[72px] border-t border-white/5 bg-[#000000] pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-40 h-[72px] border-t border-white/5 bg-background pb-[env(safe-area-inset-bottom)]"
     >
       <div className="mx-auto flex h-full max-w-md items-stretch justify-around px-2">
         {items.map(({ to, label, icon: Icon }) => {
@@ -48,7 +48,7 @@ export function BottomNav() {
               aria-label={label}
               className={cn(
                 "flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
-                active ? "text-pink-500" : "text-gray-500 hover:text-gray-300",
+                active ? "text-cyan-300" : "text-gray-500 hover:text-gray-300",
               )}
             >
               <Icon

@@ -76,7 +76,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Vibtune — Feel the Vibe" },
       { name: "description", content: "A luxury music streaming experience. Discover artists, ride the vibe wave." },
-      { name: "theme-color", content: "#000000" },
+      { name: "theme-color", content: "#050b14" },
       { property: "og:title", content: "Vibtune — Feel the Vibe" },
       { property: "og:description", content: "A luxury music streaming experience. Discover artists, ride the vibe wave." },
       { property: "og:type", content: "website" },
@@ -87,12 +87,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/AhzO8cA736bvtGgd3tPSDcAaiOA3/social-images/social-1783799353750-ChatGPT_Image_May_5,_2026,_05_11_12_PM.webp" },
     ],
     links: [
+      { rel: "preconnect", href: "https://api.fontshare.com" },
+      { rel: "preconnect", href: "https://cdn.fontshare.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700&display=swap",
+      },
       {
         rel: "stylesheet",
         href: appCss,
       },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
     ],
+
 
   }),
   shellComponent: RootShell,

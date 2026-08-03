@@ -355,7 +355,7 @@ function SpotifySettings() {
   const connected = !!connection.data;
 
   return (
-    <main className="min-h-screen bg-black pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] text-white">
+    <main className="min-h-screen bg-background pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] text-white">
       <div className="mx-auto max-w-md px-5">
         <div className="flex items-center gap-3">
           <Link to="/profile" className="grid h-9 w-9 place-items-center rounded-full bg-white/5 hover:bg-white/10">
@@ -545,7 +545,7 @@ function SpotifySettings() {
             {/* Import Liked */}
             <section className="mt-4 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
               <div className="flex items-center gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-full bg-pink-500/15 text-pink-400">
+                <div className="grid h-11 w-11 place-items-center rounded-full bg-cyan-300/15 text-cyan-300">
                   <Heart className="h-5 w-5" />
                 </div>
                 <div className="flex-1">

@@ -20,7 +20,7 @@ export const Route = createFileRoute("/spotify-dashboard")({
 
 function ConnectPrompt() {
   return (
-    <main className="grid min-h-screen place-items-center bg-black px-6 text-white">
+    <main className="grid min-h-screen place-items-center bg-background px-6 text-white">
       <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-center">
         <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#1DB954]/15 text-[#1DB954]">
           <Music2 className="h-6 w-6" />
@@ -68,7 +68,7 @@ function SpotifyDashboard() {
     liked.error instanceof Error && liked.error.message.includes("expired");
   if (expired) {
     return (
-      <main className="grid min-h-screen place-items-center bg-black px-6 text-white">
+      <main className="grid min-h-screen place-items-center bg-background px-6 text-white">
         <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-center">
           <p className="text-sm text-white/80">Your Spotify session expired.</p>
           <Link
@@ -83,7 +83,7 @@ function SpotifyDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-black pb-24 pt-[calc(env(safe-area-inset-top)+1rem)] text-white">
+    <main className="min-h-screen bg-background pb-24 pt-[calc(env(safe-area-inset-top)+1rem)] text-white">
       <div className="mx-auto max-w-2xl px-5">
         <header className="flex items-center gap-3">
           {me.data?.images?.[0]?.url ? (

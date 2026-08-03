@@ -5,10 +5,11 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * VIBETUNE — Deep Obsidian Noir + Vibe Wave Gradient
- * Strict palette: #000000 / Violet #7D3FF3 → Magenta #EC008C → Coral #FF4500
- * Glassmorphism, breathing glow, gradient borders.
+ * VIBETUNE — Aurora Cool
+ * Ink-blue base #050b14 / #0d1b2a, teal #2d8a9e + violet #a78bfa aurora accents.
+ * Type: Clash Display (display) + Satoshi (body). Glass, aurora bloom, hairline rules.
  */
+
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -40,74 +41,91 @@
   --color-magenta: var(--vibe-magenta);
   --color-coral: var(--vibe-coral);
   --color-glass: var(--glass);
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Clash Display", "Space Grotesk", system-ui, sans-serif;
+  --font-sans: "Satoshi", "Inter", system-ui, sans-serif;
   --animate-breathe: breathe 4s ease-in-out infinite;
   --animate-vibe-pulse: vibePulse 2.4s ease-in-out infinite;
   --animate-shimmer: shimmer 3s linear infinite;
   --animate-float: float 6s ease-in-out infinite;
+
 }
 
 :root {
   --radius: 1rem;
 
-  /* Obsidian base */
-  --background: oklch(0.04 0 0);
-  --foreground: oklch(0.97 0.01 280);
+  /* Ink-blue base */
+  --background: oklch(0.16 0.028 250);
+  --foreground: oklch(0.97 0.008 240);
 
-  --card: oklch(0.08 0.01 280);
-  --card-foreground: oklch(0.97 0.01 280);
-  --popover: oklch(0.08 0.01 280);
-  --popover-foreground: oklch(0.97 0.01 280);
+  --card: oklch(0.22 0.035 250);
+  --card-foreground: oklch(0.97 0.008 240);
+  --popover: oklch(0.21 0.035 250);
+  --popover-foreground: oklch(0.97 0.008 240);
 
-  /* Vibe Wave gradient stops */
-  --vibe-violet: oklch(0.55 0.27 295);   /* #7D3FF3 */
-  --vibe-magenta: oklch(0.60 0.32 0);    /* #EC008C */
-  --vibe-coral: oklch(0.70 0.23 40);     /* #FF4500 */
+  /* Aurora accent stops (names kept for backwards compatibility) */
+  --vibe-violet: oklch(0.75 0.14 295);   /* #a78bfa */
+  --vibe-magenta: oklch(0.65 0.10 214);  /* #2d8a9e brightened */
+  --vibe-coral: oklch(0.85 0.11 200);    /* iced cyan */
 
   --primary: var(--vibe-magenta);
-  --primary-foreground: oklch(0.98 0 0);
+  --primary-foreground: oklch(0.16 0.03 250);
 
-  --secondary: oklch(0.14 0.02 290);
-  --secondary-foreground: oklch(0.97 0.01 280);
+  --secondary: oklch(0.26 0.04 250);
+  --secondary-foreground: oklch(0.97 0.008 240);
 
-  --muted: oklch(0.12 0.01 280);
-  --muted-foreground: oklch(0.65 0.03 280);
+  --muted: oklch(0.24 0.035 250);
+  --muted-foreground: oklch(0.72 0.03 235);
 
   --accent: var(--vibe-violet);
-  --accent-foreground: oklch(0.98 0 0);
+  --accent-foreground: oklch(0.16 0.03 250);
 
-  --destructive: oklch(0.62 0.24 25);
+  --destructive: oklch(0.62 0.20 20);
   --destructive-foreground: oklch(0.98 0 0);
 
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: var(--vibe-magenta);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: var(--vibe-coral);
 
-  --glass: oklch(1 0 0 / 5%);
+  --glass: oklch(1 0 0 / 6%);
 
-  --gradient-vibe: linear-gradient(135deg, #7D3FF3 0%, #EC008C 55%, #FF4500 100%);
-  --gradient-vibe-horizontal: linear-gradient(90deg, #7D3FF3 0%, #EC008C 55%, #FF4500 100%);
-  --gradient-vibe-radial: radial-gradient(ellipse at top, rgba(125,63,243,0.25), transparent 55%),
-                          radial-gradient(ellipse at bottom right, rgba(236,0,140,0.18), transparent 60%),
-                          radial-gradient(ellipse at bottom left, rgba(255,69,0,0.15), transparent 60%);
-  --shadow-vibe: 0 0 60px -10px rgba(236, 0, 140, 0.4);
-  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+  --ink-0: #050b14;
+  --ink-1: #0d1b2a;
+  --aurora-teal: #2d8a9e;
+  --aurora-violet: #a78bfa;
+  --aurora-ice: #7fd8e8;
+
+  --gradient-vibe: linear-gradient(135deg, var(--aurora-teal) 0%, var(--aurora-ice) 45%, var(--aurora-violet) 100%);
+  --gradient-vibe-horizontal: linear-gradient(90deg, var(--aurora-teal) 0%, var(--aurora-ice) 45%, var(--aurora-violet) 100%);
+  --gradient-vibe-radial: radial-gradient(ellipse at 20% -10%, rgba(45,138,158,0.32), transparent 58%),
+                          radial-gradient(ellipse at 90% 10%, rgba(167,139,250,0.24), transparent 58%),
+                          radial-gradient(ellipse at 50% 110%, rgba(127,216,232,0.14), transparent 62%);
+  --shadow-vibe: 0 0 70px -14px rgba(127, 216, 232, 0.45);
+  --shadow-glass: 0 10px 40px 0 rgba(0, 0, 0, 0.55);
 }
+
 
 .dark { color-scheme: dark; }
 
 @layer base {
   * { border-color: var(--color-border); }
-  html { color-scheme: dark; }
+  html { color-scheme: dark; overflow-x: clip; }
   body {
-    background-color: #000000;
+    background-color: var(--ink-0);
+    background-image: var(--gradient-vibe-radial);
+    background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-sans);
     min-height: 100vh;
+    overflow-x: clip;
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    overflow-wrap: anywhere;
+  }
 }
 
 @layer components {
@@ -120,21 +138,21 @@
     color: transparent;
   }
   .glass {
-    background: rgba(255,255,255,0.04);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(13, 27, 42, 0.55);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border: 1px solid rgba(255,255,255,0.09);
     box-shadow: var(--shadow-glass);
   }
   .glass-strong {
-    background: rgba(255,255,255,0.06);
-    backdrop-filter: blur(40px) saturate(200%);
-    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    background: rgba(13, 27, 42, 0.78);
+    backdrop-filter: blur(40px) saturate(170%);
+    -webkit-backdrop-filter: blur(40px) saturate(170%);
     border: 1px solid rgba(255,255,255,0.12);
   }
   .gradient-border {
     position: relative;
-    background: rgba(10,10,10,0.6);
+    background: rgba(13, 27, 42, 0.7);
     border-radius: var(--radius-xl);
   }
   .gradient-border::before {
@@ -150,26 +168,21 @@
     mask-composite: exclude;
     pointer-events: none;
   }
-}
-
-@font-face {
-  font-family: "Space Grotesk";
-  font-style: normal;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url("https://fonts.gstatic.com/s/spacegrotesk/v15/V8mDoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj62.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Inter";
-  font-style: normal;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url("https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50ojIv1_ieOA.woff2") format("woff2");
+  /* Magazine rhythm: hairline rule + eyebrow label */
+  .rule-hair { border-top: 1px solid rgba(255,255,255,0.10); }
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
+  }
 }
 
 @keyframes breathe {
-  0%, 100% { box-shadow: 0 0 20px -5px rgba(125,63,243,0.4), 0 0 40px -10px rgba(236,0,140,0.3); transform: scale(1); }
-  50% { box-shadow: 0 0 40px -5px rgba(236,0,140,0.6), 0 0 80px -10px rgba(255,69,0,0.4); transform: scale(1.02); }
+  0%, 100% { box-shadow: 0 0 22px -6px rgba(45,138,158,0.45), 0 0 48px -12px rgba(167,139,250,0.30); transform: scale(1); }
+  50% { box-shadow: 0 0 44px -6px rgba(127,216,232,0.55), 0 0 88px -12px rgba(167,139,250,0.40); transform: scale(1.02); }
 }
 @keyframes vibePulse {
   0%, 100% { opacity: 0.7; }
@@ -184,7 +197,8 @@
   50% { transform: translateY(-8px); }
 }
 
-::selection { background: rgba(236,0,140,0.4); color: white; }
+::selection { background: rgba(127,216,232,0.35); color: #050b14; }
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }

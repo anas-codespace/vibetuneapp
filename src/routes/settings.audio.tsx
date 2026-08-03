@@ -93,7 +93,7 @@ function AudioSettingsPage() {
                   toast.success(`Quality set to ${q.label}`);
                 }}
                 className={`flex items-center justify-between rounded-xl p-3 text-left transition-colors ${
-                  quality === q.id ? "bg-fuchsia-500/15" : "hover:bg-white/5"
+                  quality === q.id ? "bg-violet-400/15" : "hover:bg-white/5"
                 }`}
               >
                 <div>
@@ -103,7 +103,7 @@ function AudioSettingsPage() {
                 <span
                   className={`h-4 w-4 rounded-full border ${
                     quality === q.id
-                      ? "border-fuchsia-400 bg-fuchsia-400"
+                      ? "border-violet-300 bg-violet-300"
                       : "border-white/30"
                   }`}
                 />
@@ -126,7 +126,7 @@ function AudioSettingsPage() {
                 }}
                 className={`flex items-center gap-2 rounded-xl border p-3 text-left text-sm font-medium transition-colors ${
                   eq === p
-                    ? "border-fuchsia-400/60 bg-fuchsia-500/10 text-white"
+                    ? "border-violet-300/60 bg-violet-400/10 text-white"
                     : "border-white/5 bg-white/5 text-white/80 hover:bg-white/10"
                 }`}
               >
@@ -187,7 +187,7 @@ function Toggle({
       </div>
       <span
         className={`relative h-6 w-11 rounded-full transition-colors ${
-          value ? "bg-fuchsia-500" : "bg-white/15"
+          value ? "bg-violet-400" : "bg-white/15"
         }`}
       >
         <span

@@ -798,14 +798,14 @@ function MiniPlayer(p: MiniProps) {
           <button
             onClick={(e) => { e.stopPropagation(); likeMut.mutate(); }}
             aria-label={isLiked ? "Unlike" : "Like"}
-            className={`shrink-0 transition ${isLiked ? "text-pink-500" : "text-white/60 hover:text-white"}`}
+            className={`shrink-0 transition ${isLiked ? "text-cyan-300" : "text-white/60 hover:text-white"}`}
           >
             <Heart className="h-5 w-5" fill={isLiked ? "currentColor" : "none"} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); p.onToggle(); }}
             aria-label={p.isPlaying ? "Pause" : "Play"}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-pink-500 text-white shadow-[0_0_20px_-4px_rgba(255,0,127,0.8)] active:scale-95"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-cyan-300 text-white shadow-[0_0_20px_-4px_rgba(127,216,232,0.8)] active:scale-95"
           >
             {p.isPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />}
           </button>
@@ -896,7 +896,7 @@ function FullPlayer(p: FullProps) {
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", stiffness: 280, damping: 32 }}
-      className="fixed inset-0 z-[100] flex h-[100dvh] flex-col overflow-hidden bg-[#000000] pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-0 z-[100] flex h-[100dvh] flex-col overflow-hidden bg-background pb-[env(safe-area-inset-bottom)]"
     >
       {/* Ambient glow from artwork */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -907,7 +907,7 @@ function FullPlayer(p: FullProps) {
             className="absolute inset-0 h-full w-full scale-150 object-cover opacity-40 blur-3xl"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/70 to-[#000000]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/70 to-background" />
       </div>
 
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
@@ -932,7 +932,7 @@ function FullPlayer(p: FullProps) {
                   className={cn(
                     "rounded-full px-4 py-1.5 text-xs font-semibold capitalize transition",
                     active
-                      ? "bg-gradient-to-r from-fuchsia-600 to-pink-500 text-white shadow-[0_0_18px_-4px_rgba(236,0,140,0.6)]"
+                      ? "bg-gradient-to-r from-violet-500 to-cyan-300 text-white shadow-[0_0_18px_-4px_rgba(127,216,232,0.6)]"
                       : "bg-white/5 text-white/50 hover:text-white",
                   )}
                 >
@@ -1012,7 +1012,7 @@ function FullPlayer(p: FullProps) {
                 >
                   <Heart
                     className={cn("h-5 w-5 transition", isLiked && "fill-current")}
-                    style={isLiked ? { color: "#EC008C", filter: "drop-shadow(0 0 8px rgba(236,0,140,0.7))" } : undefined}
+                    style={isLiked ? { color: "#7fd8e8", filter: "drop-shadow(0 0 8px rgba(127,216,232,0.7))" } : undefined}
                   />
                 </button>
                 <button
@@ -1025,7 +1025,7 @@ function FullPlayer(p: FullProps) {
                 <button
                   onClick={p.onToggle}
                   aria-label={p.isPlaying ? "Pause" : "Play"}
-                  className="vibe-gradient mx-2 grid h-20 w-20 place-items-center rounded-full text-white shadow-[0_0_40px_-6px_rgba(236,0,140,0.75)] transition active:scale-95"
+                  className="vibe-gradient mx-2 grid h-20 w-20 place-items-center rounded-full text-[#050b14] shadow-[0_0_40px_-6px_rgba(127,216,232,0.75)] transition active:scale-95"
                 >
                   {p.isPlaying ? <Pause className="h-9 w-9" fill="currentColor" /> : <Play className="h-9 w-9 translate-x-0.5" fill="currentColor" />}
                 </button>
@@ -1073,7 +1073,7 @@ function FullPlayer(p: FullProps) {
               />
             </div>
             {/* Inline mini controls */}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#000000] via-[#000000]/90 to-transparent px-6 pb-4 pt-12">
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/90 to-transparent px-6 pb-4 pt-12">
               <Slider
                 value={[p.duration ? (p.progress / p.duration) * 100 : 0]}
                 onValueChange={(v) => p.duration && p.onSeek((v[0] / 100) * p.duration)}
@@ -1087,7 +1087,7 @@ function FullPlayer(p: FullProps) {
                 <button
                   onClick={p.onToggle}
                   aria-label={p.isPlaying ? "Pause" : "Play"}
-                  className="vibe-gradient grid h-14 w-14 place-items-center rounded-full text-white shadow-[0_0_24px_-4px_rgba(236,0,140,0.7)] active:scale-95"
+                  className="vibe-gradient grid h-14 w-14 place-items-center rounded-full text-[#050b14] shadow-[0_0_24px_-4px_rgba(127,216,232,0.7)] active:scale-95"
                 >
                   {p.isPlaying ? <Pause className="h-6 w-6" fill="currentColor" /> : <Play className="h-6 w-6 translate-x-0.5" fill="currentColor" />}
                 </button>

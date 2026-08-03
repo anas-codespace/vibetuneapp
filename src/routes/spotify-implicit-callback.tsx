@@ -45,7 +45,7 @@ function SpotifyCallback() {
   }, [navigate]);
 
   return (
-    <main className="grid min-h-screen place-items-center bg-black px-6 text-white">
+    <main className="grid min-h-screen place-items-center bg-background px-6 text-white">
       {error ? (
         <div className="max-w-sm rounded-2xl border border-red-400/25 bg-red-500/[0.07] p-5 text-center">
           <p className="text-sm font-semibold text-red-200">Spotify connection failed</p>

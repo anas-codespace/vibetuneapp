@@ -45,7 +45,7 @@ export function LanguageStep({ selected, onToggle, onNext }: Props) {
               className={cn(
                 "group relative inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition-all",
                 active
-                  ? "vibe-gradient text-white shadow-[0_0_30px_-8px_rgba(236,0,140,0.7)]"
+                  ? "vibe-gradient text-[#050b14] shadow-[0_0_30px_-8px_rgba(127,216,232,0.7)]"
                   : "glass text-white/80 hover:text-white",
               )}
             >
@@ -64,7 +64,7 @@ export function LanguageStep({ selected, onToggle, onNext }: Props) {
           className={cn(
             "rounded-full px-10 py-3.5 text-sm font-semibold transition-all",
             canContinue
-              ? "vibe-gradient-h text-white shadow-[0_0_40px_-10px_rgba(236,0,140,0.7)] hover:scale-105"
+              ? "vibe-gradient-h text-[#050b14] shadow-[0_0_40px_-10px_rgba(127,216,232,0.7)] hover:scale-105"
               : "cursor-not-allowed bg-white/5 text-white/30",
           )}
         >

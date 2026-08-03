@@ -60,13 +60,13 @@ function ForgotPasswordPage() {
             <span className="mb-1.5 block text-xs uppercase tracking-wider text-white/50">Email</span>
             <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email"
               placeholder="you@example.com"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500/60" />
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-300/60" />
           </label>
         )}
 
         {!sent && (
           <button type="submit" disabled={loading}
-            className="vibe-gradient-h mt-4 w-full rounded-full py-3.5 font-semibold text-white disabled:opacity-60">
+            className="vibe-gradient-h mt-4 w-full rounded-full py-3.5 font-semibold text-[#050b14] disabled:opacity-60">
             {loading ? "Sending…" : "Send reset link"}
           </button>
         )}
