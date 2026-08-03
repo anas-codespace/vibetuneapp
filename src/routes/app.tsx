@@ -285,17 +285,18 @@ function AppHome() {
     artistArt = false,
   ) => (
 
-    <div className="mt-8">
+    <div className="mt-9 rule-hair pt-4">
       <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-base font-bold text-white">{title}</h3>
+        <h3 className="font-display text-xl font-semibold tracking-tight text-white">{title}</h3>
         {trailing ? (
           trailing
         ) : (
-          <button className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40 hover:text-white">
+          <button className="eyebrow shrink-0 whitespace-nowrap transition-colors hover:text-white">
             See all
           </button>
         )}
       </div>
+
 
       <div className="-mx-5 mt-3 flex snap-x snap-mandatory scroll-px-5 gap-x-5 overflow-x-auto px-5 pb-6 hide-scrollbar [&>*]:snap-always">
         {(isLoading || sectionLoading) &&
