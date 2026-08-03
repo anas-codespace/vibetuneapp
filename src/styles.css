@@ -41,12 +41,13 @@
   --color-magenta: var(--vibe-magenta);
   --color-coral: var(--vibe-coral);
   --color-glass: var(--glass);
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Clash Display", "Space Grotesk", system-ui, sans-serif;
+  --font-sans: "Satoshi", "Inter", system-ui, sans-serif;
   --animate-breathe: breathe 4s ease-in-out infinite;
   --animate-vibe-pulse: vibePulse 2.4s ease-in-out infinite;
   --animate-shimmer: shimmer 3s linear infinite;
   --animate-float: float 6s ease-in-out infinite;
+
 }
 
 :root {
