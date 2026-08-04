@@ -32,7 +32,7 @@ describe("matchTierFor", () => {
   });
 
   it("tier 2 when every token is present out of order", () => {
-    expect(matchTierFor("theme jailer", c())).toBe(2);
+    expect(matchTierFor("theme jailer", c({ album: "" }))).toBe(2);
   });
 
   it("tier 1 when only some tokens hit", () => {
