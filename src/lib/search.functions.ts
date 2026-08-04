@@ -5,6 +5,8 @@ import { planSearchStages, evaluateStage, type SearchStage, type SearchResultLit
 import { searchTracks as spotifySearchTracks, type SpotifyPlayableResult } from "./spotify.server";
 import { searchMusicResult, fallbackSearchFromCache } from "./youtube.server";
 import { isProviderError, providerOk, type ProviderName, type ProviderResult } from "./providerResult";
+import { rankSearchResults, type SearchCandidate } from "./search-rank.server";
+import type { TasteProfile } from "./taste.server";
 
 const SEARCH_TRACE_QUERY = "jailer 2";
 const shouldTraceSearch = (query: string) => query.trim().toLowerCase() === SEARCH_TRACE_QUERY;
@@ -116,8 +118,43 @@ export interface CascadeResponse {
   providerErrors: CascadeProviderError[];
 }
 
+/** Compact taste slice the client may pass so results can be personalized. */
+const tasteSchema = z
+  .object({
+    languageMix: z.record(z.string(), z.number()).default({}),
+    topArtists: z.array(z.object({ name: z.string(), score: z.number() })).default([]),
+  })
+  .optional();
+
+/**
+ * Re-rank cascade results with the pure search ranker: exact-match tiering
+ * first, then language/artist affinity from the caller's taste profile.
+ */
+function applyRank(
+  query: string,
+  language: string | undefined,
+  results: SpotifyPlayableResult[],
+  taste: { languageMix: Record<string, number>; topArtists: Array<{ name: string; score: number }> } | undefined,
+): SpotifyPlayableResult[] {
+  if (results.length < 2) return results;
+  const byId = new Map(results.map((r) => [r.youtubeId, r]));
+  const candidates: SearchCandidate[] = results.map((r) => ({
+    youtubeId: r.youtubeId,
+    title: r.title,
+    artist: r.artist,
+    album: r.album ?? "",
+    language: language ?? null,
+  }));
+  const profile = taste
+    ? ({ topArtists: taste.topArtists, languageMix: taste.languageMix } as unknown as TasteProfile)
+    : null;
+  const ranked = rankSearchResults(query, candidates, profile);
+  const out = ranked.map((r) => byId.get(r.youtubeId)).filter(Boolean) as SpotifyPlayableResult[];
+  return out.length > 0 ? out : results;
+}
+
 export const searchCascade = createServerFn({ method: "POST" })
-  .inputValidator((d) => z.object({ query: z.string().min(1).max(200), language: z.string().min(1).max(40).optional(), max: z.number().int().min(1).max(40).optional(), transliterations: z.array(z.string().max(80)).max(6).optional() }).parse(d))
+  .inputValidator((d) => z.object({ query: z.string().min(1).max(200), language: z.string().min(1).max(40).optional(), max: z.number().int().min(1).max(40).optional(), transliterations: z.array(z.string().max(80)).max(6).optional(), taste: tasteSchema }).parse(d))
   .handler(async ({ data }): Promise<CascadeResponse> => {
     const max = data.max ?? 24;
     const stages = planSearchStages({ rawQuery: data.query, language: data.language, transliterations: data.transliterations });
@@ -148,7 +185,7 @@ export const searchCascade = createServerFn({ method: "POST" })
       if (trace) console.log("[search-trace][cascade] stage-evaluation", { stage, evalRes, lite: safeJsonForTrace(results.map(toLite)), bestStage: bestStage?.kind ?? null, bestCount: bestResults.length });
       if (evalRes.accept) {
         const isBroad = stage.broadResults || stage.kind === "raw" || stage.kind === "typo_tolerant";
-        return { results, acceptedStage: stage.kind, broadResults: isBroad, correction: stage.kind === "typo_tolerant" ? stage.query : null, unavailable: false, providerErrors };
+        return { results: applyRank(data.query, data.language, results, data.taste), acceptedStage: stage.kind, broadResults: isBroad, correction: stage.kind === "typo_tolerant" ? stage.query : null, unavailable: false, providerErrors };
       }
     }
 
@@ -167,11 +204,11 @@ export const searchCascade = createServerFn({ method: "POST" })
           durationSeconds: t.durationSeconds,
         }));
         if (trace) console.log("[search-trace][cascade] cache-fallback-hit", { count: results.length });
-        return { results, acceptedStage: null, broadResults: true, correction: null, unavailable: false, providerErrors };
+        return { results: applyRank(data.query, data.language, results, data.taste), acceptedStage: null, broadResults: true, correction: null, unavailable: false, providerErrors };
       }
     }
     const unavailable = allStagesErrored;
     if (trace) console.log("[search-trace][cascade] fallback-return-best", { acceptedStage: bestStage?.kind ?? null, broadResults: bestResults.length > 0, count: bestResults.length, unavailable, providerErrors, results: safeJsonForTrace(bestResults) });
-    return { results: bestResults, acceptedStage: bestStage?.kind ?? null, broadResults: bestResults.length > 0, correction: bestStage?.kind === "typo_tolerant" ? bestStage.query : null, unavailable, providerErrors };
+    return { results: applyRank(data.query, data.language, bestResults, data.taste), acceptedStage: bestStage?.kind ?? null, broadResults: bestResults.length > 0, correction: bestStage?.kind === "typo_tolerant" ? bestStage.query : null, unavailable, providerErrors };
 
   });

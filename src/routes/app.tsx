@@ -11,6 +11,7 @@ import { getMyProfile } from "@/lib/profile.functions";
 import { searchYouTubeOnly } from "@/lib/music.functions";
 import { getSmartMix } from "@/lib/mix.functions";
 import { getPersonalizedFeed } from "@/lib/personalized.functions";
+import { getHomeFeed } from "@/lib/feed.functions";
 import { getTrendingNearYou, getLanguageTrending } from "@/lib/trending.functions";
 import { VibeCheck } from "@/components/MoodEngine/VibeCheck";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,7 @@ function AppHome() {
   const trendingFn = useServerFn(searchYouTubeOnly);
   const trendingNearFn = useServerFn(getTrendingNearYou);
   const languageTrendingFn = useServerFn(getLanguageTrending);
+  const homeFeedFn = useServerFn(getHomeFeed);
 
   const { play, startMix } = usePlayer();
   
@@ -121,6 +123,21 @@ function AppHome() {
     staleTime: 1000 * 60 * 5,
   });
 
+
+  // Taste-driven home sections (signal layer → TasteProfile → recommender).
+  const { data: homeSections, isLoading: homeSectionsLoading } = useQuery({
+    queryKey: ["home-feed", user?.id],
+    queryFn: async () => {
+      try {
+        return await homeFeedFn();
+      } catch (err) {
+        console.error("[home-feed] failed:", err);
+        return [];
+      }
+    },
+    enabled: !!session,
+    staleTime: 1000 * 60,
+  });
 
   const favLanguages = (profile?.fav_languages as string[] | null) ?? [];
   // Prefer the explicit selector; fall back to profile fav_languages, then "tamil".
@@ -427,8 +444,32 @@ function AppHome() {
           })}
         </div>
 
+        {/* Taste-driven sections from the unified feed builder. Trending keeps
+            its dedicated selectors below, so it's excluded here. */}
+        {(homeSections ?? [])
+          .filter((s) => s.kind !== "trending" && s.tracks.length > 0)
+          .map((s) =>
+            <div key={s.id}>
+              {renderCarousel(
+                s.stale ? `${s.title}` : s.title,
+                s.tracks.map((t) => ({
+                  youtubeId: t.youtubeId,
+                  title: t.title,
+                  artist: t.artist,
+                  thumbnailUrl: t.thumbnailUrl,
+                  durationSeconds: t.durationSeconds ?? 0,
+                })),
+                (t) => t.artist || s.title,
+                homeSectionsLoading,
+                undefined,
+                s.kind === "because_you_listened_to",
+              )}
+            </div>,
+          )}
+
         {/* Horizontal sections */}
-        {renderCarousel("Suggested For You", suggestedForYou, (t) => `Mix • ${t.artist}`)}
+        {(homeSections ?? []).length === 0 &&
+          renderCarousel("Suggested For You", suggestedForYou, (t) => `Mix • ${t.artist}`)}
         {renderCarousel(
           `Trending in ${primaryLangLabel}`,
           trendingNow,
@@ -485,8 +526,12 @@ function AppHome() {
           </div>,
         )}
 
-        {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`, false, undefined, true)}
-        {renderCarousel("New Releases", newReleases, (t) => t.artist)}
+        {(homeSections ?? []).length === 0 && (
+          <>
+            {renderCarousel("Popular Radios", popularRadios, (t) => `${t.artist} Radio`, false, undefined, true)}
+            {renderCarousel("New Releases", newReleases, (t) => t.artist)}
+          </>
+        )}
 
       </section>
 
