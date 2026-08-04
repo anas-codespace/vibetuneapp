@@ -135,7 +135,7 @@ export async function readFeedCache(supabase: Db, userId: string): Promise<Cache
     .select("feed")
     .eq("user_id", userId)
     .maybeSingle();
-  return ((data?.feed ?? {}) as CachedFeed) ?? {};
+  return (data?.feed ?? {}) as CachedFeed;
 }
 
 export async function writeFeedCache(supabase: Db, userId: string, feed: CachedFeed): Promise<void> {
