@@ -400,18 +400,21 @@ export type Database = {
       user_taste_cache: {
         Row: {
           computed_at: string
+          feed: Json
           profile: Json
           updated_at: string
           user_id: string
         }
         Insert: {
           computed_at?: string
+          feed?: Json
           profile?: Json
           updated_at?: string
           user_id: string
         }
         Update: {
           computed_at?: string
+          feed?: Json
           profile?: Json
           updated_at?: string
           user_id?: string

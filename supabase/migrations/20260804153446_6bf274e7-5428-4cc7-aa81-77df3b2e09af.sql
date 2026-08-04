@@ -1,0 +1,1 @@
+ALTER TABLE public.user_taste_cache ADD COLUMN IF NOT EXISTS feed jsonb NOT NULL DEFAULT '{}'::jsonb;
