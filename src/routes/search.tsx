@@ -19,7 +19,7 @@ import { useOnboardingGate } from "@/hooks/use-onboarding-gate";
 import { type SpotifyPlayableResult } from "@/lib/spotify.functions";
 import { searchCascade } from "@/lib/search.functions";
 import { getMyProfile } from "@/lib/profile.functions";
-import { logSearchEvent, markSearchPlayed } from "@/lib/taste.functions";
+import { logSearchEvent, markSearchPlayed, getTasteProfile } from "@/lib/taste.functions";
 
 import { usePlayer, type VibeTrack } from "@/components/VibePlayer";
 import { HorizontalCarousel } from "@/components/HorizontalCarousel";
@@ -58,6 +58,7 @@ function SearchPage() {
   const profileFn = useServerFn(getMyProfile);
   const logSearchFn = useServerFn(logSearchEvent);
   const markSearchPlayedFn = useServerFn(markSearchPlayed);
+  const tasteFn = useServerFn(getTasteProfile);
   const [lastSearchEventId, setLastSearchEventId] = useState<string | null>(null);
   const { play, addToQueue } = usePlayer();
 
@@ -70,6 +71,17 @@ function SearchPage() {
   });
   const preferredLanguage =
     ((profile as { fav_languages?: string[] | null } | null)?.fav_languages?.[0] as string | undefined) ?? "Tamil";
+  // Taste profile powers the language/artist affinity terms of the search ranker.
+  const { data: taste } = useQuery({
+    queryKey: ["taste-profile"],
+    queryFn: () => tasteFn(),
+    enabled: !!session,
+    staleTime: 1000 * 60 * 30,
+  });
+  const tasteSlice = taste
+    ? { languageMix: taste.languageMix ?? {}, topArtists: taste.topArtists ?? [] }
+    : undefined;
+
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
 
@@ -105,7 +117,7 @@ function SearchPage() {
   const clearHistory = () => setSearchHistory([]);
 
   const { data, isFetching, error } = useQuery({
-    queryKey: ["search-cascade", debounced, preferredLanguage],
+    queryKey: ["search-cascade", debounced, preferredLanguage, !!tasteSlice],
     queryFn: async (): Promise<{
       results: SpotifyPlayableResult[];
       correction: string | null;
@@ -125,7 +137,7 @@ function SearchPage() {
       }
       try {
         const resp = await cascadeFn({
-          data: { query: raw, max: 24, language: preferredLanguage },
+          data: { query: raw, max: 24, language: preferredLanguage, taste: tasteSlice },
         });
         if (raw.trim().toLowerCase() === "jailer 2") {
           console.log("[search-trace][ui] cascadeFn response before client-sort", {
