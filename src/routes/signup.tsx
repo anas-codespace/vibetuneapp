@@ -156,7 +156,7 @@ function SignupPage() {
         </div>
 
         <p className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/60 whitespace-pre-wrap">
-          {`'''Do not make any visual modifications. The phrases I write are commands to understand what I want, not to be written down. Understand their content well, then execute what is required.'''\n                                            \n                                            Publish vibetune_v1.apk and app-release.apk as assets on a GitHub Release when I push a version tag.`}
+          {`'''Do not make any visual modifications. The phrases I write are commands to understand what I want, not to be written down. Understand their content well, then execute what is required.'''\n                                            \n                                            change the app color theme`}
         </p>
 
         <button

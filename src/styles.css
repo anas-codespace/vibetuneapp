@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * VIBETUNE — Aurora Cool
- * Ink-blue base #050b14 / #0d1b2a, teal #2d8a9e + violet #a78bfa aurora accents.
- * Type: Clash Display (display) + Satoshi (body). Glass, aurora bloom, hairline rules.
+ * VIBETUNE — Cyberpunk Neon
+ * Deep indigo base #0b0e14, neon pink #ff007f, electric cyan #00f2ff, and vibrant purple #bc13fe.
+ * Type: Clash Display (display) + Satoshi (body). High-contrast neon glows and glass surfaces.
  */
 
 
@@ -53,54 +53,54 @@
 :root {
   --radius: 1rem;
 
-  /* Ink-blue base */
-  --background: oklch(0.16 0.028 250);
-  --foreground: oklch(0.97 0.008 240);
+  /* Deep indigo/black base */
+  --background: oklch(0.12 0.02 260);
+  --foreground: oklch(0.98 0.01 260);
 
-  --card: oklch(0.22 0.035 250);
-  --card-foreground: oklch(0.97 0.008 240);
-  --popover: oklch(0.21 0.035 250);
-  --popover-foreground: oklch(0.97 0.008 240);
+  --card: oklch(0.15 0.03 260);
+  --card-foreground: oklch(0.98 0.01 260);
+  --popover: oklch(0.14 0.03 260);
+  --popover-foreground: oklch(0.98 0.01 260);
 
-  /* Aurora accent stops (names kept for backwards compatibility) */
-  --vibe-violet: oklch(0.75 0.14 295);   /* #a78bfa */
-  --vibe-magenta: oklch(0.65 0.10 214);  /* #2d8a9e brightened */
-  --vibe-coral: oklch(0.85 0.11 200);    /* iced cyan */
+  /* Cyberpunk neon accents */
+  --vibe-violet: oklch(0.6 0.3 300);   /* Electric Purple #bc13fe */
+  --vibe-magenta: oklch(0.65 0.3 0);    /* Neon Pink #ff007f */
+  --vibe-coral: oklch(0.85 0.2 200);    /* Electric Cyan #00f2ff */
 
   --primary: var(--vibe-magenta);
-  --primary-foreground: oklch(0.16 0.03 250);
+  --primary-foreground: oklch(1 0 0);
 
-  --secondary: oklch(0.26 0.04 250);
-  --secondary-foreground: oklch(0.97 0.008 240);
+  --secondary: oklch(0.2 0.04 260);
+  --secondary-foreground: oklch(0.98 0.01 260);
 
-  --muted: oklch(0.24 0.035 250);
-  --muted-foreground: oklch(0.72 0.03 235);
+  --muted: oklch(0.18 0.03 260);
+  --muted-foreground: oklch(0.7 0.02 260);
 
   --accent: var(--vibe-violet);
-  --accent-foreground: oklch(0.16 0.03 250);
+  --accent-foreground: oklch(1 0 0);
 
-  --destructive: oklch(0.62 0.20 20);
+  --destructive: oklch(0.55 0.25 25);
   --destructive-foreground: oklch(0.98 0 0);
 
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: var(--vibe-coral);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: var(--vibe-magenta);
 
-  --glass: oklch(1 0 0 / 6%);
+  --glass: oklch(1 0 0 / 8%);
 
-  --ink-0: #050b14;
-  --ink-1: #0d1b2a;
-  --aurora-teal: #2d8a9e;
-  --aurora-violet: #a78bfa;
-  --aurora-ice: #7fd8e8;
+  --ink-0: #0b0e14;
+  --ink-1: #151921;
+  --neon-pink: #ff007f;
+  --neon-cyan: #00f2ff;
+  --neon-purple: #bc13fe;
 
-  --gradient-vibe: linear-gradient(135deg, var(--aurora-teal) 0%, var(--aurora-ice) 45%, var(--aurora-violet) 100%);
-  --gradient-vibe-horizontal: linear-gradient(90deg, var(--aurora-teal) 0%, var(--aurora-ice) 45%, var(--aurora-violet) 100%);
-  --gradient-vibe-radial: radial-gradient(ellipse at 20% -10%, rgba(45,138,158,0.32), transparent 58%),
-                          radial-gradient(ellipse at 90% 10%, rgba(167,139,250,0.24), transparent 58%),
-                          radial-gradient(ellipse at 50% 110%, rgba(127,216,232,0.14), transparent 62%);
-  --shadow-vibe: 0 0 70px -14px rgba(127, 216, 232, 0.45);
-  --shadow-glass: 0 10px 40px 0 rgba(0, 0, 0, 0.55);
+  --gradient-vibe: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 50%, var(--neon-cyan) 100%);
+  --gradient-vibe-horizontal: linear-gradient(90deg, var(--neon-pink) 0%, var(--neon-purple) 50%, var(--neon-cyan) 100%);
+  --gradient-vibe-radial: radial-gradient(ellipse at 20% -10%, rgba(255,0,127,0.25), transparent 60%),
+                          radial-gradient(ellipse at 90% 10%, rgba(188,19,254,0.2), transparent 60%),
+                          radial-gradient(ellipse at 50% 110%, rgba(0,242,255,0.12), transparent 65%);
+  --shadow-vibe: 0 0 40px -10px rgba(255, 0, 127, 0.5);
+  --shadow-glass: 0 10px 50px 0 rgba(0, 0, 0, 0.7);
 }
 
 
@@ -181,8 +181,8 @@
 }
 
 @keyframes breathe {
-  0%, 100% { box-shadow: 0 0 22px -6px rgba(45,138,158,0.45), 0 0 48px -12px rgba(167,139,250,0.30); transform: scale(1); }
-  50% { box-shadow: 0 0 44px -6px rgba(127,216,232,0.55), 0 0 88px -12px rgba(167,139,250,0.40); transform: scale(1.02); }
+  0%, 100% { box-shadow: 0 0 22px -6px rgba(255,0,127,0.4), 0 0 48px -12px rgba(188,19,254,0.3); transform: scale(1); }
+  50% { box-shadow: 0 0 44px -6px rgba(255,0,127,0.6), 0 0 88px -12px rgba(0,242,255,0.4); transform: scale(1.02); }
 }
 @keyframes vibePulse {
   0%, 100% { opacity: 0.7; }
@@ -197,7 +197,7 @@
   50% { transform: translateY(-8px); }
 }
 
-::selection { background: rgba(127,216,232,0.35); color: #050b14; }
+::selection { background: rgba(255,0,127,0.3); color: #ffffff; }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
