@@ -40,6 +40,7 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as ApiPublicTrackCoverRouteImport } from './routes/api/public/track-cover'
 import { Route as ApiPublicArtistImageRouteImport } from './routes/api/public/artist-image'
+import { Route as AuthenticatedSettingsThemeRouteImport } from './routes/_authenticated/settings/theme'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicHealthYoutubeRouteImport } from './routes/api/public/health.youtube'
@@ -201,6 +202,12 @@ const ApiPublicArtistImageRoute = ApiPublicArtistImageRouteImport.update({
   path: '/api/public/artist-image',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSettingsThemeRoute =
+  AuthenticatedSettingsThemeRouteImport.update({
+    id: '/settings/theme',
+    path: '/settings/theme',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
   Char91DotmcpChar93InvokeToolToolRouteImport.update({
     id: '/.mcp/invoke-tool/$tool',
@@ -249,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/spotify/callback': typeof SpotifyCallbackRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/settings/theme': typeof AuthenticatedSettingsThemeRoute
   '/api/public/artist-image': typeof ApiPublicArtistImageRoute
   '/api/public/track-cover': typeof ApiPublicTrackCoverRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
@@ -284,6 +292,7 @@ export interface FileRoutesByTo {
   '/spotify/callback': typeof SpotifyCallbackRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/settings/theme': typeof AuthenticatedSettingsThemeRoute
   '/api/public/artist-image': typeof ApiPublicArtistImageRoute
   '/api/public/track-cover': typeof ApiPublicTrackCoverRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
@@ -321,6 +330,7 @@ export interface FileRoutesById {
   '/spotify/callback': typeof SpotifyCallbackRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/_authenticated/settings/theme': typeof AuthenticatedSettingsThemeRoute
   '/api/public/artist-image': typeof ApiPublicArtistImageRoute
   '/api/public/track-cover': typeof ApiPublicTrackCoverRoute
   '/api/public/health/youtube': typeof ApiPublicHealthYoutubeRoute
@@ -358,6 +368,7 @@ export interface FileRouteTypes {
     | '/spotify/callback'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/settings/theme'
     | '/api/public/artist-image'
     | '/api/public/track-cover'
     | '/api/public/health/youtube'
@@ -393,6 +404,7 @@ export interface FileRouteTypes {
     | '/spotify/callback'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/settings/theme'
     | '/api/public/artist-image'
     | '/api/public/track-cover'
     | '/api/public/health/youtube'
@@ -429,6 +441,7 @@ export interface FileRouteTypes {
     | '/spotify/callback'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/_authenticated/settings/theme'
     | '/api/public/artist-image'
     | '/api/public/track-cover'
     | '/api/public/health/youtube'
@@ -687,6 +700,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicArtistImageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/settings/theme': {
+      id: '/_authenticated/settings/theme'
+      path: '/settings/theme'
+      fullPath: '/settings/theme'
+      preLoaderRoute: typeof AuthenticatedSettingsThemeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/.mcp/invoke-tool/$tool': {
       id: '/.mcp/invoke-tool/$tool'
       path: '/.mcp/invoke-tool/$tool'
@@ -713,10 +733,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedSpotifyLibraryRoute: typeof AuthenticatedSpotifyLibraryRoute
+  AuthenticatedSettingsThemeRoute: typeof AuthenticatedSettingsThemeRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSpotifyLibraryRoute: AuthenticatedSpotifyLibraryRoute,
+  AuthenticatedSettingsThemeRoute: AuthenticatedSettingsThemeRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
