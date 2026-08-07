@@ -3,6 +3,8 @@ name: Android APK Build
 on:
   push:
     branches: [ main, master ]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -43,8 +45,14 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
-          # Note: assembleRelease requires signing config to produce app-release.apk
           ./gradlew assembleRelease
+          # Rename for clarity in releases
+          cp app/build/outputs/apk/debug/app-debug.apk ../vibetune_v1_debug.apk
+          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            cp app/build/outputs/apk/release/app-release.apk ../app-release.apk
+          else
+            cp app/build/outputs/apk/release/app-release-unsigned.apk ../app-release-unsigned.apk
+          fi
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -54,3 +62,16 @@ jobs:
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/release/app-release-unsigned.apk
             android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            vibetune_v1_debug.apk
+            app-release.apk
+            app-release-unsigned.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
