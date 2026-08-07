@@ -1,0 +1,14 @@
+services:
+  android-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile.android-build
+    volumes:
+      - .:/app
+      # Cache node_modules and gradle for faster subsequent builds
+      - /app/node_modules
+      - /root/.gradle
+    environment:
+      - GRADLE_USER_HOME=/root/.gradle
+    # Runs the build and outputs the APK to android/app/build/outputs/apk/debug/
+    command: bash -c "bun install && bun run build && npx cap sync android && cd android && ./gradlew assembleDebug"
