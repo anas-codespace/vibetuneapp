@@ -53,13 +53,13 @@
 :root {
   --radius: 1rem;
 
-  /* Deep indigo/black base */
-  --background: oklch(0.12 0.02 260);
+  /* Deep pitch black base */
+  --background: #000000;
   --foreground: oklch(0.98 0.01 260);
 
-  --card: oklch(0.15 0.03 260);
+  --card: #050505;
   --card-foreground: oklch(0.98 0.01 260);
-  --popover: oklch(0.14 0.03 260);
+  --popover: #050505;
   --popover-foreground: oklch(0.98 0.01 260);
 
   /* Cyberpunk neon accents */
@@ -88,8 +88,8 @@
 
   --glass: oklch(1 0 0 / 8%);
 
-  --ink-0: #0b0e14;
-  --ink-1: #151921;
+  --ink-0: #000000;
+  --ink-1: #0a0a0a;
   --neon-pink: #ff007f;
   --neon-cyan: #00f2ff;
   --neon-purple: #bc13fe;
