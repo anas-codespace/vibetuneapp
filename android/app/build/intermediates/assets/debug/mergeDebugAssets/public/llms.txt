@@ -1,0 +1,10 @@
+# Vibtune
+
+> Vibtune is a luxury music streaming app with smart, mood-aware mixes, playlists, and cross-device sync powered by Spotify and YouTube.
+
+## Pages
+
+- [Home](/): Landing entry that routes visitors into Vibtune.
+- [Log in](/login): Sign in to your Vibtune account.
+- [Sign up](/signup): Create a free Vibtune account.
+- [Forgot password](/forgot-password): Request a secure password reset link.
