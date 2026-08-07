@@ -690,6 +690,65 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
 
   const seek = useCallback((s: number) => playerRef.current?.seekTo?.(s, true), []);
 
+  /* --------- Now Playing: native media notification + web MediaSession --------- */
+
+  // Keep the latest transport callbacks in a ref so native listeners registered
+  // once always invoke the freshest handlers.
+  const controlsRef = useRef({ toggle, next, prev, close, seek });
+  useEffect(() => {
+    controlsRef.current = { toggle, next, prev, close, seek };
+  }, [toggle, next, prev, close, seek]);
+
+  // Register the native transport listener a single time.
+  useEffect(() => {
+    let dispose: (() => void) | undefined;
+    void requestNotificationPermission();
+    void onMediaControl((action, payload) => {
+      const c = controlsRef.current;
+      if (action === "play" || action === "pause") c.toggle();
+      else if (action === "next") c.next();
+      else if (action === "prev") c.prev();
+      else if (action === "stop") c.close();
+      else if (action === "seek" && typeof payload?.position === "number") c.seek(payload.position / 1000);
+    }).then((off) => {
+      dispose = off;
+    });
+    return () => dispose?.();
+  }, []);
+
+  // Publish metadata whenever the track or playback state changes.
+  useEffect(() => {
+    if (!current) {
+      setWebMediaSession(null, {
+        play: () => {},
+        pause: () => {},
+        next: () => {},
+        prev: () => {},
+      });
+      return;
+    }
+    const info = {
+      title: current.title,
+      artist: current.artist ?? "",
+      artwork: current.thumbnailUrl ?? "",
+      isPlaying,
+      position: Math.round(progress * 1000),
+      duration: Math.round(duration * 1000),
+    };
+    void updateNowPlaying(info);
+    setWebMediaSession(info, {
+      play: () => controlsRef.current.toggle(),
+      pause: () => controlsRef.current.toggle(),
+      next: () => controlsRef.current.next(),
+      prev: () => controlsRef.current.prev(),
+      stop: () => controlsRef.current.close(),
+      seek: (s) => controlsRef.current.seek(s),
+    });
+    // `progress` intentionally excluded — position is refreshed on the
+    // play/pause and track transitions that matter for the OS widget.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, isPlaying, duration]);
+
   return (
     <Ctx.Provider value={value}>
       {children}
