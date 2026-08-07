@@ -14,13 +14,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Install Bun
-        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
         run: bun install
@@ -40,37 +40,59 @@ jobs:
       - name: Capacitor Sync
         run: npx cap sync android
 
+      - name: Prepare signing keystore
+        id: keystore
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          KS="$RUNNER_TEMP/keys/vibetune.jks"
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$KS"
+            echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+          else
+            echo "No keystore secret found — generating a temporary signing key."
+            keytool -genkeypair -v -keystore "$KS" -alias vibetune \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass vibetune -keypass vibetune \
+              -dname "CN=Vibetune, OU=Mobile, O=Vibetune, L=Chennai, S=TN, C=IN"
+            echo "ANDROID_KEYSTORE_PASSWORD=vibetune" >> $GITHUB_ENV
+            echo "ANDROID_KEY_ALIAS=vibetune" >> $GITHUB_ENV
+            echo "ANDROID_KEY_PASSWORD=vibetune" >> $GITHUB_ENV
+          fi
+          echo "ANDROID_KEYSTORE_PATH=$KS" >> $GITHUB_ENV
+
       - name: Build Android APKs
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
           ./gradlew assembleRelease
-          # Rename for clarity in releases
-          cp app/build/outputs/apk/debug/app-debug.apk ../vibetune_v1_debug.apk
-          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
-            cp app/build/outputs/apk/release/app-release.apk ../app-release.apk
+
+      - name: Collect APKs
+        run: |
+          mkdir -p artifacts
+          cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/vibetune_v1_debug.apk
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk artifacts/app-release.apk
+            cp android/app/build/outputs/apk/release/app-release.apk artifacts/vibetune_v1.apk
           else
-            cp app/build/outputs/apk/release/app-release-unsigned.apk ../app-release-unsigned.apk
+            cp android/app/build/outputs/apk/release/app-release-unsigned.apk artifacts/app-release-unsigned.apk
           fi
+          ls -lh artifacts
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: vibtune-apks
-          path: |
-            android/app/build/outputs/apk/debug/app-debug.apk
-            android/app/build/outputs/apk/release/app-release-unsigned.apk
-            android/app/build/outputs/apk/release/app-release.apk
+          name: vibetune-apks
+          path: artifacts/*.apk
+          if-no-files-found: error
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            vibetune_v1_debug.apk
-            app-release.apk
-            app-release-unsigned.apk
+          files: artifacts/*.apk
           draft: false
           prerelease: false
         env:
