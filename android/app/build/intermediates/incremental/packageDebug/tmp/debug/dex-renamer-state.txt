@@ -1,0 +1,19 @@
+#Fri Aug 07 14:40:14 GMT 2026
+base.0=/dev-server/android/app/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex
+base.1=/dev-server/android/app/build/intermediates/dex/debug/mergeLibDexDebug/2/classes.dex
+base.2=/dev-server/android/app/build/intermediates/dex/debug/mergeLibDexDebug/5/classes.dex
+base.3=/dev-server/android/app/build/intermediates/dex/debug/mergeLibDexDebug/8/classes.dex
+base.4=/dev-server/android/app/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex
+base.5=/dev-server/android/app/build/intermediates/dex/debug/mergeProjectDexDebug/15/classes.dex
+path.0=classes.dex
+path.1=2/classes.dex
+path.2=5/classes.dex
+path.3=8/classes.dex
+path.4=0/classes.dex
+path.5=15/classes.dex
+renamed.0=classes.dex
+renamed.1=classes2.dex
+renamed.2=classes3.dex
+renamed.3=classes4.dex
+renamed.4=classes5.dex
+renamed.5=classes6.dex
