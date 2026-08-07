@@ -156,7 +156,7 @@ function SignupPage() {
         </div>
 
         <p className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/60 whitespace-pre-wrap">
-          {`'''Do not make any visual modifications. The phrases I write are commands to understand what I want, not to be written down. Understand their content well, then execute what is required.'''\n                                            \n                                            Create a signed release APK for distribution that includes my keystore configuration and outputs a ready-to-install app-release.apk.`}
+          {`'''Do not make any visual modifications. The phrases I write are commands to understand what I want, not to be written down. Understand their content well, then execute what is required.'''\n                                            \n                                            yes build apk`}
         </p>
 
         <button
