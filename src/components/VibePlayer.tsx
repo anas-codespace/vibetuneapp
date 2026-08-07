@@ -28,7 +28,14 @@ import { logListen } from "@/lib/profile.functions";
 import { logListenEvent } from "@/lib/taste.functions";
 import { getLikedIds, toggleLike } from "@/lib/library.functions";
 import { getSmartMix, getContextualQueue } from "@/lib/mix.functions";
-import { startAudioForeground, stopAudioForeground } from "@/lib/capacitor-audio";
+import {
+  startAudioForeground,
+  stopAudioForeground,
+  updateNowPlaying,
+  onMediaControl,
+  requestNotificationPermission,
+  setWebMediaSession,
+} from "@/lib/capacitor-audio";
 import { SyncedLyrics } from "@/components/SyncedLyrics";
 import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
 import { QueueDrawer } from "@/components/QueueDrawer";
