@@ -6,6 +6,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Toaster } from "sonner";
 import { VibePlayerProvider } from "@/components/VibePlayer";
 import { AppShell } from "@/components/AppShell";
@@ -124,6 +125,14 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    const savedAccent = localStorage.getItem("vibtune-accent-color");
+    if (savedAccent) {
+      document.documentElement.style.setProperty("--primary", savedAccent);
+      document.documentElement.style.setProperty("--ring", savedAccent);
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
