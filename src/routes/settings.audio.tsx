@@ -90,7 +90,7 @@ function AudioSettingsPage() {
                 onClick={() => {
                   setQuality(q.id);
                   persist(QUALITY_KEY, q.id);
-                  toast.success(`Quality set to ${q.label}`);
+                  toast.success(`Streaming quality set to ${q.label}`);
                 }}
                 className={`flex items-center justify-between rounded-xl p-3 text-left transition-colors ${
                   quality === q.id ? "bg-violet-400/15" : "hover:bg-white/5"
@@ -100,17 +100,62 @@ function AudioSettingsPage() {
                   <p className="font-medium text-white/90">{q.label}</p>
                   <p className="text-xs text-white/50">{q.desc}</p>
                 </div>
-                <span
-                  className={`h-4 w-4 rounded-full border ${
+                <div
+                  className={`h-4 w-4 rounded-full border flex items-center justify-center ${
                     quality === q.id
-                      ? "border-violet-300 bg-violet-300"
+                      ? "border-violet-300"
                       : "border-white/30"
                   }`}
-                />
+                >
+                  {quality === q.id && <div className="h-2 w-2 rounded-full bg-violet-300" />}
+                </div>
               </button>
             ))}
           </div>
         </section>
+
+        <section className="mt-8">
+          <h2 className="mb-3 px-1 text-xs font-bold tracking-widest text-white/40">
+            DOWNLOAD QUALITY
+          </h2>
+          <div className="flex flex-col gap-1 rounded-2xl border border-white/5 bg-white/5 p-2">
+            {[
+              { id: "normal", label: "Normal", desc: "~160 kbps · balanced" },
+              { id: "high", label: "High", desc: "~320 kbps · best audio" },
+            ].map((q) => {
+              const current = localStorage.getItem("vibtune.audio.download_quality") || "normal";
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => {
+                    persist("vibtune.audio.download_quality", q.id);
+                    toast.success(`Download quality set to ${q.label}`);
+                    // Force re-render for local storage change
+                    setQuality(prev => prev);
+                  }}
+                  className={`flex items-center justify-between rounded-xl p-3 text-left transition-colors ${
+                    current === q.id ? "bg-violet-400/15" : "hover:bg-white/5"
+                  }`}
+                >
+                  <div>
+                    <p className="font-medium text-white/90">{q.label}</p>
+                    <p className="text-xs text-white/50">{q.desc}</p>
+                  </div>
+                  <div
+                    className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                      current === q.id
+                        ? "border-violet-300"
+                        : "border-white/30"
+                    }`}
+                  >
+                    {current === q.id && <div className="h-2 w-2 rounded-full bg-violet-300" />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
 
         <section className="mt-8">
           <h2 className="mb-3 px-1 text-xs font-bold tracking-widest text-white/40">
