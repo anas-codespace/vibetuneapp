@@ -693,7 +693,33 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
     setIsPlaying(false);
     setExpanded(false);
     stopAudioForeground();
+    disableBackgroundPlayback();
   }, []);
+
+  /* --------- Background playback keep-alive --------- */
+  useEffect(() => {
+    if (!current) {
+      disableBackgroundPlayback();
+      return;
+    }
+    if (isPlaying) {
+      enableBackgroundPlayback(() => {
+        // Returning to the foreground: resume if the OS silently paused us.
+        try {
+          const p = playerRef.current;
+          if (p && typeof p.getPlayerState === "function" && p.getPlayerState() !== 1) {
+            p.playVideo?.();
+          }
+        } catch {
+          /* ignore */
+        }
+      });
+    } else {
+      pauseBackgroundPlayback();
+    }
+  }, [current, isPlaying]);
+
+  useEffect(() => () => disableBackgroundPlayback(), []);
 
   const expand = useCallback(() => setExpanded(true), []);
   const collapse = useCallback(() => setExpanded(false), []);
