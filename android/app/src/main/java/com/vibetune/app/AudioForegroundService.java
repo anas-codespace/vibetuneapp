@@ -62,6 +62,7 @@ public class AudioForegroundService extends Service {
     // Current metadata / playback snapshot.
     private static String title = "Vibetune";
     private static String artist = "";
+    private static String album = "Vibetune";
     private static String artworkUrl = "";
     private static boolean playing = false;
     private static long positionMs = 0;
@@ -90,6 +91,7 @@ public class AudioForegroundService extends Service {
         Context context,
         String newTitle,
         String newArtist,
+        String newAlbum,
         String newArtwork,
         boolean isPlaying,
         long position,
@@ -97,12 +99,14 @@ public class AudioForegroundService extends Service {
     ) {
         if (newTitle != null && !newTitle.isEmpty()) title = newTitle;
         if (newArtist != null) artist = newArtist;
+        if (newAlbum != null && !newAlbum.isEmpty()) album = newAlbum;
         if (newArtwork != null) artworkUrl = newArtwork;
         playing = isPlaying;
         positionMs = position;
         durationMs = duration;
         start(context);
     }
+
 
     public static void stop(Context context) {
         Intent intent = new Intent(context, AudioForegroundService.class);
