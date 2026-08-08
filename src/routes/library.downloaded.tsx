@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronLeft, Circle, Download, Trash2, X, Pause, Play, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronLeft, Circle, Download, Trash2, X, Pause, Play, XCircle, Sliders } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useDownloads } from "@/hooks/use-downloads";
 import { usePlayer } from "@/components/VibePlayer";
@@ -105,7 +105,18 @@ function DownloadedPage() {
         <h1 className="text-lg font-semibold text-white">
           {selectMode ? `${selected.size} selected` : "Downloaded"}
         </h1>
-        {selectMode ? (
+        <div className="flex items-center gap-1">
+          {!selectMode && (
+            <Link
+              to="/settings/audio"
+              aria-label="Audio settings"
+              className="rounded-full bg-white/5 p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <Sliders className="h-4 w-4" />
+            </Link>
+          )}
+          {selectMode ? (
+
           <button
             onClick={toggleAll}
             disabled={items.length === 0}
@@ -120,9 +131,10 @@ function DownloadedPage() {
             className="rounded-full bg-white/5 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/10 disabled:opacity-30"
           >
             Select
-          </button>
-        )}
+          )}
+        </div>
       </div>
+
 
       <section className="mx-auto mt-6 max-w-md">
         <div className="relative flex h-40 flex-col justify-end overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-5">
