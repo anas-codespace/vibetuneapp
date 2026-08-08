@@ -769,27 +769,41 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
       });
       return;
     }
-    const info = {
-      title: current.title,
-      artist: current.artist ?? "",
-      artwork: current.thumbnailUrl ?? "",
-      isPlaying,
-      position: Math.round(progress * 1000),
-      duration: Math.round(duration * 1000),
-    };
-    void updateNowPlaying(info);
-    setWebMediaSession(info, {
+    const handlers = {
       play: () => controlsRef.current.toggle(),
       pause: () => controlsRef.current.toggle(),
       next: () => controlsRef.current.next(),
       prev: () => controlsRef.current.prev(),
       stop: () => controlsRef.current.close(),
-      seek: (s) => controlsRef.current.seek(s),
-    });
-    // `progress` intentionally excluded — position is refreshed on the
-    // play/pause and track transitions that matter for the OS widget.
+      seek: (s: number) => controlsRef.current.seek(s),
+    };
+    const publish = () => {
+      const info = {
+        title: current.title,
+        artist: current.artist ?? "Unknown artist",
+        album: "Vibetune",
+        artwork: current.thumbnailUrl ?? "",
+        isPlaying,
+        position: Math.round(progressRef.current * 1000),
+        duration: Math.round(durationRef.current * 1000),
+      };
+      void updateNowPlaying(info);
+      setWebMediaSession(info, handlers);
+    };
+    publish();
+    // Duration/artwork can arrive slightly after the track switch, and some OEM
+    // notification shades drop the very first metadata push — re-publish a few
+    // times so title/artist/art always settle on the correct track.
+    const retries = [400, 1200, 3000].map((ms) => window.setTimeout(publish, ms));
+    const ticker = window.setInterval(publish, 10000);
+    return () => {
+      retries.forEach((t) => window.clearTimeout(t));
+      window.clearInterval(ticker);
+    };
+    // `progress` intentionally excluded — position is read from a ref.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, isPlaying, duration]);
+
 
   return (
     <Ctx.Provider value={value}>
