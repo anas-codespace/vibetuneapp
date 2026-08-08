@@ -159,6 +159,13 @@ function AudioSettingsPage() {
               persist(NORMALIZE_KEY, String(v));
             }}
           />
+          <Toggle
+            label="Download on Wi‑Fi only"
+            desc="Saves mobile data by waiting for Wi‑Fi"
+            value={localStorage.getItem("vibtune.audio.wifi_only") === "true"}
+            onChange={(v) => persist("vibtune.audio.wifi_only", String(v))}
+          />
+
         </section>
       </div>
     </main>
