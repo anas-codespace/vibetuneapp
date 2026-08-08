@@ -278,20 +278,24 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (tickRef.current) window.clearInterval(tickRef.current);
-    tickRef.current = window.setInterval(() => {
+    tickRef.current = window.setInterval(async () => {
       const p = playerRef.current;
       if (!p || typeof p.getCurrentTime !== "function") return;
       try {
         const cur = p.getCurrentTime() ?? 0;
         const dur = p.getDuration() ?? 0;
+        
+        // If we are offline or YouTube fails, we check for local blob
+        // But the IFrame doesn't support local blobs easily.
+        // In a real native app, we'd use a native player for local files.
+        
         setProgress(cur);
         setDuration(dur);
-        // Also mirror into refs so flushListenEvent has the latest values
-        // without depending on React state batching.
         lastProgressMsRef.current = cur * 1000;
         if (dur > 0) lastDurationMsRef.current = dur * 1000;
       } catch { /* noop */ }
     }, 250);
+
     return () => {
       if (tickRef.current) window.clearInterval(tickRef.current);
     };
