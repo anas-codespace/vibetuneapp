@@ -12,7 +12,9 @@ import android.content.pm.ServiceInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -71,6 +73,8 @@ public class AudioForegroundService extends Service {
     private MediaSessionCompat session;
     private Bitmap artwork;
     private String artworkLoadedFor = "";
+    private volatile String artworkPendingFor = "";
+    private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     public static void setControlListener(ControlListener listener) {
@@ -376,7 +380,9 @@ public class AudioForegroundService extends Service {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
-            .setContentText(artist)
+            .setContentText(artist.isEmpty() ? album : artist)
+            .setSubText(album)
+            .setTicker(title + (artist.isEmpty() ? "" : " - " + artist))
             .setSmallIcon(R.drawable.ic_stat_vibetune)
             .setLargeIcon(artwork)
             .setContentIntent(contentIntent)
