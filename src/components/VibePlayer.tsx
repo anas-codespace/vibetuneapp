@@ -934,12 +934,16 @@ function FullPlayer(p: FullProps) {
   });
   const isLiked = (likedIds ?? []).includes(p.track.youtubeId);
 
-  const { isDownloaded, toggle: toggleDownload } = useDownloads();
+  const { isDownloaded, toggle: toggleDownload, downloading } = useDownloads();
   const downloaded = isDownloaded(p.track.youtubeId);
-  const handleDownload = () => {
-    toggleDownload(p.track);
+  const isDownloading = downloading.has(p.track.youtubeId);
+
+  const handleDownload = async () => {
+    if (isDownloading) return;
+    await toggleDownload(p.track);
     toast.success(downloaded ? "Removed from downloads" : "Saved to downloads");
   };
+
 
   const handleLike = async () => {
     try {
@@ -1110,7 +1114,7 @@ function FullPlayer(p: FullProps) {
                     downloaded ? "text-emerald-400" : "text-white/70 hover:text-white",
                   )}
                 >
-                  <Download className="h-5 w-5" fill={downloaded ? "currentColor" : "none"} />
+                  <Download className={cn("h-5 w-5", isDownloading && "animate-bounce")} fill={downloaded ? "currentColor" : "none"} />
                 </button>
                 <button
                   onClick={() => setAddOpen(true)}

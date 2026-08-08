@@ -18,8 +18,14 @@ export const Route = createFileRoute("/library/downloaded")({
 function DownloadedPage() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
-  const { items, remove, removeMany, clear } = useDownloads();
+  const { items, remove, removeMany, clear, downloading } = useDownloads();
   const { play } = usePlayer();
+  const [usage, setUsage] = useState(0);
+
+  useEffect(() => {
+    import("@/lib/offline/storage").then(m => m.getStorageUsageMB()).then(setUsage);
+  }, [items]);
+
 
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -122,10 +128,13 @@ function DownloadedPage() {
         <div className="relative flex h-40 flex-col justify-end overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-5">
           <Download className="absolute -bottom-6 -right-6 h-32 w-32 rotate-12 text-white/10" />
           <h2 className="relative z-10 text-2xl font-bold text-white">Downloaded</h2>
-          <p className="relative z-10 text-sm text-white/60">
-            {items.length} {items.length === 1 ? "track" : "tracks"} saved on this device
-          </p>
+          <div className="relative z-10 mt-1 flex items-center gap-2">
+            <p className="text-sm text-white/60">
+              {items.length} {items.length === 1 ? "track" : "tracks"} • {usage.toFixed(1)} MB
+            </p>
+          </div>
         </div>
+
       </section>
 
       <section className="mx-auto mt-8 max-w-md">
@@ -146,8 +155,9 @@ function DownloadedPage() {
                   key={t.youtubeId}
                   className={`flex items-center gap-3 rounded-2xl p-2 transition ${
                     isSelected ? "bg-white/10" : "hover:bg-white/5"
-                  }`}
+                  } ${downloading.has(t.youtubeId) ? "opacity-50" : ""}`}
                 >
+
                   <button
                     onClick={() =>
                       selectMode ? toggleOne(t.youtubeId) : play(t, items)
@@ -172,8 +182,14 @@ function DownloadedPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-white">{t.title}</p>
-                      <p className="truncate text-xs text-white/50">{t.artist}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-xs text-white/50">{t.artist}</p>
+                        {downloading.has(t.youtubeId) && (
+                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />
+                        )}
+                      </div>
                     </div>
+
                   </button>
                   {!selectMode && (
                     <button
