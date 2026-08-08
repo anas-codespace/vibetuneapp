@@ -12,7 +12,9 @@ import android.content.pm.ServiceInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -62,6 +64,7 @@ public class AudioForegroundService extends Service {
     // Current metadata / playback snapshot.
     private static String title = "Vibetune";
     private static String artist = "";
+    private static String album = "Vibetune";
     private static String artworkUrl = "";
     private static boolean playing = false;
     private static long positionMs = 0;
@@ -70,6 +73,8 @@ public class AudioForegroundService extends Service {
     private MediaSessionCompat session;
     private Bitmap artwork;
     private String artworkLoadedFor = "";
+    private volatile String artworkPendingFor = "";
+    private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
     public static void setControlListener(ControlListener listener) {
@@ -90,6 +95,7 @@ public class AudioForegroundService extends Service {
         Context context,
         String newTitle,
         String newArtist,
+        String newAlbum,
         String newArtwork,
         boolean isPlaying,
         long position,
@@ -97,12 +103,14 @@ public class AudioForegroundService extends Service {
     ) {
         if (newTitle != null && !newTitle.isEmpty()) title = newTitle;
         if (newArtist != null) artist = newArtist;
+        if (newAlbum != null && !newAlbum.isEmpty()) album = newAlbum;
         if (newArtwork != null) artworkUrl = newArtwork;
         playing = isPlaying;
         positionMs = position;
         durationMs = duration;
         start(context);
     }
+
 
     public static void stop(Context context) {
         Intent intent = new Intent(context, AudioForegroundService.class);
@@ -211,15 +219,30 @@ public class AudioForegroundService extends Service {
 
     /** Re-publishes metadata + playback state and refreshes the notification. */
     private void refresh() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            main.post(this::refresh);
+            return;
+        }
         if (session == null) return;
 
         MediaMetadataCompat.Builder meta = new MediaMetadataCompat.Builder()
             .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, title)
             .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
-            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, "Vibetune")
-            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, durationMs);
+            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST, artist)
+            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, artist)
+            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
+            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION, album)
+            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, durationMs > 0 ? durationMs : -1L);
+        if (artworkUrl != null && !artworkUrl.isEmpty()) {
+            meta.putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artworkUrl);
+            meta.putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artworkUrl);
+            meta.putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artworkUrl);
+        }
         if (artwork != null) {
             meta.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artwork);
+            meta.putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artwork);
+            meta.putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artwork);
         }
         session.setMetadata(meta.build());
 
@@ -250,34 +273,92 @@ public class AudioForegroundService extends Service {
 
     private void loadArtworkIfNeeded() {
         final String url = artworkUrl;
-        if (url == null || url.isEmpty() || url.equals(artworkLoadedFor)) return;
-        artworkLoadedFor = url;
+        if (url == null || url.isEmpty()) {
+            if (artwork != null) {
+                artwork = null;
+                artworkLoadedFor = "";
+            }
+            return;
+        }
+        if (url.equals(artworkLoadedFor) && artwork != null) return;
+        if (url.equals(artworkPendingFor)) return;
+        artworkPendingFor = url;
+        // Drop stale artwork immediately so the notification never pairs a new
+        // title with the previous track's cover.
+        artwork = null;
+        artworkLoadedFor = "";
+        refresh();
         io.execute(() -> {
-            Bitmap bmp = downloadBitmap(url);
-            if (bmp != null) {
-                artwork = bmp;
+            Bitmap bmp = null;
+            for (String candidate : artworkCandidates(url)) {
+                bmp = downloadBitmap(candidate);
+                if (bmp != null) break;
+            }
+            artworkPendingFor = "";
+            if (bmp != null && url.equals(artworkUrl)) {
+                artwork = scaleForNotification(bmp);
+                artworkLoadedFor = url;
                 refresh();
             }
         });
     }
 
-    @Nullable
-    private Bitmap downloadBitmap(String url) {
-        HttpURLConnection conn = null;
+    /**
+     * YouTube thumbnails are not guaranteed to exist at every resolution, so we
+     * try the requested URL first and then progressively safer fall-backs.
+     */
+    private String[] artworkCandidates(String url) {
+        if (url.contains("/vi/") && url.contains("maxresdefault")) {
+            return new String[] {
+                url,
+                url.replace("maxresdefault", "hqdefault"),
+                url.replace("maxresdefault", "mqdefault"),
+            };
+        }
+        if (url.contains("/vi/") && url.contains("hqdefault")) {
+            return new String[] { url, url.replace("hqdefault", "mqdefault") };
+        }
+        return new String[] { url };
+    }
+
+    private Bitmap scaleForNotification(Bitmap src) {
+        int max = 512;
+        int w = src.getWidth();
+        int h = src.getHeight();
+        if (w <= max && h <= max) return src;
+        float ratio = Math.min((float) max / w, (float) max / h);
         try {
-            conn = (HttpURLConnection) new URL(url).openConnection();
-            conn.setConnectTimeout(8000);
-            conn.setReadTimeout(8000);
-            conn.setDoInput(true);
-            conn.connect();
-            InputStream in = conn.getInputStream();
-            return BitmapFactory.decodeStream(in);
+            return Bitmap.createScaledBitmap(src, Math.round(w * ratio), Math.round(h * ratio), true);
         } catch (Exception e) {
-            return null;
-        } finally {
-            if (conn != null) conn.disconnect();
+            return src;
         }
     }
+
+    @Nullable
+    private Bitmap downloadBitmap(String url) {
+        for (int attempt = 0; attempt < 2; attempt++) {
+            HttpURLConnection conn = null;
+            try {
+                conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setInstanceFollowRedirects(true);
+                conn.setRequestProperty("User-Agent", "Vibetune/1.0 (Android)");
+                conn.setConnectTimeout(8000);
+                conn.setReadTimeout(8000);
+                conn.setDoInput(true);
+                conn.connect();
+                if (conn.getResponseCode() >= 400) continue;
+                InputStream in = conn.getInputStream();
+                Bitmap bmp = BitmapFactory.decodeStream(in);
+                if (bmp != null) return bmp;
+            } catch (Exception e) {
+                // retry once
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }
+        return null;
+    }
+
 
     private PendingIntent actionIntent(String action) {
         Intent intent = new Intent(this, AudioForegroundService.class).setAction(action);
@@ -299,7 +380,9 @@ public class AudioForegroundService extends Service {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
-            .setContentText(artist)
+            .setContentText(artist.isEmpty() ? album : artist)
+            .setSubText(album)
+            .setTicker(title + (artist.isEmpty() ? "" : " - " + artist))
             .setSmallIcon(R.drawable.ic_stat_vibetune)
             .setLargeIcon(artwork)
             .setContentIntent(contentIntent)
