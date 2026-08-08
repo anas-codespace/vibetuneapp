@@ -7,6 +7,9 @@ const DB_VERSION = 1;
 /** Initialize the IndexedDB for audio storage. */
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') {
+      return reject(new Error("IndexedDB not supported"));
+    }
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -55,9 +58,22 @@ export async function deleteAudioBlob(id: string): Promise<void> {
   });
 }
 
+/** Get all stored IDs. */
+export async function getAllStoredIds(): Promise<string[]> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAllKeys();
+    request.onsuccess = () => resolve(request.result as string[]);
+    request.onerror = () => reject(request.error);
+  });
+}
+
 /** Get total storage usage in MB. */
 export async function getStorageUsageMB(): Promise<number> {
-  if (!navigator.storage || !navigator.storage.estimate) return 0;
+  if (typeof navigator === 'undefined' || !navigator.storage || !navigator.storage.estimate) return 0;
   const estimate = await navigator.storage.estimate();
   return (estimate.usage || 0) / (1024 * 1024);
 }
+
