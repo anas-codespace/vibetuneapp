@@ -108,17 +108,46 @@ function LoginPage() {
     if (next && typeof window !== "undefined") {
       sessionStorage.setItem("post_login_next", next);
     }
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/login",
-      skip_browser_redirect: true,
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/login",
+        skipBrowserRedirect: true,
+      },
     });
-    if (result.error) {
+
+    if (error) {
       setGoogleLoading(false);
-      toast.error(result.error.message ?? "Google sign-in failed.");
+      toast.error(error.message ?? "Google sign-in failed.");
       return;
     }
-    if (result.redirected) return;
-    // Session set by helper; the `status === "authenticated"` effect above will navigate.
+
+    if (data?.url) {
+      const width = 500;
+      const height = 600;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+
+      const popup = window.open(
+        data.url,
+        "google-login",
+        `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
+      );
+
+      if (!popup) {
+        setGoogleLoading(false);
+        toast.error("Popup blocked. Please allow popups for this site.");
+        return;
+      }
+
+      const timer = setInterval(async () => {
+        if (popup.closed) {
+          clearInterval(timer);
+          setGoogleLoading(false);
+          // After popup closes, the main window auth listener or session check will trigger the redirect
+        }
+      }, 500);
+    }
   }
 
 
