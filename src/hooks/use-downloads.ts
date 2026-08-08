@@ -187,6 +187,15 @@ export function useDownloads() {
     write([]);
   }, []);
 
+  const removeOldest = useCallback(async (count: number = 1) => {
+    const all = read();
+    if (all.length === 0) return;
+    // The items are written to the head: write([nextTask.track, ...cur])
+    // So the oldest items are at the end of the array.
+    const toRemove = all.slice(-count);
+    await removeMany(toRemove.map(t => t.youtubeId));
+  }, [removeMany]);
+
   const downloading = new Set(queue.map(t => t.track.youtubeId));
 
   return { 
@@ -197,6 +206,7 @@ export function useDownloads() {
     remove, 
     removeMany, 
     clear, 
+    removeOldest,
     download, 
     queue,
     pause,

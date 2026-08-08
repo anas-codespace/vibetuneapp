@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronLeft, Circle, Download, Trash2, X, Pause, Play, XCircle, Sliders } from "lucide-react";
+import { CheckCircle2, ChevronLeft, Circle, Download, Trash2, X, Pause, Play, XCircle, Sliders, HardDrive, AlertTriangle, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useDownloads } from "@/hooks/use-downloads";
 import { usePlayer } from "@/components/VibePlayer";
@@ -18,12 +18,26 @@ export const Route = createFileRoute("/library/downloaded")({
 function DownloadedPage() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
-  const { items, remove, removeMany, clear, queue, pause, resume, cancel } = useDownloads();
+  const { items, remove, removeMany, clear, removeOldest, queue, pause, resume, cancel } = useDownloads();
   const { play } = usePlayer();
-  const [usage, setUsage] = useState(0);
+  const [usage, setUsage] = useState<{ used: number; total: number; percentage: number }>({ used: 0, total: 0, percentage: 0 });
+  const [showManager, setShowManager] = useState(false);
+
+  const refreshUsage = async () => {
+    if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.estimate) {
+      const estimate = await navigator.storage.estimate();
+      const used = (estimate.usage || 0) / (1024 * 1024);
+      const total = (estimate.quota || 0) / (1024 * 1024);
+      setUsage({
+        used,
+        total,
+        percentage: total > 0 ? (used / total) * 100 : 0
+      });
+    }
+  };
 
   useEffect(() => {
-    import("@/lib/offline/storage").then(m => m.getStorageUsageMB()).then(setUsage);
+    refreshUsage();
   }, [items]);
 
 
@@ -139,17 +153,106 @@ function DownloadedPage() {
 
 
       <section className="mx-auto mt-6 max-w-md">
-        <div className="relative flex h-40 flex-col justify-end overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-5">
+        <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-5">
           <Download className="absolute -bottom-6 -right-6 h-32 w-32 rotate-12 text-white/10" />
-          <h2 className="relative z-10 text-2xl font-bold text-white">Downloaded</h2>
-          <div className="relative z-10 mt-1 flex items-center gap-2">
-            <p className="text-sm text-white/60">
-              {items.length} {items.length === 1 ? "track" : "tracks"} • {usage.toFixed(1)} MB
-            </p>
+          
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Downloaded</h2>
+              <p className="mt-1 text-sm text-white/60">
+                {items.length} {items.length === 1 ? "track" : "tracks"} • {usage.used.toFixed(1)} MB
+              </p>
+            </div>
+            <button
+              onClick={() => setShowManager(true)}
+              className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/20"
+            >
+              <HardDrive className="h-3.5 w-3.5" />
+              Manage Storage
+            </button>
           </div>
         </div>
-
       </section>
+
+      {/* Storage Manager Modal */}
+      {showManager && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 px-5 pb-10 backdrop-blur-sm sm:items-center sm:pb-0">
+          <div className="w-full max-w-md overflow-hidden rounded-3xl bg-zinc-900 shadow-2xl ring-1 ring-white/10">
+            <div className="border-b border-white/5 p-5">
+              <div className="flex items-center justify-between">
+                <h3 className="flex items-center gap-2 text-lg font-bold text-white">
+                  <HardDrive className="h-5 w-5 text-cyan-400" />
+                  Storage Manager
+                </h3>
+                <button 
+                  onClick={() => setShowManager(false)}
+                  className="rounded-full bg-white/5 p-2 text-white/60 transition hover:bg-white/10 hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-6">
+                <div className="flex items-center justify-between text-sm font-medium">
+                  <span className="text-white/60">Space Used</span>
+                  <span className="text-white">{usage.used.toFixed(1)} MB of {usage.total > 1024 ? `${(usage.total/1024).toFixed(1)} GB` : `${usage.total.toFixed(0)} MB`}</span>
+                </div>
+                <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-white/5">
+                  <div 
+                    className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-500"
+                    style={{ width: `${Math.min(usage.percentage, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    removeOldest(1);
+                    // Usage updates via items effect
+                  }}
+                  disabled={items.length === 0}
+                  className="flex w-full items-center justify-between rounded-2xl bg-white/5 p-4 text-left transition hover:bg-white/10 disabled:opacity-30"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-white">Delete Oldest</p>
+                    <p className="text-xs text-white/50">Remove the track you saved longest ago</p>
+                  </div>
+                  <Trash2 className="h-4 w-4 text-white/40" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (confirm("Delete all offline downloads?")) {
+                      clear();
+                      setShowManager(false);
+                    }
+                  }}
+                  disabled={items.length === 0}
+                  className="flex w-full items-center justify-between rounded-2xl bg-red-500/10 p-4 text-left transition hover:bg-red-500/20 disabled:opacity-30"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-red-400">Clear All Downloads</p>
+                    <p className="text-xs text-red-400/50">Wipe all locally saved audio files</p>
+                  </div>
+                  <AlertTriangle className="h-4 w-4 text-red-400/40" />
+                </button>
+              </div>
+
+              <div className="mt-6 flex items-center gap-3 rounded-2xl bg-cyan-500/5 p-4">
+                <div className="rounded-full bg-cyan-500/20 p-2">
+                  <RefreshCw className="h-4 w-4 text-cyan-400" />
+                </div>
+                <p className="text-xs leading-relaxed text-cyan-400/70">
+                  Storage usage is an estimate provided by your device. Clearing downloads will free up space immediately.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Download Queue Section */}
       {queue.length > 0 && (
