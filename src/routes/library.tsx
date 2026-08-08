@@ -174,8 +174,11 @@ function LibraryPage() {
             className="absolute -bottom-4 -right-4 h-20 w-20 rotate-12 text-white/20 transition-transform group-hover:scale-110"
             fill="currentColor"
           />
-          <h2 className="relative z-10 text-lg font-bold text-white">Liked Songs</h2>
-          <p className="relative z-10 text-sm text-white/80">{liked?.length ?? 0} songs</p>
+          <div className="relative z-10">
+            <h2 className="text-lg font-bold text-white">Liked Songs</h2>
+            <p className="text-sm text-white/80">{liked?.length ?? 0} songs</p>
+          </div>
+
         </button>
         <Link
           to="/library/downloaded"
