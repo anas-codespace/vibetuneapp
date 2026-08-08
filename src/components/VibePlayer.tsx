@@ -296,6 +296,8 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
         // But the IFrame doesn't support local blobs easily.
         // In a real native app, we'd use a native player for local files.
         
+        progressRef.current = cur;
+        durationRef.current = dur;
         setProgress(cur);
         setDuration(dur);
         lastProgressMsRef.current = cur * 1000;
