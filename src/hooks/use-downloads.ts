@@ -64,12 +64,27 @@ export function useDownloads() {
     const nextTask = queueRef.current.find((t) => t.status === "pending");
     if (!nextTask) return;
 
+    // Check Wi-Fi restriction
+    if (typeof window !== "undefined") {
+      const wifiOnly = localStorage.getItem("vibtune.audio.wifi_only") === "true";
+      if (wifiOnly && "connection" in navigator) {
+        const conn = (navigator as any).connection;
+        if (conn && conn.type && conn.type !== "wifi") {
+          console.log("Download deferred: Wi-Fi only mode active");
+          return;
+        }
+      }
+    }
+
     const id = nextTask.track.youtubeId;
     const controller = new AbortController();
     
     updateTask(id, { status: "downloading", abortController: controller });
 
     try {
+      // Get preferred quality
+      const quality = typeof window !== "undefined" ? localStorage.getItem("vibtune.audio.download_quality") || "normal" : "normal";
+      
       // Simulate progress since we are stubbing the blob anyway
       for (let p = 0; p <= 100; p += 10) {
         if (queueRef.current.find(t => t.track.youtubeId === id)?.status === "paused") {
@@ -79,7 +94,8 @@ export function useDownloads() {
         await new Promise(r => setTimeout(r, 200));
       }
 
-      const blob = new Blob(["offline-audio-stub"], { type: "audio/mpeg" });
+      // Metadata could store quality if needed
+      const blob = new Blob([`offline-audio-stub-${quality}`], { type: "audio/mpeg" });
       await saveAudioBlob(id, blob);
       
       const cur = read();
@@ -97,6 +113,7 @@ export function useDownloads() {
       }
     }
   }, [updateTask]);
+
 
   useEffect(() => {
     const hasActive = queue.some(t => t.status === "downloading");
