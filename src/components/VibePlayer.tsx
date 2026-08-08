@@ -1118,7 +1118,7 @@ function FullPlayer(p: FullProps) {
                     downloaded ? "text-emerald-400" : "text-white/70 hover:text-white",
                   )}
                 >
-                  <Download className={cn("h-5 w-5", isDownloading && "animate-bounce")} fill={downloaded ? "currentColor" : "none"} />
+                  <Download className={cn("h-5 w-5", isDownloading && "animate-pulse text-cyan-400")} fill={downloaded ? "currentColor" : "none"} />
                 </button>
                 <button
                   onClick={() => setAddOpen(true)}

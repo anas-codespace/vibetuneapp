@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronLeft, Circle, Download, Trash2, X } from "lucide-react";
+import { CheckCircle2, ChevronLeft, Circle, Download, Trash2, X, Pause, Play, XCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useDownloads } from "@/hooks/use-downloads";
 import { usePlayer } from "@/components/VibePlayer";
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/library/downloaded")({
 function DownloadedPage() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
-  const { items, remove, removeMany, clear, downloading } = useDownloads();
+  const { items, remove, removeMany, clear, queue, pause, resume, cancel } = useDownloads();
   const { play } = usePlayer();
   const [usage, setUsage] = useState(0);
 
@@ -137,8 +137,70 @@ function DownloadedPage() {
 
       </section>
 
+      {/* Download Queue Section */}
+      {queue.length > 0 && (
+        <section className="mx-auto mt-8 max-w-md">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white/40">
+            <Download className="h-4 w-4" />
+            Download Queue ({queue.length})
+          </h3>
+          <ul className="space-y-3">
+            {queue.map((task) => (
+              <li key={task.track.youtubeId} className="group relative overflow-hidden rounded-2xl bg-white/5 p-3 transition hover:bg-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white/5">
+                    {task.track.thumbnailUrl ? (
+                      <img src={task.track.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-white">{task.track.title}</p>
+                    <div className="mt-1 flex items-center justify-between gap-4">
+                      <div className="flex-1 overflow-hidden">
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+                          <div 
+                            className="h-full bg-cyan-400 transition-all duration-300 ease-out"
+                            style={{ width: `${task.progress}%` }}
+                          />
+                        </div>
+                        <p className="mt-1 text-[10px] font-medium text-white/40 uppercase">
+                          {task.status === 'paused' ? 'Paused' : task.status === 'downloading' ? `Downloading ${task.progress}%` : 'Pending'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {task.status === "paused" ? (
+                          <button 
+                            onClick={() => resume(task.track.youtubeId)}
+                            className="rounded-full bg-white/10 p-1.5 text-white transition hover:bg-white/20"
+                          >
+                            <Play className="h-3.5 w-3.5 fill-current" />
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => pause(task.track.youtubeId)}
+                            className="rounded-full bg-white/10 p-1.5 text-white transition hover:bg-white/20"
+                          >
+                            <Pause className="h-3.5 w-3.5 fill-current" />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => cancel(task.track.youtubeId)}
+                          className="rounded-full bg-white/10 p-1.5 text-white/40 transition hover:bg-red-500/20 hover:text-red-400"
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="mx-auto mt-8 max-w-md">
-        {items.length === 0 ? (
+        {items.length === 0 && queue.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/5 px-4 py-12 text-center">
             <Download className="mb-4 h-12 w-12 text-white/40" />
             <h3 className="mb-2 text-lg font-medium text-white">Nothing saved yet</h3>
@@ -146,65 +208,65 @@ function DownloadedPage() {
               Tap the download icon on any track to save it here for quick access.
             </p>
           </div>
-        ) : (
-          <ul className={`space-y-2 ${selectMode ? "pb-24" : ""}`}>
-            {items.map((t) => {
-              const isSelected = selected.has(t.youtubeId);
-              return (
-                <li
-                  key={t.youtubeId}
-                  className={`flex items-center gap-3 rounded-2xl p-2 transition ${
-                    isSelected ? "bg-white/10" : "hover:bg-white/5"
-                  } ${downloading.has(t.youtubeId) ? "opacity-50" : ""}`}
-                >
-
-                  <button
-                    onClick={() =>
-                      selectMode ? toggleOne(t.youtubeId) : play(t, items)
-                    }
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      if (!selectMode) enterSelect(t.youtubeId);
-                    }}
-                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        ) : items.length > 0 ? (
+          <>
+            <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-white/40">
+              Saved Tracks
+            </h3>
+            <ul className={`space-y-2 ${selectMode ? "pb-24" : ""}`}>
+              {items.map((t) => {
+                const isSelected = selected.has(t.youtubeId);
+                return (
+                  <li
+                    key={t.youtubeId}
+                    className={`flex items-center gap-3 rounded-2xl p-2 transition ${
+                      isSelected ? "bg-white/10" : "hover:bg-white/5"
+                    }`}
                   >
-                    {selectMode ? (
-                      isSelected ? (
-                        <CheckCircle2 className="h-5 w-5 shrink-0 text-white" />
-                      ) : (
-                        <Circle className="h-5 w-5 shrink-0 text-white/40" />
-                      )
-                    ) : null}
-                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white/5">
-                      {t.thumbnailUrl ? (
-                        <img src={t.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-                      ) : null}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-white">{t.title}</p>
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-xs text-white/50">{t.artist}</p>
-                        {downloading.has(t.youtubeId) && (
-                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />
-                        )}
-                      </div>
-                    </div>
 
-                  </button>
-                  {!selectMode && (
                     <button
-                      onClick={() => remove(t.youtubeId)}
-                      aria-label="Remove from downloads"
-                      className="rounded-full p-2 text-white/50 transition hover:bg-white/10 hover:text-white"
+                      onClick={() =>
+                        selectMode ? toggleOne(t.youtubeId) : play(t, items)
+                      }
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        if (!selectMode) enterSelect(t.youtubeId);
+                      }}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {selectMode ? (
+                        isSelected ? (
+                          <CheckCircle2 className="h-5 w-5 shrink-0 text-white" />
+                        ) : (
+                          <Circle className="h-5 w-5 shrink-0 text-white/40" />
+                        )
+                      ) : null}
+                      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white/5">
+                        {t.thumbnailUrl ? (
+                          <img src={t.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-white">{t.title}</p>
+                        <p className="truncate text-xs text-white/50">{t.artist}</p>
+                      </div>
+
                     </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    {!selectMode && (
+                      <button
+                        onClick={() => remove(t.youtubeId)}
+                        aria-label="Remove from downloads"
+                        className="rounded-full p-2 text-white/50 transition hover:bg-white/10 hover:text-white"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        ) : null}
       </section>
 
       {selectMode && items.length > 0 && (
