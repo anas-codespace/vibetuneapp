@@ -36,6 +36,11 @@ import {
   requestNotificationPermission,
   setWebMediaSession,
 } from "@/lib/capacitor-audio";
+import {
+  enableBackgroundPlayback,
+  pauseBackgroundPlayback,
+  disableBackgroundPlayback,
+} from "@/lib/background-playback";
 import { SyncedLyrics } from "@/components/SyncedLyrics";
 import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
 import { QueueDrawer } from "@/components/QueueDrawer";
