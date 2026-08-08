@@ -135,8 +135,21 @@ function LoginPage() {
       );
 
       if (!popup) {
-        setGoogleLoading(false);
-        toast.error("Popup blocked. Please allow popups for this site.");
+        // Fallback: If popup is blocked, try opening in a new tab
+        const newTab = window.open(data.url, "_blank");
+        if (!newTab) {
+          setGoogleLoading(false);
+          toast.error("Sign-in window blocked. Please allow popups or new tabs for this site.");
+          return;
+        }
+        
+        // Monitor the new tab just like the popup
+        const timer = setInterval(() => {
+          if (newTab.closed) {
+            clearInterval(timer);
+            setGoogleLoading(false);
+          }
+        }, 500);
         return;
       }
 
