@@ -9,11 +9,25 @@ export type MediaControlAction = "play" | "pause" | "next" | "prev" | "stop" | "
 export type NowPlaying = {
   title: string;
   artist: string;
+  album?: string;
   artwork?: string;
   isPlaying: boolean;
   position?: number; // ms
   duration?: number; // ms
 };
+
+/**
+ * Upgrades a YouTube thumbnail to a square-ish, high-resolution variant so the
+ * media notification / lock screen renders crisp album art. Non-YouTube URLs
+ * pass through untouched.
+ */
+export function bestArtwork(url?: string | null): string {
+  if (!url) return "";
+  if (/\/vi\/[^/]+\/(default|mqdefault|sddefault)\.jpg/.test(url)) {
+    return url.replace(/\/(default|mqdefault|sddefault)\.jpg/, "/hqdefault.jpg");
+  }
+  return url;
+}
 
 let _plugin: any = null;
 let _resolved = false;
@@ -60,7 +74,8 @@ export async function updateNowPlaying(info: NowPlaying) {
     await plugin.updateNowPlaying({
       title: info.title,
       artist: info.artist,
-      artwork: info.artwork ?? "",
+      album: info.album || "Vibetune",
+      artwork: bestArtwork(info.artwork),
       isPlaying: info.isPlaying,
       position: Math.round(info.position ?? 0),
       duration: Math.round(info.duration ?? 0),
@@ -118,13 +133,13 @@ export function setWebMediaSession(
     ms.metadata = new window.MediaMetadata({
       title: info.title,
       artist: info.artist,
-      album: "Vibetune",
+      album: info.album || "Vibetune",
       artwork: info.artwork
-        ? [
-            { src: info.artwork, sizes: "96x96", type: "image/jpeg" },
-            { src: info.artwork, sizes: "256x256", type: "image/jpeg" },
-            { src: info.artwork, sizes: "512x512", type: "image/jpeg" },
-          ]
+        ? [96, 128, 192, 256, 384, 512].map((s) => ({
+            src: bestArtwork(info.artwork),
+            sizes: `${s}x${s}`,
+            type: "image/jpeg",
+          }))
         : [],
     });
     ms.playbackState = info.isPlaying ? "playing" : "paused";
