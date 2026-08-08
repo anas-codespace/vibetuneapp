@@ -124,16 +124,18 @@ function DownloadedPage() {
           >
             {allSelected ? "None" : "All"}
           </button>
-        ) : (
-          <button
-            onClick={() => setSelectMode(true)}
-            disabled={items.length === 0}
-            className="rounded-full bg-white/5 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/10 disabled:opacity-30"
-          >
-            Select
+          ) : (
+            <button
+              onClick={() => setSelectMode(true)}
+              disabled={items.length === 0}
+              className="rounded-full bg-white/5 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/10 disabled:opacity-30"
+            >
+              Select
+            </button>
           )}
         </div>
       </div>
+
 
 
       <section className="mx-auto mt-6 max-w-md">
