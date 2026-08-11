@@ -46,7 +46,8 @@ import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
 import { QueueDrawer } from "@/components/QueueDrawer";
 import { cn } from "@/lib/utils";
 import { cleanYouTubeTitle } from "@/utils/textUtils";
-import { useDownloads } from "@/hooks/use-downloads";
+import { useDownloads, isTrackDownloaded } from "@/hooks/use-downloads";
+import { isOffline } from "@/hooks/use-online-status";
 
 export interface VibeTrack {
   youtubeId: string;
@@ -106,6 +107,17 @@ function loadYT(): Promise<any> {
     window.onYouTubeIframeAPIReady = () => resolve(window.YT);
   });
   return ytReadyPromise;
+}
+
+/**
+ * Offline gate: when the device has no connection, only tracks saved to the
+ * offline library can be played.
+ */
+function blockedOffline(track: VibeTrack): boolean {
+  if (!isOffline()) return false;
+  if (isTrackDownloaded(track.youtubeId)) return false;
+  toast.error("You're offline — only downloaded songs can play.");
+  return true;
 }
 
 /* ------------------------------ Provider ------------------------------ */
@@ -346,6 +358,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   }, [contextFn]);
 
   const play = useCallback((track: VibeTrack, q?: VibeTrack[]) => {
+    if (blockedOffline(track)) return;
     // Emit the previous track's outcome (user swapped songs mid-play).
     flushListenEvent("next_pressed");
     const newQueue = q ?? [track];
@@ -367,6 +380,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
 
   const startMix = useCallback((tracks: VibeTrack[]) => {
     if (tracks.length === 0) return;
+    if (blockedOffline(tracks[0])) return;
     flushListenEvent("next_pressed");
     setMixMode(true);
     setQueue(tracks);
@@ -381,6 +395,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   }, [loadAndPlay, logListenFn, flushListenEvent, beginTrack]);
 
   const addToQueue = useCallback((track: VibeTrack) => {
+    if (blockedOffline(track)) return;
     setCurrent((cur) => {
       if (!cur) {
         // Nothing playing → start this track immediately.

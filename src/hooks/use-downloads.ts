@@ -215,3 +215,13 @@ export function useDownloads() {
   };
 }
 
+
+/** Non-reactive read of downloaded track ids (used by offline playback gating). */
+export function getDownloadedIds(): string[] {
+  return read().map((t) => t.youtubeId);
+}
+
+/** True when the given track is available offline. */
+export function isTrackDownloaded(id: string): boolean {
+  return read().some((t) => t.youtubeId === id);
+}

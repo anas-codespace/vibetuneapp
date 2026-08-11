@@ -1,5 +1,6 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { BottomNav } from "@/components/BottomNav";
+import { OfflineBanner } from "@/components/OfflineBanner";
 
 const NAV_ROUTES = ["/app", "/search", "/library", "/profile"];
 
@@ -11,6 +12,7 @@ export function AppShell() {
 
   return (
     <>
+      <OfflineBanner />
       <Outlet />
       {showNav && <BottomNav />}
     </>
