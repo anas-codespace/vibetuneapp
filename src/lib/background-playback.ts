@@ -14,6 +14,7 @@ let started = false;
 let shouldBePlaying = false;
 let resumeFn: (() => void) | null = null;
 let visibilityBound = false;
+let heartbeat: number | null = null;
 
 function isBrowser() {
   return typeof window !== "undefined" && typeof document !== "undefined";
@@ -102,6 +103,28 @@ function bindVisibility() {
 }
 
 /**
+ * Heartbeat: while playback should be running, keep the audio context alive
+ * and nudge the player back to "playing" if the OS/browser silently paused it
+ * in the background. Runs even while the tab is hidden.
+ */
+function startHeartbeat() {
+  if (!isBrowser() || heartbeat !== null) return;
+  heartbeat = window.setInterval(() => {
+    if (!shouldBePlaying) return;
+    if (audioCtx?.state === "suspended") void audioCtx.resume();
+    if (!wakeLock && document.visibilityState === "visible") void acquireWakeLock();
+    resumeFn?.();
+  }, 4000);
+}
+
+function stopHeartbeat() {
+  if (heartbeat !== null) {
+    clearInterval(heartbeat);
+    heartbeat = null;
+  }
+}
+
+/**
  * Enable background playback support. Call when playback starts.
  * `onResume` is invoked when we come back to the foreground and playback
  * should still be running.
@@ -118,11 +141,13 @@ export function enableBackgroundPlayback(onResume?: () => void) {
     void audioCtx.resume();
   }
   void acquireWakeLock();
+  startHeartbeat();
 }
 
 /** Pause background keep-alive (playback paused) without tearing everything down. */
 export function pauseBackgroundPlayback() {
   shouldBePlaying = false;
+  stopHeartbeat();
   void releaseWakeLock();
 }
 
@@ -131,6 +156,7 @@ export function disableBackgroundPlayback() {
   shouldBePlaying = false;
   started = false;
   resumeFn = null;
+  stopHeartbeat();
   stopSilentLoop();
   void releaseWakeLock();
 }
