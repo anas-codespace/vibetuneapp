@@ -46,7 +46,8 @@ import { AddToPlaylistSheet } from "@/components/AddToPlaylistSheet";
 import { QueueDrawer } from "@/components/QueueDrawer";
 import { cn } from "@/lib/utils";
 import { cleanYouTubeTitle } from "@/utils/textUtils";
-import { useDownloads } from "@/hooks/use-downloads";
+import { useDownloads, isTrackDownloaded } from "@/hooks/use-downloads";
+import { isOffline } from "@/hooks/use-online-status";
 
 export interface VibeTrack {
   youtubeId: string;
