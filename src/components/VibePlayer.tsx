@@ -109,6 +109,17 @@ function loadYT(): Promise<any> {
   return ytReadyPromise;
 }
 
+/**
+ * Offline gate: when the device has no connection, only tracks saved to the
+ * offline library can be played.
+ */
+function blockedOffline(track: VibeTrack): boolean {
+  if (!isOffline()) return false;
+  if (isTrackDownloaded(track.youtubeId)) return false;
+  toast.error("You're offline — only downloaded songs can play.");
+  return true;
+}
+
 /* ------------------------------ Provider ------------------------------ */
 
 export function VibePlayerProvider({ children }: { children: React.ReactNode }) {
