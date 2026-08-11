@@ -108,59 +108,19 @@ function LoginPage() {
     if (next && typeof window !== "undefined") {
       sessionStorage.setItem("post_login_next", next);
     }
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin + "/login",
-        skipBrowserRedirect: true,
-      },
+    // Managed in-app OAuth: opens Google in an in-app popup and sets the
+    // session without navigating the app away.
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin + "/login",
     });
-
-    if (error) {
+    if (result.error) {
       setGoogleLoading(false);
-      toast.error(error.message ?? "Google sign-in failed.");
+      toast.error(result.error.message ?? "Google sign-in failed.");
       return;
     }
-
-    if (data?.url) {
-      const width = 500;
-      const height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-
-      const popup = window.open(
-        data.url,
-        "google-login",
-        `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
-      );
-
-      if (!popup) {
-        // Fallback: If popup is blocked, try opening in a new tab
-        const newTab = window.open(data.url, "_blank");
-        if (!newTab) {
-          setGoogleLoading(false);
-          toast.error("Sign-in window blocked. Please allow popups or new tabs for this site.");
-          return;
-        }
-        
-        // Monitor the new tab just like the popup
-        const timer = setInterval(() => {
-          if (newTab.closed) {
-            clearInterval(timer);
-            setGoogleLoading(false);
-          }
-        }, 500);
-        return;
-      }
-
-      const timer = setInterval(async () => {
-        if (popup.closed) {
-          clearInterval(timer);
-          setGoogleLoading(false);
-          // After popup closes, the main window auth listener or session check will trigger the redirect
-        }
-      }, 500);
-    }
+    if (result.redirected) return;
+    setGoogleLoading(false);
+    // Session set by helper; the `status === "authenticated"` effect navigates.
   }
 
 
