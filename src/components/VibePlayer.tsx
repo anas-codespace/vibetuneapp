@@ -358,6 +358,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   }, [contextFn]);
 
   const play = useCallback((track: VibeTrack, q?: VibeTrack[]) => {
+    if (blockedOffline(track)) return;
     // Emit the previous track's outcome (user swapped songs mid-play).
     flushListenEvent("next_pressed");
     const newQueue = q ?? [track];
@@ -379,6 +380,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
 
   const startMix = useCallback((tracks: VibeTrack[]) => {
     if (tracks.length === 0) return;
+    if (blockedOffline(tracks[0])) return;
     flushListenEvent("next_pressed");
     setMixMode(true);
     setQueue(tracks);
@@ -393,6 +395,7 @@ export function VibePlayerProvider({ children }: { children: React.ReactNode }) 
   }, [loadAndPlay, logListenFn, flushListenEvent, beginTrack]);
 
   const addToQueue = useCallback((track: VibeTrack) => {
+    if (blockedOffline(track)) return;
     setCurrent((cur) => {
       if (!cur) {
         // Nothing playing → start this track immediately.
