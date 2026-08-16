@@ -5,10 +5,20 @@
 	"server": {
 		"url": "https://vibetuneapp.lovable.app",
 		"cleartext": true,
-		"androidScheme": "https"
+		"androidScheme": "https",
+		"allowNavigation": [
+			"vibetuneapp.lovable.app",
+			"*.lovable.app",
+			"accounts.google.com",
+			"*.google.com",
+			"*.googleusercontent.com",
+			"*.supabase.co",
+			"*.gstatic.com"
+		]
 	},
 	"android": {
 		"allowMixedContent": true,
+		"adjustMarginsForEdgeToEdge": "force",
 		"backgroundColor": "#000000",
 		"webContentsDebuggingEnabled": false
 	},
@@ -25,7 +35,7 @@
 		"StatusBar": {
 			"style": "DARK",
 			"backgroundColor": "#000000",
-			"overlaysWebView": false
+			"overlaysWebView": true
 		}
 	}
 }

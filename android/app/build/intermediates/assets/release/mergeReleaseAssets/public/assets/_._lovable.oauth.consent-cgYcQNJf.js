@@ -1,1 +1,0 @@
-import{j as t}from"./index-CAoqMGCB.js";const o=({error:s})=>t.jsxs("main",{className:"mx-auto max-w-md p-8 text-white",children:[t.jsx("h1",{className:"mb-3 text-xl font-semibold",children:"Couldn't load this authorization"}),t.jsx("p",{className:"text-sm text-white/70",children:String(s?.message??s)})]});export{o as errorComponent};

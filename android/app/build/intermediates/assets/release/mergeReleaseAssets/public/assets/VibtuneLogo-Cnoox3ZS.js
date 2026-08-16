@@ -1,0 +1,1 @@
+import{j as t}from"./index-BMDC_Orb.js";const o="/__l5e/assets-v1/87b1e790-f53f-4d8e-9e39-9dea429cc82f/vibtune-logo.png",s={url:o};function r({className:e="h-10 w-auto"}){return t.jsx("img",{src:s.url,alt:"Vibtune — Feel the Vibe",className:e})}export{r as V};
