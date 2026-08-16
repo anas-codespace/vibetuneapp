@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import type { VibeTrack } from "@/components/VibePlayer";
 import { saveAudioBlob, deleteAudioBlob, getAudioBlob } from "@/lib/offline/storage";
+import { writeNativeAudio, deleteNativeAudio, ensureNativeDir } from "@/lib/offline/native-fs";
 
 const KEY = "vibtune:downloads:v1";
 
@@ -97,6 +98,8 @@ export function useDownloads() {
       // Metadata could store quality if needed
       const blob = new Blob([`offline-audio-stub-${quality}`], { type: "audio/mpeg" });
       await saveAudioBlob(id, blob);
+      await writeNativeAudio(id, blob);
+      // Also persist to the device filesystem (Documents/Vibetune) on Android.
       
       const cur = read();
       if (!cur.some(t => t.youtubeId === id)) {
@@ -124,6 +127,7 @@ export function useDownloads() {
   }, [queue, processQueue]);
 
   const download = useCallback((track: VibeTrack) => {
+    void ensureNativeDir();
     if (queue.some(t => t.track.youtubeId === track.youtubeId)) return;
     if (isDownloaded(track.youtubeId)) return;
 
@@ -158,6 +162,7 @@ export function useDownloads() {
 
   const remove = useCallback(async (id: string) => {
     await deleteAudioBlob(id);
+    await deleteNativeAudio(id);
     write(read().filter((t) => t.youtubeId !== id));
   }, []);
 
@@ -174,6 +179,7 @@ export function useDownloads() {
     if (ids.length === 0) return;
     for (const id of ids) {
       await deleteAudioBlob(id);
+      await deleteNativeAudio(id);
     }
     const set = new Set(ids);
     write(read().filter((t) => !set.has(t.youtubeId)));
@@ -183,6 +189,7 @@ export function useDownloads() {
     const all = read();
     for (const t of all) {
       await deleteAudioBlob(t.youtubeId);
+      await deleteNativeAudio(t.youtubeId);
     }
     write([]);
   }, []);

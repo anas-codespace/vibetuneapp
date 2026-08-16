@@ -108,6 +108,29 @@ function LoginPage() {
     if (next && typeof window !== "undefined") {
       sessionStorage.setItem("post_login_next", next);
     }
+
+    // Inside the Android shell a popup/new window is handed to Chrome by the
+    // system. There we navigate the app's own webview instead, so Google stays
+    // inside the app and returns straight back to /login.
+    const isNative =
+      typeof window !== "undefined" &&
+      !!(window as any).Capacitor?.isNativePlatform?.();
+
+    if (isNative) {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin + "/login",
+          skipBrowserRedirect: false,
+        },
+      });
+      if (error) {
+        setGoogleLoading(false);
+        toast.error(error.message ?? "Google sign-in failed.");
+      }
+      return;
+    }
+
     // Managed in-app OAuth: opens Google in an in-app popup and sets the
     // session without navigating the app away.
     const result = await lovable.auth.signInWithOAuth("google", {

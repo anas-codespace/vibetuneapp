@@ -11,9 +11,22 @@ const config: CapacitorConfig = {
     url: process.env.CAPACITOR_SERVER_URL || "https://vibetuneapp.lovable.app",
     cleartext: true,
     androidScheme: "https",
+    // Keep OAuth (Google / Supabase) inside the app webview instead of
+    // handing the URL to Chrome.
+    allowNavigation: [
+      "vibetuneapp.lovable.app",
+      "*.lovable.app",
+      "accounts.google.com",
+      "*.google.com",
+      "*.googleusercontent.com",
+      "*.supabase.co",
+      "*.gstatic.com",
+    ],
   },
   android: {
     allowMixedContent: true,
+    // Immersive, edge-to-edge full screen shell.
+    adjustMarginsForEdgeToEdge: "force",
     backgroundColor: "#000000",
     webContentsDebuggingEnabled: false,
   },
@@ -30,7 +43,7 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: "DARK",
       backgroundColor: "#000000",
-      overlaysWebView: false,
+      overlaysWebView: true,
     },
   },
 };
